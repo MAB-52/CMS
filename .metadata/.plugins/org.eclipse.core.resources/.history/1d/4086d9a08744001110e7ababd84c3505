@@ -1,0 +1,5 @@
+package com.consentiq.model.dto.response;
+
+public class UserRowResponse {
+
+}

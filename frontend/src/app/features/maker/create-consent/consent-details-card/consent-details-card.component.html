@@ -1,0 +1,97 @@
+<div class="card" dir="ltr">
+  <div class="head">
+    <div>
+      <h2 class="title">Consent Details</h2>
+      <p class="sub">Basic information about this consent</p>
+    </div>
+    @if (status) {
+      <app-status-badge [status]="status" />
+    }
+  </div>
+
+  <mat-form-field appearance="outline" class="full mono id-field">
+    <mat-label>Consent ID</mat-label>
+    <span matPrefix class="pfx">🔒&nbsp;</span>
+    <input matInput readonly [value]="idLoading ? 'Generating…' : consentIdPreview" />
+    <mat-hint>Auto-generated unique identifier</mat-hint>
+  </mat-form-field>
+
+  <div [formGroup]="form">
+    @if (validationErrors().length) {
+      <div class="val-summary">
+        <strong>Please fix the following errors:</strong>
+        <ul>
+          @for (e of validationErrors(); track e) {
+            <li>{{ e }}</li>
+          }
+        </ul>
+      </div>
+    }
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Consent Name *</mat-label>
+      <input matInput formControlName="consentName" maxlength="200" placeholder="e.g. Marketing Communications v2.0" />
+      <mat-hint align="end">{{ form.controls['consentName'].value?.length || 0 }} / 200</mat-hint>
+      @if (form.controls['consentName'].touched && form.controls['consentName'].hasError('required')) {
+        <mat-error>Required</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Description *</mat-label>
+      <textarea matInput rows="4" formControlName="description" maxlength="1000" placeholder="Describe the purpose…"></textarea>
+      <mat-hint align="end">{{ form.controls['description'].value?.length || 0 }} / 1000</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Category *</mat-label>
+      <mat-select formControlName="category">
+        @for (c of categories; track c.value) {
+          <mat-option [value]="c.value">{{ c.icon }} {{ c.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Validity Period *</mat-label>
+      <mat-select formControlName="validityPreset">
+        @for (p of presets; track p.value) {
+          <mat-option [value]="p.value">{{ p.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    @if (form.controls['validityPreset'].value === 'custom') {
+      <div class="row-dates">
+        <mat-form-field appearance="outline" class="half">
+          <mat-label>Start Date</mat-label>
+          <input matInput type="date" formControlName="validityStartDate" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="half">
+          <mat-label>End Date</mat-label>
+          <input matInput type="date" formControlName="validityEndDate" />
+        </mat-form-field>
+      </div>
+    }
+
+    <div class="tags-block">
+      <label class="lbl">Tags (optional)</label>
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Add tag — press Enter</mat-label>
+        <input
+          matInput
+          #tagIn
+          (keydown.enter)="$event.preventDefault(); addTag(tagIn.value); tagIn.value = ''"
+        />
+      </mat-form-field>
+      <div class="chips">
+        @for (t of form.controls['tagsUsed'].value || []; track t) {
+          <span class="chip">
+            {{ t }}
+            <button type="button" class="chip-x" (click)="removeTag(t)" aria-label="Remove">×</button>
+          </span>
+        }
+      </div>
+    </div>
+  </div>
+</div>

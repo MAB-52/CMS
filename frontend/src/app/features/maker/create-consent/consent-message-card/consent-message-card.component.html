@@ -1,0 +1,52 @@
+<div class="card" [formGroup]="form" dir="ltr">
+  <div class="head">
+    <div>
+      <h2 class="title">Consent Message</h2>
+      <p class="sub">WYSIWYG Rich Text Editor</p>
+    </div>
+    <button mat-stroked-button type="button" class="ciq-btn-secondary" (click)="openPreview()">👁 Preview</button>
+  </div>
+
+  <div class="editor-wrap">
+    <quill-editor
+      #editor
+      formControlName="consentMessage"
+      theme="snow"
+      [modules]="quillModules"
+      (onEditorCreated)="onEditorCreated($event)"
+      (onContentChanged)="onContentChanged($event)"
+      placeholder="Write your consent message here. Use the tags below to insert dynamic customer fields…"
+    ></quill-editor>
+  </div>
+
+  <div class="stats-bar">
+    <span>Characters: {{ charCount() }}</span>
+    <span>Tags used: {{ usedKeys.size }}</span>
+  </div>
+
+  <div class="tags-section">
+    <div class="sec-label">📎 Insert Field Tags</div>
+    <p class="sec-hint">Click any tag to insert it at your cursor position</p>
+    @for (cat of categories; track cat) {
+      <div class="cat-block">
+        <span class="cat-pill">{{ categoryIcon(cat) }} {{ cat }}</span>
+        <div class="tag-row">
+          @for (tag of grouped[cat]; track tag.tagKey) {
+            <button
+              type="button"
+              class="tag-chip"
+              [class.tag-chip--used]="usedKeys.has(tag.tagKey)"
+              [class.tag-chip--disabled]="!isQuillReady()"
+              (click)="insertTag(tag)"
+            >
+              @if (usedKeys.has(tag.tagKey)) {
+                <span>✓ </span>
+              }
+              {{ tag.tagLabel }}
+            </button>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>

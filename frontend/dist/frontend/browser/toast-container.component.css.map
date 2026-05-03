@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/shared/components/toast-container/toast-container.component.scss"],
+  "sourcesContent": [".toast-stack {\r\n  position: fixed;\r\n  top: 16px;\r\n  right: 16px;\r\n  z-index: 9999;\r\n  display: flex;\r\n  flex-direction: column;\r\n  gap: 8px;\r\n  pointer-events: none;\r\n}\r\n\r\n.toast-stack app-toast-item {\r\n  pointer-events: auto;\r\n}\r\n"],
+  "mappings": ";AAAA,CAAA;AACE,YAAA;AACA,OAAA;AACA,SAAA;AACA,WAAA;AACA,WAAA;AACA,kBAAA;AACA,OAAA;AACA,kBAAA;;AAGF,CAXA,YAWA;AACE,kBAAA;;",
+  "names": []
+}

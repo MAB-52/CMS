@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/features/admin/admin.routes.ts"],
+  "sourcesContent": ["import { Routes } from '@angular/router';\r\n\r\nexport const adminRoutes: Routes = [\r\n  {\r\n    path: '',\r\n    loadComponent: () =>\r\n      import('./admin-layout/admin-layout.component').then((m) => m.AdminLayoutComponent),\r\n    children: [\r\n      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },\r\n      {\r\n        path: 'dashboard',\r\n        data: { title: 'Dashboard' },\r\n        loadComponent: () =>\r\n          import('./admin-dashboard/admin-dashboard.component').then((m) => m.AdminDashboardComponent),\r\n      },\r\n      {\r\n        path: 'capture-consent',\r\n        data: { title: 'Capture Consent' },\r\n        loadComponent: () =>\r\n          import('./admin-capture-consent/admin-capture-consent.component').then(\r\n            (m) => m.AdminCaptureConsentComponent,\r\n          ),\r\n      },\r\n    ],\r\n  },\r\n];\r\n"],
+  "mappings": ";;;AAEO,IAAM,cAAsB;EACjC;IACE,MAAM;IACN,eAAe,MACb,OAAO,qBAAuC,EAAE,KAAK,CAAC,MAAM,EAAE,oBAAoB;IACpF,UAAU;MACR,EAAE,MAAM,IAAI,WAAW,QAAQ,YAAY,YAAW;MACtD;QACE,MAAM;QACN,MAAM,EAAE,OAAO,YAAW;QAC1B,eAAe,MACb,OAAO,qBAA6C,EAAE,KAAK,CAAC,MAAM,EAAE,uBAAuB;;MAE/F;QACE,MAAM;QACN,MAAM,EAAE,OAAO,kBAAiB;QAChC,eAAe,MACb,OAAO,qBAAyD,EAAE,KAChE,CAAC,MAAM,EAAE,4BAA4B;;;;;",
+  "names": []
+}

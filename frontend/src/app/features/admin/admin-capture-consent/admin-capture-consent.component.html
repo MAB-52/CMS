@@ -1,0 +1,146 @@
+<div class="panels" dir="ltr">
+  <section class="panel" aria-labelledby="send-link-title">
+    <h2 id="send-link-title" class="panel-title">Send Consent via Link</h2>
+
+    <div class="search-row">
+      <input
+        type="text"
+        class="ctl grow"
+        placeholder="Customer ID or Mobile Number"
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)"
+        (keyup.enter)="onSearch()"
+      />
+      <button mat-stroked-button type="button" [disabled]="searchBusy()" (click)="onSearch()">
+        {{ searchBusy() ? 'Searching…' : 'Search' }}
+      </button>
+    </div>
+
+    @if (customer(); as c) {
+  <div class="customer-block">
+    <div class="customer-name">{{ c.fullName }}</div>
+    <div class="customer-meta">Registered email: {{ c.email || '—' }}</div>
+    <div class="customer-meta">Customer ID: {{ c.customerId }} · {{ c.mobileNumber }}</div>
+    @if (c.activeDeliveryChannels?.length) {
+      <div class="customer-meta">
+        Consented channels:
+        @for (ch of c.activeDeliveryChannels; track ch) {
+          <span class="channel-tag">{{ ch }}</span>
+        }
+      </div>
+    }
+  </div>
+}
+
+    <label class="stack">
+      <span class="lbl">Select Consent</span>
+      <select
+        class="ctl"
+        [value]="leftTemplateId() ?? ''"
+        (change)="onLeftTemplateChange($any($event.target).value)"
+      >
+        <option value="">Choose template…</option>
+        @for (t of templates(); track t.id) {
+          <option [value]="t.id">{{ t.consentName }}</option>
+        }
+      </select>
+    </label>
+
+    <label class="stack">
+      <span class="lbl">Delivery Channel</span>
+      <select
+        class="ctl"
+        [value]="leftDelivery()"
+        [disabled]="deliveryChannels().length === 0"
+        (change)="leftDelivery.set($any($event.target).value || ''); resetLinkOnLeftChange()"
+      >
+        <option value="">Choose channel…</option>
+        @for (ch of deliveryChannels(); track ch) {
+          <option [value]="ch">{{ ch }}</option>
+        }
+      </select>
+    </label>
+
+    @if (infoMessage()) {
+      <p class="info-msg">{{ infoMessage() }}</p>
+    }
+
+    <p class="send-note">
+      A professional consent-request email is always sent to the customer's <strong>registered email address</strong>.
+      The delivery channel you select describes how you intend to reach them after consent — it does not disable this
+      email.
+    </p>
+
+    <div class="btn-row">
+      @if (sendBusy()) {
+        <mat-progress-spinner class="send-spin" diameter="28" mode="indeterminate" />
+      }
+      <button mat-stroked-button type="button" [disabled]="!canCopyLink() || sendBusy()" (click)="copyLink()">
+        Copy Link
+      </button>
+      <button mat-flat-button color="primary" type="button" [disabled]="sendBusy()" (click)="sendLink()">
+        {{ sendBusy() ? 'Sending…' : 'Send consent email' }}
+      </button>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="behalf-title">
+    <h2 id="behalf-title" class="panel-title">Take Consent on Behalf</h2>
+
+    @if (!customer()) {
+      <p class="hint">Search for a customer in the left panel to attach this record.</p>
+    }
+
+    <label class="stack">
+      <span class="lbl">Consent</span>
+      <select class="ctl" [value]="rightTemplateId() ?? ''" (change)="rightTemplateId.set(parseSelectNumber($any($event.target).value))">
+        <option value="">Choose consent type…</option>
+        @for (t of templates(); track t.id) {
+          <option [value]="t.id">{{ t.consentName }}</option>
+        }
+      </select>
+    </label>
+
+    <label class="stack">
+      <span class="lbl">Mode</span>
+      <select class="ctl" [value]="rightMode()" (change)="rightMode.set($any($event.target).value || '')">
+        <option value="">Choose mode…</option>
+        @for (m of modeOptions; track m) {
+          <option [value]="m">{{ m }}</option>
+        }
+      </select>
+    </label>
+
+    <label class="stack">
+      <span class="lbl">Source Channel</span>
+      <select class="ctl" [value]="rightSource()" (change)="rightSource.set($any($event.target).value || '')">
+        <option value="">Choose source…</option>
+        @for (s of sourceOptions; track s) {
+          <option [value]="s">{{ s }}</option>
+        }
+      </select>
+    </label>
+
+    <label class="stack">
+      <span class="lbl">Evidence Reference</span>
+      <input
+        type="text"
+        class="ctl"
+        placeholder="Call ID, Document No."
+        [ngModel]="evidenceRef()"
+        (ngModelChange)="evidenceRef.set($event)"
+      />
+    </label>
+
+    <button
+      mat-flat-button
+      color="primary"
+      type="button"
+      class="record-btn"
+      [disabled]="recordBusy()"
+      (click)="recordConsent()"
+    >
+      {{ recordBusy() ? 'Recording…' : 'Record Consent' }}
+    </button>
+  </section>
+</div>

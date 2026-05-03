@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/shared/components/review-action-dialog/review-action-dialog.component.ts"],
+  "sourcesContent": ["\n      .dlg {\n        padding-top: 4px;\n      }\n      .head {\n        display: flex;\n        align-items: center;\n        gap: 10px;\n      }\n      .ico {\n        font-size: 28px;\n      }\n      .ttl {\n        margin: 0;\n        font-size: 18px;\n        font-weight: 700;\n      }\n      .full {\n        width: 100%;\n        margin-top: 8px;\n      }\n      .err {\n        color: #b91c1c;\n        font-size: 13px;\n        margin: 0 0 8px;\n      }\n    "],
+  "mappings": ";AACM,CAAA;AACE,eAAA;;AAEF,CAAA;AACE,WAAA;AACA,eAAA;AACA,OAAA;;AAEF,CAAA;AACE,aAAA;;AAEF,CAAA;AACE,UAAA;AACA,aAAA;AACA,eAAA;;AAEF,CAAA;AACE,SAAA;AACA,cAAA;;AAEF,CAAA;AACE,SAAA;AACA,aAAA;AACA,UAAA,EAAA,EAAA;;",
+  "names": []
+}

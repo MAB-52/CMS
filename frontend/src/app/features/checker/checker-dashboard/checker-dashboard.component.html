@@ -1,0 +1,55 @@
+<div class="page">
+  <div class="stats">
+    <div class="stat amber">
+      <div class="lbl">⏳ Pending Review</div>
+      <div class="val">{{ stats()?.pendingReview ?? '—' }}</div>
+    </div>
+    <div class="stat green">
+      <div class="lbl">✅ Approved Today</div>
+      <div class="val">{{ stats()?.approvedToday ?? '—' }}</div>
+    </div>
+    <div class="stat red">
+      <div class="lbl">❌ Rejected</div>
+      <div class="val">{{ stats()?.rejectedTotal ?? '—' }}</div>
+    </div>
+    <div class="stat indigo">
+      <div class="lbl">📊 Total Reviewed</div>
+      <div class="val">{{ stats()?.totalReviewed ?? '—' }}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="hd">
+      <h2>Pending queue</h2>
+      <a mat-stroked-button routerLink="/checker/pending">View all</a>
+    </div>
+    @if (!pending().length) {
+      <p class="muted">No pending items.</p>
+    } @else {
+      <ul class="mini">
+        @for (c of pending(); track c.id) {
+          <li>
+            <a [routerLink]="['/checker/consents', c.id, 'review']">{{ c.consentName }}</a>
+            <span class="sub">{{ c.consentId }} · {{ c.updatedAt | timeAgo }}</span>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+
+  <div class="card">
+    <h2>Recent review activity</h2>
+    @if (!feed().length) {
+      <p class="muted">No recent actions.</p>
+    } @else {
+      <ul class="feed">
+        @for (e of feed(); track e.id) {
+          <li>
+            <strong>{{ e.action }}</strong>
+            <span class="sub">{{ e.description }} · {{ e.performedAt | timeAgo }}</span>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</div>

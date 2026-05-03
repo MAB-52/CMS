@@ -1,0 +1,97 @@
+<div class="page" dir="ltr">
+  <div class="page-head">
+    <div>
+      <div class="crumb">Maker / Create Consent</div>
+      <h1 class="ttl">{{ isCreatePage() ? 'Create New Consent' : 'Edit Consent' }}</h1>
+    </div>
+    <div class="actions">
+      <button
+        mat-stroked-button
+        type="button"
+        class="ciq-btn-secondary"
+        [disabled]="!nameOk() || !editable()"
+        (click)="saveDraft()"
+      >
+        💾 Save Draft
+      </button>
+      <button
+        mat-flat-button
+        color="primary"
+        type="button"
+        class="ciq-btn-primary"
+        [disabled]="!canSubmit() || !editable()"
+        (click)="submitForApproval()"
+      >
+        📤 Submit for Approval
+      </button>
+    </div>
+  </div>
+
+  <div class="autosave">
+    💾 Draft auto-saves every 2 minutes.
+    @if (autosaveBusy()) {
+      <span class="muted">Saving…</span>
+    } @else if (lastSaved()) {
+      <span class="muted">Last saved: {{ lastSaved() }}</span>
+    }
+  </div>
+
+  @if (loadedStatus() === 'PENDING_APPROVAL') {
+    <div class="banner banner--amber">
+      <div>
+        <div class="banner-title">⏳ Pending Checker Approval <span class="dot">● Awaiting</span></div>
+        <p class="banner-text">Your consent is being reviewed by the Checker.</p>
+      </div>
+    </div>
+  }
+
+  @if (loadedStatus() === 'REVISION_REQUESTED') {
+    <div class="banner banner--orange">
+      <div class="banner-title">↩ Revision Requested by Checker</div>
+      @if (revisionMessage()) {
+        <blockquote class="rev-q">“{{ revisionMessage() }}”</blockquote>
+      }
+      <p class="banner-text">Please update and resubmit.</p>
+    </div>
+  }
+
+  <div class="grid-top">
+    <app-consent-details-card
+      class="col-left"
+      [form]="form"
+      [status]="loadedStatus()"
+      [consentIdPreview]="consentIdPreview()"
+      [idLoading]="idLoading()"
+      [submitted]="formSubmitted()"
+    />
+    <app-consent-message-card
+      class="col-right"
+      [form]="form"
+      [grouped]="grouped"
+      [allTags]="mergeTags"
+      (tagsUsedChange)="onTagsFromMessage($event)"
+    />
+  </div>
+
+  <app-delivery-channels-card class="block" [form]="form" [previewHtml]="previewHtml()" [mergeTags]="mergeTags" />
+
+  <app-audit-activity-card class="block" [consentDbId]="consentDbId()" />
+
+  <div class="sticky-actions">
+    <div class="prog">
+      @let p = progress();
+      <span>{{ p.details ? '●' : '○' }} Details</span>
+      <span>{{ p.message ? '●' : '○' }} Message</span>
+      <span>{{ p.channels ? '●' : '○' }} Channels</span>
+      <span>{{ p.ready ? '●' : '○' }} Ready</span>
+    </div>
+    <div class="act">
+      <button mat-stroked-button type="button" class="ciq-btn-secondary" [disabled]="!nameOk() || !editable()" (click)="saveDraft()">
+        💾 Save Draft
+      </button>
+      <button mat-flat-button color="primary" type="button" [disabled]="!canSubmit() || !editable()" (click)="submitForApproval()">
+        📤 Submit for Approval
+      </button>
+    </div>
+  </div>
+</div>

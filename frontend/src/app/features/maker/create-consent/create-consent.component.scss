@@ -1,0 +1,147 @@
+.page {
+  max-width: 1280px;
+  margin: 0 auto 96px;
+}
+
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.crumb {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.ttl {
+  margin: 4px 0 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.autosave {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 16px;
+}
+
+.autosave .muted {
+  margin-left: 8px;
+}
+
+.banner {
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
+
+.banner--amber {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+}
+
+.banner--orange {
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+}
+
+.banner-title {
+  font-weight: 700;
+  color: #92400e;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.banner--orange .banner-title {
+  color: #9a3412;
+}
+
+.dot {
+  font-size: 12px;
+  color: #d97706;
+}
+
+.banner-text {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: #78350f;
+}
+
+.grid-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 20px;
+  align-items: stretch;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 1024px) {
+  .grid-top {
+    grid-template-columns: 1fr;
+  }
+}
+
+.block {
+  display: block;
+  margin-bottom: 20px;
+}
+
+.sticky-actions {
+  position: fixed;
+  left: calc(var(--sidebar-width) + 0px);
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 24px;
+  background: #fff;
+  border-top: 1px solid #e2e8f0;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
+}
+
+@media (max-width: 900px) {
+  .sticky-actions {
+    left: 0;
+  }
+}
+
+.prog {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.prog .on {
+  color: #6366f1;
+  font-weight: 600;
+}
+
+.act {
+  display: flex;
+  gap: 10px;
+}
+
+.rev-q {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.65);
+  border-left: 3px solid #ea580c;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #7c2d12;
+}

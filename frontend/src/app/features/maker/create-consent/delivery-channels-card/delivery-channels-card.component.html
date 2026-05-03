@@ -1,0 +1,89 @@
+<div class="card" [formGroup]="form">
+  <div class="head">
+    <h2 class="title">Delivery Channels &amp; Message Preview</h2>
+    <p class="sub">Select channels and preview how your message will appear to recipients</p>
+  </div>
+
+  <div class="channel-row">
+    @for (ch of channels; track ch.id) {
+      <button type="button" class="ch-card" [class.ch-card--on]="isOn(ch.id)" (click)="toggle(ch.id)">
+        @if (isOn(ch.id)) {
+          <span class="check">✓</span>
+        }
+        <div class="ch-top">
+          <span class="ch-ico">{{ ch.icon }}</span>
+          <div>
+            <div class="ch-name">{{ ch.name }}</div>
+            <div class="ch-desc">{{ ch.desc }}</div>
+          </div>
+        </div>
+        <div class="ch-foot">
+          @if (isOn(ch.id)) {
+            <span class="sel-yes">Selected ✓</span>
+          } @else {
+            <span class="sel-no">Click to select</span>
+          }
+        </div>
+      </button>
+    }
+  </div>
+
+  @if (!selected.length) {
+    <div class="empty-prev">
+      <div class="empty-ico">📡</div>
+      <p>Select a delivery channel above to preview your message</p>
+    </div>
+  } @else {
+    <mat-tab-group [(selectedIndex)]="activeTab" class="tabs" animationDuration="200ms">
+      @for (id of selected; track id) {
+        <mat-tab [label]="tabHeader(id)">
+          @if (id === 'EMAIL') {
+            <div class="mock-email">
+              <div class="mock-h">From: noreply&#64;consentiq.com</div>
+              <div class="mock-h">To: john.doe&#64;example.com</div>
+              <div class="mock-h">Subject: Action Required: Consent Request</div>
+              <div class="mock-body">
+                <div class="logo-ph">[Company Logo Area]</div>
+                <div class="html-prev" [innerHTML]="processedEmailHtml()"></div>
+                <div class="foot">ConsentIQ · Unsubscribe · Privacy Policy</div>
+              </div>
+            </div>
+          }
+          @if (id === 'SMS') {
+            <div class="mock-sms-wrap">
+              <div class="mock-phone">
+                <div class="sms-bubble">
+                  <div class="sms-title">ConsentIQ</div>
+                  <div class="sms-txt">{{ smsBody() }}</div>
+                </div>
+                <div class="sms-time">9:41 AM</div>
+              </div>
+              <div class="sms-meta">{{ smsLen() }} / 160 characters</div>
+              @if (smsLen() > 160) {
+                <div class="sms-warn">⚠️ Message will be split into 2 SMS</div>
+              }
+            </div>
+          }
+          @if (id === 'PUSH') {
+            <div class="mock-push">
+              <div class="push-top">
+                <span>🔔 ConsentIQ</span>
+                <span class="now">now</span>
+              </div>
+              <div class="push-title">Action Required</div>
+              <div class="push-body">{{ pushBody() }}</div>
+            </div>
+          }
+          @if (id === 'WHATSAPP') {
+            <div class="mock-wa">
+              <div class="wa-head">🟢 ConsentIQ</div>
+              <div class="wa-body">
+                <div class="wa-bubble">{{ waBody() }}<span class="wa-meta">9:41 ✓✓</span></div>
+              </div>
+            </div>
+          }
+        </mat-tab>
+      }
+    </mat-tab-group>
+  }
+</div>

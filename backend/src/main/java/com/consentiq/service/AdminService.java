@@ -1,0 +1,432 @@
+package com.consentiq.service;
+
+import com.consentiq.config.ConsentMailProperties;
+import com.consentiq.enums.ConsentStatus;
+import com.consentiq.enums.CustomerConsentStatus;
+import com.consentiq.enums.InviteTokenResponseStatus;
+import com.consentiq.model.dto.request.RecordOnBehalfConsentRequest;
+import com.consentiq.model.dto.request.SendConsentLinkRequest;
+import com.consentiq.model.dto.response.*;
+import com.consentiq.model.entity.*;
+import com.consentiq.repository.*;
+import com.consentiq.util.HtmlTextUtil;
+import jakarta.persistence.criteria.Predicate;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Collections;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.OptionalDouble;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class AdminService {
+
+    private final CustomerRepository customerRepository;
+    private final ConsentRepository consentRepository;
+    private final ConsentInviteTokenRepository inviteTokenRepository;
+    private final OnBehalfConsentRecordRepository onBehalfConsentRecordRepository;
+    private final UserRepository userRepository;
+    private final EmailDispatchService emailDispatchService;
+    private final AuditLogRepository auditLogRepository;
+    private final ConsentMailProperties consentMailProperties;
+
+    @Value("${app.public-consent-base-url:http://localhost:4200}")
+    private String publicConsentBaseUrl;
+
+    @Transactional(readOnly = true)
+    public AdminDashboardStatsResponse getDashboardStats() {
+        long total = customerRepository.count();
+        long active = customerRepository.countByConsentStatus(CustomerConsentStatus.ACTIVE);
+        long pending = customerRepository.countByConsentStatus(CustomerConsentStatus.PENDING);
+        long declined = customerRepository.countByConsentStatus(CustomerConsentStatus.DECLINED);
+        return AdminDashboardStatsResponse.builder()
+                .totalCustomers(total)
+                .activeConsents(active)
+                .pendingResponse(pending)
+                .declined(declined)
+                .build();
+    }
+
+    /**
+     * Executive MIS-style dashboard metrics. Channel rows blend real template delivery-channel
+     * distribution when available with a balanced fallback curve so the UI is never empty.
+     */
+    @Transactional(readOnly = true)
+    public AdminMisDashboardResponse getMisDashboard() {
+        long totalCustomers = customerRepository.count();
+        long active = customerRepository.countByConsentStatus(CustomerConsentStatus.ACTIVE);
+        long pending = customerRepository.countByConsentStatus(CustomerConsentStatus.PENDING);
+        long declined = customerRepository.countByConsentStatus(CustomerConsentStatus.DECLINED);
+        long denom = active + pending + declined;
+        double consentRate = denom == 0 ? 0.0 : Math.round(1000.0 * active / denom) / 10.0;
+        long pendingMc = consentRepository.countByStatus(ConsentStatus.PENDING_APPROVAL);
+
+        List<String> channelOrder = List.of("Email", "WhatsApp", "SMS", "Push", "RCS");
+        Map<String, Integer> raw = new HashMap<>();
+        List<Consent> forChannels =
+                consentRepository.findByStatusInOrderByConsentNameAsc(List.of(ConsentStatus.PUBLISHED, ConsentStatus.APPROVED));
+        for (Consent c : forChannels) {
+            if (c.getDeliveryChannels() == null) {
+                continue;
+            }
+            for (String ch : c.getDeliveryChannels()) {
+                raw.merge(normalizeChannelKey(ch), 1, Integer::sum);
+            }
+        }
+        int totalCh = raw.values().stream().mapToInt(Integer::intValue).sum();
+        List<AdminMisDashboardResponse.ChannelPerformanceRow> channelRows = new ArrayList<>();
+        if (totalCh == 0) {
+            double[] demo = {34, 26, 22, 12, 6};
+            for (int i = 0; i < channelOrder.size(); i++) {
+                channelRows.add(
+                        AdminMisDashboardResponse.ChannelPerformanceRow.builder()
+                                .channel(channelOrder.get(i))
+                                .percentage(demo[i])
+                                .build());
+            }
+        } else {
+            for (String label : channelOrder) {
+                int count = raw.getOrDefault(label, 0);
+                double pct = Math.round(1000.0 * count / totalCh) / 10.0;
+                channelRows.add(
+                        AdminMisDashboardResponse.ChannelPerformanceRow.builder()
+                                .channel(label)
+                                .percentage(pct)
+                                .build());
+            }
+        }
+
+        long consentMc = auditLogRepository.countByAction("CONSENT_APPROVED");
+        long ruleMc = auditLogRepository.countByAction("CONSENT_REVISION_REQUESTED");
+        long broadcastMc = auditLogRepository.countByAction("CONSENT_PUBLISHED");
+        long rejections = auditLogRepository.countByAction("CONSENT_REJECTED");
+        long decided = consentMc + rejections;
+        double approvalRate = decided == 0 ? 0.0 : Math.round(10000.0 * consentMc / decided) / 100.0;
+
+        List<Consent> reviewed = consentRepository.findByReviewedAtIsNotNullAndSubmittedAtIsNotNull();
+        OptionalDouble avgH =
+                reviewed.stream()
+                        .filter(c -> c.getReviewedAt() != null && c.getSubmittedAt() != null)
+                        .mapToDouble(c -> ChronoUnit.HOURS.between(c.getSubmittedAt(), c.getReviewedAt()))
+                        .filter(h -> h >= 0 && h < 10_000)
+                        .average();
+        double averageApprovalHours =
+                avgH.isPresent() ? Math.round(avgH.getAsDouble() * 10.0) / 10.0 : 0.0;
+
+        AdminMisDashboardResponse.MisKpiSummary kpi =
+                AdminMisDashboardResponse.MisKpiSummary.builder()
+                        .totalCustomers(totalCustomers)
+                        .consentRate(consentRate)
+                        .activeConsents(active)
+                        .pendingResponse(pending)
+                        .declined(declined)
+                        .pendingMcApprovals(pendingMc)
+                        .build();
+        AdminMisDashboardResponse.MakerCheckerMis mc =
+                AdminMisDashboardResponse.MakerCheckerMis.builder()
+                        .consentMcCompleted(consentMc)
+                        .ruleMcCompleted(ruleMc)
+                        .broadcastMcCompleted(broadcastMc)
+                        .rejections(rejections)
+                        .averageApprovalHours(averageApprovalHours)
+                        .approvalRate(approvalRate)
+                        .build();
+        return AdminMisDashboardResponse.builder()
+                .kpi(kpi)
+                .channelPerformance(Collections.unmodifiableList(channelRows))
+                .makerChecker(mc)
+                .build();
+    }
+
+    private static String normalizeChannelKey(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "Email";
+        }
+        String u = raw.trim().toUpperCase(Locale.ROOT);
+        if (u.contains("WHATSAPP")) {
+            return "WhatsApp";
+        }
+        if (u.contains("SMS")) {
+            return "SMS";
+        }
+        if (u.contains("EMAIL")) {
+            return "Email";
+        }
+        if (u.contains("RCS")) {
+            return "RCS";
+        }
+        if (u.contains("PUSH")) {
+            return "Push";
+        }
+        return "Email";
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<AdminCustomerRowResponse> getCustomers(
+            int page, int size, String mobileNumber, String customerId, String consentStatusFilter, String sortBy, String sortDir) {
+        CustomerConsentStatus statusEnum = parseStatusFilter(consentStatusFilter);
+        Specification<Customer> spec = customerSpec(mobileNumber, customerId, statusEnum);
+        Sort sort = resolveSort(sortBy, sortDir);
+        Pageable pageable = PageRequest.of(Math.max(0, page), Math.min(100, Math.max(1, size)), sort);
+        Page<Customer> pg = customerRepository.findAll(spec, pageable);
+        List<AdminCustomerRowResponse> rows = pg.getContent().stream().map(this::toRow).toList();
+        return PagedResponse.<AdminCustomerRowResponse>builder()
+                .content(rows)
+                .totalElements(pg.getTotalElements())
+                .totalPages(pg.getTotalPages())
+                .currentPage(pg.getNumber())
+                .pageSize(pg.getSize())
+                .hasNext(pg.hasNext())
+                .hasPrevious(pg.hasPrevious())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public void exportCustomersCsv(
+            OutputStream outputStream, String mobileNumber, String customerId, String consentStatusFilter)
+            throws java.io.IOException {
+        CustomerConsentStatus statusEnum = parseStatusFilter(consentStatusFilter);
+        Specification<Customer> spec = customerSpec(mobileNumber, customerId, statusEnum);
+        List<Customer> all = customerRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "updatedAt"));
+        try (OutputStreamWriter w = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8)) {
+            w.write("Customer ID,Customer Name,Mobile Number,Email,Consent Status,Last Updated\n");
+            for (Customer c : all) {
+                w.write(csvEscape(c.getCustomerId()));
+                w.write(',');
+                w.write(csvEscape(c.getFullName()));
+                w.write(',');
+                w.write(csvEscape(c.getMobileNumber()));
+                w.write(',');
+                w.write(csvEscape(c.getEmail() == null ? "" : c.getEmail()));
+                w.write(',');
+                w.write(csvEscape(c.getConsentStatus().name()));
+                w.write(',');
+                w.write(csvEscape(c.getUpdatedAt().toString()));
+                w.write('\n');
+            }
+            w.flush();
+        }
+    }
+
+//    @Transactional(readOnly = true)
+//    public CaptureConsentSearchResponse searchCustomerForCapture(String query) {
+//        if (!StringUtils.hasText(query)) {
+//            throw new IllegalArgumentException("Search query is required");
+//        }
+//        String q = query.trim();
+//        String mobileKey = q.replaceAll("\\s+", "");
+//        Customer c =
+//                customerRepository
+//                        .findByCustomerIdIgnoreCase(q)
+//                        .or(() -> customerRepository.findByMobileNumber(mobileKey))
+//                        .orElseThrow(() -> new IllegalArgumentException("No customer found for the given Customer ID or mobile number"));
+//        return CaptureConsentSearchResponse.builder()
+//                .customerId(c.getCustomerId())
+//                .fullName(c.getFullName())
+//                .email(c.getEmail())
+//                .mobileNumber(c.getMobileNumber())
+//                .build();
+//    }
+    
+    @Transactional(readOnly = true)
+    public CaptureConsentSearchResponse searchCustomerForCapture(String query) {
+        if (!StringUtils.hasText(query)) {
+            throw new IllegalArgumentException("Search query is required");
+        }
+        String q = query.trim();
+        String mobileKey = q.replaceAll("\\s+", "");
+        Customer c =
+                customerRepository
+                        .findByCustomerIdIgnoreCase(q)
+                        .or(() -> customerRepository.findByMobileNumber(mobileKey))
+                        .orElseThrow(() -> new IllegalArgumentException("No customer found for the given Customer ID or mobile number"));
+
+        // Fetch delivery channels from tokens the customer has already accepted
+        List<String> activeChannels = inviteTokenRepository
+                .findByCustomerId(c.getCustomerId())
+                .stream()
+                .filter(t -> t.getResponseStatus() == InviteTokenResponseStatus.ACCEPTED)
+                .map(ConsentInviteToken::getDeliveryChannel)
+                .filter(StringUtils::hasText)
+                .distinct()
+                .sorted()
+                .toList();
+
+        return CaptureConsentSearchResponse.builder()
+                .customerId(c.getCustomerId())
+                .fullName(c.getFullName())
+                .email(c.getEmail())
+                .mobileNumber(c.getMobileNumber())
+                .activeDeliveryChannels(activeChannels)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminConsentTemplateResponse> listConsentTemplates() {
+        List<Consent> list =
+                consentRepository.findByStatusInOrderByConsentNameAsc(
+                        List.of(ConsentStatus.PUBLISHED, ConsentStatus.APPROVED));
+        return list.stream()
+        	    .map(c -> AdminConsentTemplateResponse.builder()
+        	            .id(c.getId())
+        	            .consentId(c.getConsentId())
+        	            .consentName(c.getConsentName())
+        	            .deliveryChannels(c.getDeliveryChannels() != null
+        	                    ? c.getDeliveryChannels()
+        	                    : List.of())          
+        	            .build())
+        	    .toList();
+    }
+
+    @Transactional
+    public SendConsentLinkResponse sendCaptureLink(SendConsentLinkRequest req, Long adminUserId) {
+        Customer customer =
+                customerRepository
+                        .findByCustomerIdIgnoreCase(req.getCustomerId().trim())
+                        .orElseThrow(() -> new IllegalArgumentException("Customer not found"));
+        if (!StringUtils.hasText(customer.getEmail())) {
+            throw new IllegalArgumentException("Customer has no registered email on file");
+        }
+        Consent template =
+                consentRepository
+                        .findById(req.getConsentTemplateId())
+                        .orElseThrow(() -> new IllegalArgumentException("Consent template not found"));
+        if (template.getStatus() != ConsentStatus.PUBLISHED && template.getStatus() != ConsentStatus.APPROVED) {
+            throw new IllegalArgumentException("Selected consent is not available as a template");
+        }
+        String token = UUID.randomUUID().toString().replace("-", "");
+        Instant now = Instant.now();
+        ConsentInviteToken entity =
+                ConsentInviteToken.builder()
+                        .token(token)
+                        .customerId(customer.getCustomerId())
+                        .consentDbId(template.getId())
+                        .deliveryChannel(req.getDeliveryChannel())
+                        .consentTypeLabel(req.getConsentType())
+                        .createdAt(now)
+                        .expiresAt(now.plus(14, ChronoUnit.DAYS))
+                        .build();
+        inviteTokenRepository.save(entity);
+        String link = publicConsentBaseUrl.replaceAll("/$", "") + "/public/consent/respond?token=" + token;
+        String descriptionPlain = HtmlTextUtil.stripToPlain(template.getDescription(), 2000);
+        String subject = ConsentRequestEmailBuilder.buildSubject(template.getConsentName());
+        String html =
+                ConsentRequestEmailBuilder.buildHtmlBody(
+                        customer,
+                        template.getConsentName(),
+                        descriptionPlain,
+                        link,
+                        req.getDeliveryChannel(),
+                        consentMailProperties);
+        emailDispatchService.sendHtml(customer.getEmail(), subject, html);
+        userRepository.findById(adminUserId).ifPresent(u -> log.info("send-link | admin={} | customer={}", u.getEmail(), customer.getCustomerId()));
+        return SendConsentLinkResponse.builder()
+                .inviteLink(link)
+                .message("Consent link emailed to " + customer.getEmail())
+                .build();
+    }
+
+    @Transactional
+    public void recordOnBehalfConsent(RecordOnBehalfConsentRequest req, Long adminUserId) {
+        User admin =
+                userRepository.findById(adminUserId).orElseThrow(() -> new IllegalArgumentException("Admin user not found"));
+        customerRepository
+                .findByCustomerIdIgnoreCase(req.getCustomerId().trim())
+                .orElseThrow(() -> new IllegalArgumentException("Customer ID not found"));
+        OnBehalfConsentRecord rec =
+                OnBehalfConsentRecord.builder()
+                        .customerId(req.getCustomerId().trim())
+                        .consentType(req.getConsentType())
+                        .mode(req.getMode())
+                        .sourceChannel(req.getSourceChannel())
+                        .evidenceReference(req.getEvidenceReference())
+                        .recordedBy(admin)
+                        .recordedAt(Instant.now())
+                        .build();
+        onBehalfConsentRecordRepository.save(rec);
+        log.info("on-behalf consent recorded | customerId={} | by={}", req.getCustomerId(), admin.getEmail());
+    }
+
+    private static String csvEscape(String v) {
+        if (v == null) {
+            return "";
+        }
+        boolean needsQuote = v.contains(",") || v.contains("\"") || v.contains("\n");
+        String escaped = v.replace("\"", "\"\"");
+        return needsQuote ? "\"" + escaped + "\"" : escaped;
+    }
+
+    private CustomerConsentStatus parseStatusFilter(String raw) {
+        if (!StringUtils.hasText(raw) || "ALL".equalsIgnoreCase(raw.trim())) {
+            return null;
+        }
+        try {
+            return CustomerConsentStatus.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid consentStatus filter. Use ACTIVE, PENDING, DECLINED, or ALL.");
+        }
+    }
+
+    private Specification<Customer> customerSpec(String mobileNumber, String customerId, CustomerConsentStatus status) {
+        return (root, query, cb) -> {
+            List<Predicate> p = new ArrayList<>();
+            if (StringUtils.hasText(mobileNumber)) {
+                p.add(cb.like(cb.lower(root.get("mobileNumber")), "%" + mobileNumber.trim().toLowerCase(Locale.ROOT) + "%"));
+            }
+            if (StringUtils.hasText(customerId)) {
+                p.add(cb.like(cb.lower(root.get("customerId")), "%" + customerId.trim().toLowerCase(Locale.ROOT) + "%"));
+            }
+            if (status != null) {
+                p.add(cb.equal(root.get("consentStatus"), status));
+            }
+            return p.isEmpty() ? cb.conjunction() : cb.and(p.toArray(new Predicate[0]));
+        };
+    }
+
+    private Sort resolveSort(String sortBy, String sortDir) {
+        String prop =
+                switch (sortBy == null ? "" : sortBy.trim().toLowerCase(Locale.ROOT)) {
+                    case "customerid" -> "customerId";
+                    case "fullname", "customername" -> "fullName";
+                    case "mobilenumber" -> "mobileNumber";
+                    case "email" -> "email";
+                    case "consentstatus" -> "consentStatus";
+                    default -> "updatedAt";
+                };
+        Sort.Direction dir =
+                "ASC".equalsIgnoreCase(sortDir == null ? "" : sortDir.trim()) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        return Sort.by(dir, prop);
+    }
+
+    private AdminCustomerRowResponse toRow(Customer c) {
+        return AdminCustomerRowResponse.builder()
+                .customerId(c.getCustomerId())
+                .customerName(c.getFullName())
+                .mobileNumber(c.getMobileNumber())
+                .email(c.getEmail())
+                .consentStatus(c.getConsentStatus())
+                .lastUpdated(c.getUpdatedAt())
+                .build();
+    }
+}

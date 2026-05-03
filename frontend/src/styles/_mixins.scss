@@ -1,0 +1,60 @@
+@mixin focus-ring-primary {
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-primary);
+  }
+}
+
+@mixin btn-base {
+  height: 38px;
+  padding: 0 16px;
+  border-radius: var(--btn-radius);
+  font-weight: 500;
+  font-size: var(--text-14);
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease;
+  border: 1px solid transparent;
+  cursor: pointer;
+  @include focus-ring-primary;
+}
+
+@mixin card-surface {
+  background: var(--card-bg);
+  border: var(--card-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+}
+
+@mixin input-base {
+  border: 1px solid #e2e8f0;
+  border-radius: var(--input-radius);
+  padding: 10px 14px;
+  font-size: var(--text-14);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  }
+
+  &.ng-invalid.ng-touched {
+    border-color: var(--color-error);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+  }
+
+  &:disabled {
+    background: #f8fafc;
+    color: #9ca3af;
+  }
+
+  &[readonly] {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+  }
+}

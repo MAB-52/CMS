@@ -1,0 +1,58 @@
+<div class="page">
+  <div class="head">
+    <h1>Pending Approvals</h1>
+    <button mat-icon-button type="button" (click)="reload()" title="Refresh">🔄</button>
+  </div>
+
+  <div class="bar">
+    <div class="tabs">
+      <button type="button" class="tab" [class.on]="typeFilter === 'ALL'" (click)="typeFilter = 'ALL'; applyFilters()">All</button>
+      <button type="button" class="tab" [class.on]="typeFilter === 'NEW_TEMPLATE'" (click)="typeFilter = 'NEW_TEMPLATE'; applyFilters()">
+        New Template
+      </button>
+      <button type="button" class="tab" [class.on]="typeFilter === 'VERSION_UPDATE'" (click)="typeFilter = 'VERSION_UPDATE'; applyFilters()">
+        Version Update
+      </button>
+      <button type="button" class="tab" [class.on]="typeFilter === 'RENEWAL'" (click)="typeFilter = 'RENEWAL'; applyFilters()">Renewal</button>
+    </div>
+    <mat-form-field appearance="outline" class="search">
+      <mat-label>Search</mat-label>
+      <input matInput [(ngModel)]="search" (keyup.enter)="applyFilters()" placeholder="Name or ID…" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="sort">
+      <mat-label>Sort</mat-label>
+      <mat-select [(ngModel)]="sort" (selectionChange)="applyFilters()">
+        <mat-option value="date">Date ↓</mat-option>
+        <mat-option value="name">Name</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <button mat-stroked-button type="button" (click)="applyFilters()">Apply</button>
+  </div>
+
+  @if (!filtered().length) {
+    <div class="empty">
+      <div class="big">✅</div>
+      <h2>All caught up!</h2>
+      <p>No consents are waiting for your review.</p>
+    </div>
+  } @else {
+    <div class="cards">
+      @for (c of filtered(); track c.id) {
+        <div class="card" (click)="review(c)">
+          <div class="row1">
+            <span [class]="typeClass(c.type)">{{ c.type | consentTypeLabel }}</span>
+            <span class="name">{{ c.consentName }}</span>
+            <span class="ico">⏳</span>
+          </div>
+          <div class="meta">{{ c.consentId }} · Submitted by {{ c.createdBy?.fullName || '—' }} · {{ c.submittedAt | timeAgo }}</div>
+          <div class="meta">Category: {{ c.category }} · Channels: {{ channels(c) }}</div>
+          <div class="meta">Version: {{ c.version }} · Validity: {{ c.validityPeriodDays }} days</div>
+          <div class="acts" (click)="$event.stopPropagation()">
+            <button mat-stroked-button type="button" (click)="preview(c)">Preview</button>
+            <button mat-flat-button color="primary" type="button" (click)="review(c)">Review →</button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

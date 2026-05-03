@@ -1,0 +1,84 @@
+@if (consent(); as c) {
+  <div class="page">
+    <div class="subnav">
+      <a mat-stroked-button routerLink="/checker/pending">← Pending Approvals</a>
+    </div>
+    <div class="title-row">
+      <h1>Reviewing: {{ c.consentName }}</h1>
+      <span class="pill-id">{{ c.consentId }}</span>
+    </div>
+
+    <div class="mode-card">
+      <div class="mode-title">✅ CHECKER REVIEW MODE</div>
+      <p class="mode-sub">
+        You are reviewing a consent submitted by {{ c.createdBy?.fullName || '—' }} · {{ c.submittedAt }}
+      </p>
+      @if (c.version > 1) {
+        <p class="mode-note">↩ This consent may have prior revisions on record (v{{ c.version }}).</p>
+      }
+    </div>
+
+    <div class="grid">
+      <div class="field"><span class="k">Consent Name</span><span class="v">{{ c.consentName }}</span></div>
+      <div class="field"><span class="k">Consent ID</span><span class="v mono">{{ c.consentId }}</span></div>
+      <div class="field"><span class="k">Category</span><span class="v">{{ c.category }}</span></div>
+      <div class="field"><span class="k">Validity Period</span><span class="v">{{ c.validityPeriodDays }} days</span></div>
+      <div class="field"><span class="k">Status</span><span class="v">{{ c.status }}</span></div>
+      <div class="field"><span class="k">Version</span><span class="v">{{ c.version }}</span></div>
+      <div class="field"><span class="k">Type</span><span class="v">{{ c.type }}</span></div>
+      <div class="field"><span class="k">Delivery Channels</span><span class="v">{{ (c.deliveryChannels || []).join(', ') }}</span></div>
+      <div class="field full"><span class="k">Tags</span><span class="v">{{ (c.tagsUsed || []).join(', ') || '—' }}</span></div>
+      <div class="field"><span class="k">Submitted At</span><span class="v">{{ c.submittedAt }}</span></div>
+      <div class="field"><span class="k">Created By</span><span class="v">{{ c.createdBy?.fullName }}</span></div>
+    </div>
+
+    @for (d of diff(); track d.fieldName) {
+      <div class="diff-box">
+        <div class="diff-title">✏️ Modified · {{ d.fieldLabel }}</div>
+        <div class="diff-new">{{ d.newValue }}</div>
+        <div class="diff-old">Was: {{ d.oldValue }}</div>
+      </div>
+    }
+
+    <div class="msg-card">
+      <div class="msg-head">
+        <h2>Consent Message</h2>
+        <button mat-stroked-button type="button" (click)="fullPreview()">👁 Preview in Full</button>
+      </div>
+      <div class="msg-body" [innerHTML]="messageHtml()"></div>
+    </div>
+
+    <mat-accordion>
+      <mat-expansion-panel>
+        <mat-expansion-panel-header>
+          <mat-panel-title>Version history</mat-panel-title>
+        </mat-expansion-panel-header>
+        @if (!versions().length) {
+          <p class="muted">No version rows.</p>
+        } @else {
+          <ul class="ver-list">
+            @for (v of versions(); track $index) {
+              <li><pre>{{ v | json }}</pre></li>
+            }
+          </ul>
+        }
+      </mat-expansion-panel>
+    </mat-accordion>
+
+    <div class="spacer"></div>
+
+    <div class="decision" [class.dim]="!canDecide()">
+      <div>
+        <div class="d-title">Make your decision for: {{ c.consentName }} v{{ c.version }}</div>
+        <div class="d-sub">Your decision will be logged and the maker will be notified.</div>
+      </div>
+      <div class="d-btns">
+        <button mat-flat-button class="ciq-btn-success ap" [disabled]="!canDecide() || busy()" (click)="approve()">✅ Approve</button>
+        <button mat-stroked-button class="ciq-btn-warning rev" [disabled]="!canDecide() || busy()" (click)="requestRevision()">
+          ↩ Request Revision
+        </button>
+        <button mat-stroked-button color="warn" [disabled]="!canDecide() || busy()" (click)="reject()">❌ Reject</button>
+      </div>
+    </div>
+  </div>
+}

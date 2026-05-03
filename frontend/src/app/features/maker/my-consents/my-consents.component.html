@@ -1,0 +1,85 @@
+<div class="page">
+  <div class="head">
+    <h1>My Consents</h1>
+    <a mat-flat-button color="primary" routerLink="/maker/consents/new">+ Create New</a>
+  </div>
+
+  <div class="filters">
+    <div class="tabs">
+      @for (t of tabs; track t.key) {
+        <button type="button" class="tab" [class.on]="filter() === t.key" (click)="setFilter(t.key)">{{ t.label }}</button>
+      }
+    </div>
+    <mat-form-field appearance="outline" class="search">
+      <mat-label>Search</mat-label>
+      <input matInput [(ngModel)]="search" (keyup.enter)="reload()" placeholder="Name or ID…" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="sort">
+      <mat-label>Sort</mat-label>
+      <mat-select [(ngModel)]="sort" (selectionChange)="reload()">
+        <mat-option value="updated">Date ↓</mat-option>
+        <mat-option value="name">Name A–Z</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <button mat-stroked-button type="button" (click)="reload()">Apply</button>
+  </div>
+
+  @if (loading()) {
+    <p class="muted">Loading…</p>
+  } @else if (!rows().length) {
+    <div class="empty">No consents match this filter.</div>
+  } @else {
+    <div class="list">
+      @for (c of rows(); track c.id) {
+        <div class="card" [class.rev]="c.status === 'REVISION_REQUESTED'">
+          <div class="row1">
+            <div>
+              <div class="name">{{ c.consentName }}</div>
+              <div class="meta mono">{{ c.consentId }}</div>
+            </div>
+            <div class="badges">
+              <app-status-badge [status]="c.status" />
+              <span class="type">{{ c.type | consentTypeLabel }}</span>
+            </div>
+          </div>
+          <div class="row2">
+            {{ c.category }} · Validity {{ c.validityPeriodDays }} days · v{{ c.version }}
+          </div>
+          <div class="row3">Updated {{ c.updatedAt | timeAgo }}</div>
+          @if (c.status === 'REVISION_REQUESTED' && c.revisionMessage) {
+            <div class="rev-note">{{ c.revisionMessage }}</div>
+          }
+          <div class="actions">
+            @switch (c.status) {
+              @case ('DRAFT') {
+                <a mat-stroked-button [routerLink]="['/maker/consents', c.id, 'edit']">✏️ Edit</a>
+                <button mat-stroked-button type="button" color="warn" (click)="delete(c)">🗑️ Delete</button>
+                <button mat-flat-button color="primary" (click)="submit(c)">📤 Submit</button>
+              }
+              @case ('PENDING_APPROVAL') {
+                <a mat-stroked-button [routerLink]="['/maker/consents', c.id, 'edit']" [queryParams]="{ view: 1 }">👁 View</a>
+              }
+              @case ('REVISION_REQUESTED') {
+                <a mat-flat-button color="accent" [routerLink]="['/maker/consents', c.id, 'edit']">✏️ Edit &amp; Resubmit</a>
+              }
+              @case ('APPROVED') {
+                <a mat-stroked-button [routerLink]="['/maker/consents', c.id, 'edit']" [queryParams]="{ view: 1 }">👁 View</a>
+                @if (isAdmin()) {
+                  <button mat-flat-button color="primary" (click)="publish(c)">📤 Publish</button>
+                }
+              }
+              @case ('PUBLISHED') {
+                <a mat-stroked-button [routerLink]="['/maker/consents', c.id, 'edit']" [queryParams]="{ view: 1 }">👁 View</a>
+                <button mat-stroked-button type="button" (click)="duplicateNav(c)">📋 Duplicate</button>
+              }
+              @case ('REJECTED') {
+                <a mat-stroked-button [routerLink]="['/maker/consents', c.id, 'edit']" [queryParams]="{ view: 1 }">👁 View</a>
+                <button mat-stroked-button type="button" (click)="duplicateNav(c)">📋 Duplicate as New</button>
+              }
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

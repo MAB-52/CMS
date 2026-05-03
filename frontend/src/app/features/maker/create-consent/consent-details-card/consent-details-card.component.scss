@@ -1,0 +1,121 @@
+.id-field {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  height: 100%;
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.sub {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.val-summary {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #991b1b;
+}
+
+.val-summary ul {
+  margin: 8px 0 0 18px;
+  padding: 0;
+}
+
+.full {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.mono input {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 13px;
+}
+
+.pfx {
+  margin-right: 4px;
+  opacity: 0.7;
+}
+
+.row-dates {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.half {
+  flex: 1;
+  min-width: 140px;
+}
+
+.tags-block {
+  margin-top: 8px;
+}
+
+.lbl {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.chip-x {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #6366f1;
+  font-size: 14px;
+  line-height: 1;
+}
+
+
+::ng-deep .mat-mdc-text-field-wrapper {
+  .mdc-notched-outline__notch {
+    border-right: none !important;
+  }
+}

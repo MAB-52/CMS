@@ -1,0 +1,78 @@
+<div class="public-page" dir="ltr">
+  <div class="shell-card">
+    <div class="brand">ConsentIQ</div>
+    <h1 class="title">Consent request</h1>
+    <p class="lede">Review the information below, then choose whether to accept or decline this request.</p>
+
+    @if (loading()) {
+      <div class="center">
+        <mat-progress-spinner diameter="44" mode="indeterminate" />
+        <p class="muted">Loading your request…</p>
+      </div>
+    } @else {
+      @if (errorMessage(); as err) {
+        <div class="banner banner--error" role="alert">{{ err }}</div>
+      } @else {
+        @if (detail(); as d) {
+          @if (inlineNotice(); as note) {
+            <div
+              class="banner"
+              [class.banner--ok]="d.state === 'ACCEPTED'"
+              [class.banner--deny]="d.state === 'REJECTED'"
+              [class.banner--muted]="d.state === 'EXPIRED'"
+            >
+              {{ note }}
+            </div>
+          }
+
+          <section class="panel">
+            <div class="greet">Hello, {{ d.customerDisplayName }}</div>
+            <h2 class="consent-title">{{ d.consentTitle }}</h2>
+            @if (d.descriptionPreview) {
+              <p class="body-text">{{ d.descriptionPreview }}</p>
+            }
+            @if (d.messagePreview) {
+              <h3 class="subhead">What you are being asked to approve</h3>
+              <div class="message-preview">{{ d.messagePreview }}</div>
+            }
+            @if (d.expiresAt) {
+              <div class="meta muted">Link valid until {{ d.expiresAt | date: 'medium' }}</div>
+            }
+          </section>
+
+          @if (d.state === 'READY') {
+            <div class="actions">
+              <button
+                mat-flat-button
+                color="primary"
+                type="button"
+                class="btn-wide"
+                [disabled]="submitting()"
+                (click)="submit('ACCEPT')"
+              >
+                @if (submitting()) {
+                  <span>Saving…</span>
+                } @else {
+                  Accept consent
+                }
+              </button>
+              <button
+                mat-stroked-button
+                type="button"
+                class="btn-wide decline"
+                [disabled]="submitting()"
+                (click)="submit('DECLINE')"
+              >
+                Decline
+              </button>
+            </div>
+            <p class="fine-print">
+              You can only submit once. If you are unsure, contact support using the details provided in your email
+              before deciding.
+            </p>
+          }
+        }
+      }
+    }
+  </div>
+</div>

@@ -1,0 +1,27 @@
+<div class="page">
+  <div class="head">
+    <h1>Review History</h1>
+    <a mat-stroked-button routerLink="/checker/dashboard">Dashboard</a>
+  </div>
+  <p class="sub">Actions you performed as Checker (from audit log).</p>
+
+  @if (!rows().length) {
+    <div class="empty">No review actions recorded yet.</div>
+  } @else {
+    <div class="list">
+      @for (e of rows(); track e.id) {
+        <div class="row">
+          <div class="act">{{ e.action }}</div>
+          <div class="desc">{{ e.description }}</div>
+          <div class="ent">{{ e.entityName }}</div>
+          <div class="when">{{ e.performedAt | timeAgo }}</div>
+        </div>
+      }
+    </div>
+    <div class="pager">
+      <button mat-stroked-button type="button" [disabled]="page === 0" (click)="prevPage()">Previous</button>
+      <span>Page {{ page + 1 }}</span>
+      <button mat-stroked-button type="button" [disabled]="!hasNext" (click)="nextPage()">Next</button>
+    </div>
+  }
+</div>

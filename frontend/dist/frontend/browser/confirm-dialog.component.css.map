@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/shared/components/confirm-dialog/confirm-dialog.component.ts"],
+  "sourcesContent": ["\n      .wrap {\n        padding: 8px 8px 0;\n        text-align: center;\n      }\n      .icon-wrap {\n        width: 48px;\n        height: 48px;\n        border-radius: 999px;\n        display: flex;\n        align-items: center;\n        justify-content: center;\n        margin: 0 auto 12px;\n      }\n      .icon {\n        font-size: 26px;\n      }\n      .title {\n        margin: 0 0 8px;\n        font-size: 18px;\n        font-weight: 700;\n      }\n      .body {\n        margin: 0 0 20px;\n        font-size: 14px;\n        color: #64748b;\n        line-height: 1.5;\n        max-height: 4.5em;\n        overflow: auto;\n      }\n      .actions {\n        display: flex;\n        justify-content: center;\n        gap: 12px;\n      }\n    "],
+  "mappings": ";AACM,CAAA;AACE,WAAA,IAAA,IAAA;AACA,cAAA;;AAEF,CAAA;AACE,SAAA;AACA,UAAA;AACA,iBAAA;AACA,WAAA;AACA,eAAA;AACA,mBAAA;AACA,UAAA,EAAA,KAAA;;AAEF,CAAA;AACE,aAAA;;AAEF,CAAA;AACE,UAAA,EAAA,EAAA;AACA,aAAA;AACA,eAAA;;AAEF,CAAA;AACE,UAAA,EAAA,EAAA;AACA,aAAA;AACA,SAAA;AACA,eAAA;AACA,cAAA;AACA,YAAA;;AAEF,CAAA;AACE,WAAA;AACA,mBAAA;AACA,OAAA;;",
+  "names": []
+}

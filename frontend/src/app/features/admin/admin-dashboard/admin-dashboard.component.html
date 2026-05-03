@@ -1,0 +1,191 @@
+<section class="mis-head" aria-labelledby="mis-title">
+  <div class="mis-head-row">
+    <h1 id="mis-title" class="mis-title">Executive MIS</h1>
+    <button mat-stroked-button type="button" (click)="loadMis()" [disabled]="misLoading()">Refresh metrics</button>
+  </div>
+  <p class="mis-sub">Channel mix and maker–checker throughput are derived from live data where available.</p>
+
+  @if (misLoading()) {
+    <div class="mis-loading">
+      <mat-progress-spinner diameter="40" mode="indeterminate" />
+      <span>Loading dashboard…</span>
+    </div>
+  } @else {
+    @if (mis(); as m) {
+    <div class="kpi-row" role="list">
+      <article class="kpi-card kpi-card--accent" role="listitem">
+        <div class="kpi-label">Consent rate</div>
+        <div class="kpi-value">{{ m.kpi.consentRate | number: '1.0-1' }}%</div>
+        <div class="kpi-hint">Active ÷ (active + pending + declined)</div>
+      </article>
+      <article class="kpi-card" role="listitem">
+        <div class="kpi-label">Total customers</div>
+        <div class="kpi-value">{{ m.kpi.totalCustomers }}</div>
+        <div class="kpi-hint">Directory size</div>
+      </article>
+      <article class="kpi-card" role="listitem">
+        <div class="kpi-label">Active consents</div>
+        <div class="kpi-value">{{ m.kpi.activeConsents }}</div>
+      </article>
+      <article class="kpi-card" role="listitem">
+        <div class="kpi-label">Pending response</div>
+        <div class="kpi-value">{{ m.kpi.pendingResponse }}</div>
+      </article>
+      <article class="kpi-card" role="listitem">
+        <div class="kpi-label">Declined</div>
+        <div class="kpi-value">{{ m.kpi.declined }}</div>
+      </article>
+      <article class="kpi-card kpi-card--warn" role="listitem">
+        <div class="kpi-label">Pending MC approvals</div>
+        <div class="kpi-value">{{ m.kpi.pendingMcApprovals }}</div>
+        <div class="kpi-hint">Awaiting checker</div>
+      </article>
+    </div>
+
+    <div class="mis-panels">
+      <section class="mis-panel" aria-labelledby="ch-perf">
+        <h2 id="ch-perf" class="panel-h">Channel performance</h2>
+        <p class="panel-sub">Share of published / approved templates by delivery channel</p>
+        <ul class="bar-list">
+          @for (row of m.channelPerformance; track row.channel) {
+            <li class="bar-item">
+              <div class="bar-top">
+                <span class="bar-name">{{ row.channel }}</span>
+                <span class="bar-pct">{{ row.percentage | number: '1.0-1' }}%</span>
+              </div>
+              <div class="bar-track" role="presentation">
+                <div class="bar-fill" [style.width]="barWidth(row.percentage)"></div>
+              </div>
+            </li>
+          }
+        </ul>
+      </section>
+
+      <section class="mis-panel" aria-labelledby="mc-act">
+        <h2 id="mc-act" class="panel-h">Maker–checker activity</h2>
+        <p class="panel-sub">Operational counts from the audit trail and review cycle</p>
+        <div class="mc-grid">
+          <div class="mc-cell">
+            <div class="mc-label">Consent MC</div>
+            <div class="mc-num">{{ m.makerChecker.consentMcCompleted }}</div>
+            <div class="mc-caption">Approvals completed</div>
+          </div>
+          <div class="mc-cell">
+            <div class="mc-label">Rule MC</div>
+            <div class="mc-num">{{ m.makerChecker.ruleMcCompleted }}</div>
+            <div class="mc-caption">Revision requests</div>
+          </div>
+          <div class="mc-cell">
+            <div class="mc-label">Broadcast MC</div>
+            <div class="mc-num">{{ m.makerChecker.broadcastMcCompleted }}</div>
+            <div class="mc-caption">Go-live publishes</div>
+          </div>
+          <div class="mc-cell">
+            <div class="mc-label">Rejections</div>
+            <div class="mc-num">{{ m.makerChecker.rejections }}</div>
+            <div class="mc-caption">Checker declined</div>
+          </div>
+        </div>
+        <div class="mc-footer">
+          <div>
+            <span class="mc-foot-label">Avg. approval time</span>
+            <strong>{{ m.makerChecker.averageApprovalHours | number: '1.0-1' }}h</strong>
+          </div>
+          <div>
+            <span class="mc-foot-label">Approval rate</span>
+            <strong>{{ m.makerChecker.approvalRate | number: '1.0-1' }}%</strong>
+          </div>
+        </div>
+      </section>
+    </div>
+    }
+  }
+</section>
+
+<section class="table-card" aria-labelledby="customers-heading">
+  <div class="table-head">
+    <h2 id="customers-heading" class="section-title">Customer directory</h2>
+    <button
+      mat-stroked-button
+      type="button"
+      class="export-btn"
+      [disabled]="exporting()"
+      (click)="exportCsv()"
+    >
+      {{ exporting() ? 'Exporting…' : 'Export CSV' }}
+    </button>
+  </div>
+
+  <div class="filters">
+    <label class="field">
+      <span class="field-label">Mobile Number</span>
+      <input type="text" name="mobile" [(ngModel)]="filterMobile" placeholder="Search mobile" />
+    </label>
+    <label class="field">
+      <span class="field-label">Customer ID</span>
+      <input type="text" name="custId" [(ngModel)]="filterCustomerId" placeholder="Customer ID" />
+    </label>
+    <label class="field">
+      <span class="field-label">Consent Status</span>
+      <select name="status" [(ngModel)]="filterConsentStatus">
+        <option value="ALL">All</option>
+        <option value="ACTIVE">Active</option>
+        <option value="PENDING">Pending</option>
+        <option value="DECLINED">Declined</option>
+      </select>
+    </label>
+    <button mat-stroked-button type="button" class="apply-btn" (click)="applyFilters()">Apply filters</button>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Customer ID</th>
+          <th>Customer Name</th>
+          <th>Mobile Number</th>
+          <th>Email</th>
+          <th>Consent Status</th>
+          <th>Last Updated</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.customerId) {
+          <tr>
+            <td>{{ row.customerId }}</td>
+            <td>{{ row.customerName }}</td>
+            <td>{{ row.mobileNumber }}</td>
+            <td>{{ row.email || '—' }}</td>
+            <td><span [class]="badgeClass(row.consentStatus)">{{ row.consentStatus }}</span></td>
+            <td>{{ row.lastUpdated | date: 'medium' }}</td>
+            <td><span class="action-muted">—</span></td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="7" class="empty-cell">{{ loading() ? 'Loading…' : 'No customers match the filters.' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pager">
+    <span class="pager-meta">
+      Page {{ currentPage() + 1 }} of {{ totalPages() || 1 }} · {{ totalElements() }} total
+    </span>
+    <div class="pager-btns">
+      <button mat-stroked-button type="button" [disabled]="currentPage() <= 0 || loading()" (click)="prevPage()">
+        Previous
+      </button>
+      <button
+        mat-stroked-button
+        type="button"
+        [disabled]="currentPage() >= totalPages() - 1 || loading() || totalPages() === 0"
+        (click)="nextPage()"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,5 @@
+package com.consentiq.service;
+
+public class UserManagementService {
+
+}
