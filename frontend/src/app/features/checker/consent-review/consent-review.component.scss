@@ -218,3 +218,9 @@ h1 {
 .rev {
   min-width: 180px;
 }
+
+::ng-deep .mat-mdc-dialog-container {
+  .mdc-notched-outline__notch {
+    border-right: none !important;
+  }
+}
