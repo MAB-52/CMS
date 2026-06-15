@@ -1,0 +1,334 @@
+<div class="page">
+  <div class="hero">
+    <div>
+      <p class="eyebrow">Operations</p>
+      <h1>Rule engine</h1>
+      <p class="lede">
+        Checker-approved rules appear here. Activate a rule to include it in automatic runs (schedule-aware). Email uses
+        secure consent links to each customer's registered address.
+      </p>
+    </div>
+    <button mat-stroked-button type="button" (click)="loadAll()">
+      <mat-icon>refresh</mat-icon>
+      Refresh
+    </button>
+  </div>
+
+  <!-- ── Filter bar ──────────────────────────────────────────────────────── -->
+  <div class="filter-bar">
+    <mat-form-field appearance="outline" class="filter-field filter-field--search">
+      <mat-label>Search rules</mat-label>
+      <input matInput [(ngModel)]="filterSearch" (keydown.enter)="applyFilters()" placeholder="Rule name…" />
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+
+    <div class="filter-divider"></div>
+
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Schedule</mat-label>
+      <mat-select [(ngModel)]="filterSchedule">
+        <mat-option value="">All schedules</mat-option>
+        @for (s of allScheduleTypes; track s) {
+        <mat-option [value]="s">{{ s | titlecase }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <div class="filter-divider"></div>
+
+    <div class="filter-actions">
+      <button mat-flat-button type="button" class="btn-apply" (click)="applyFilters()">
+        <mat-icon>filter_list</mat-icon>
+        Apply
+      </button>
+      <button mat-button type="button" class="btn-clear" (click)="clearFilters()">
+        <mat-icon>close</mat-icon>
+        Clear
+      </button>
+    </div>
+  </div>
+
+  @if (loading()) {
+  <mat-progress-bar mode="indeterminate" class="loader" />
+  }
+
+  @if (!loading() && stats()) {
+  <div class="cards">
+    <div class="stat">
+      <div class="stat-icon stat-icon--blue">
+        <mat-icon>gavel</mat-icon>
+      </div>
+      <div class="stat-label">Approved rules</div>
+      <div class="stat-value">{{ stats()!.approvedRulesCount }}</div>
+    </div>
+    <div class="stat stat--ok">
+      <div class="stat-icon stat-icon--green">
+        <mat-icon>play_circle</mat-icon>
+      </div>
+      <div class="stat-label">Active for execution</div>
+      <div class="stat-value">{{ stats()!.activeForExecutionCount }}</div>
+    </div>
+    <div class="stat">
+      <div class="stat-icon stat-icon--slate">
+        <mat-icon>pause_circle</mat-icon>
+      </div>
+      <div class="stat-label">Inactive</div>
+      <div class="stat-value">{{ stats()!.inactiveForExecutionCount }}</div>
+    </div>
+    <div class="stat stat--pending">
+      <div class="stat-icon stat-icon--amber">
+        <mat-icon>schedule</mat-icon>
+      </div>
+      <div class="stat-label">Immediate · first run pending</div>
+      <div class="stat-value">{{ stats()!.pendingImmediateFirstRunCount }}</div>
+    </div>
+    <div class="stat">
+      <div class="stat-icon stat-icon--indigo">
+        <mat-icon>bolt</mat-icon>
+      </div>
+      <div class="stat-label">Runs (24h)</div>
+      <div class="stat-value">{{ stats()!.executedInLast24HoursCount }}</div>
+    </div>
+  </div>
+  }
+
+  @if (!loading() && !rules().length) {
+  <div class="empty">
+    <mat-icon class="empty-icon">rule</mat-icon>
+    <p>No checker-approved rules are available yet. Approved rules will appear here automatically.</p>
+  </div>
+  }
+
+  @if (!loading() && rules().length) {
+  <section class="panel">
+    <h2>Approved rules</h2>
+
+    <!-- ── Summary bar ─────────────────────────────────────────────────── -->
+    <div class="summary-bar">
+      <span class="summary-count">{{ totalItems() }} rule{{ totalItems() !== 1 ? 's' : '' }}</span>
+      @if (filterSearch || filterSchedule) {
+      <span class="summary-tag">Filters active</span>
+      }
+    </div>
+
+    <div class="rule-list">
+      @for (rule of rules(); track trackById($index, rule)) {
+      <div class="rule-card" [class.rule-card--active]="rule.executionActive">
+
+        <!-- Active glow strip -->
+        <div class="rule-card__strip" [class.rule-card__strip--on]="rule.executionActive"></div>
+
+        <!-- Row 1: name + status + outcome -->
+        <div class="rule-card__header">
+          <div class="rule-card__title-group">
+            <span class="name">{{ rule.ruleName }}</span>
+            <span class="sub">{{ rule.ruleType }}</span>
+          </div>
+          <div class="rule-card__badges">
+            <app-workflow-status-badge [status]="rule.status" />
+            @if (rule.lastExecutionOutcome) {
+            <span class="outcome-badge outcome-badge--{{ rule.lastExecutionOutcome | lowercase }}">
+              {{ rule.lastExecutionOutcome }}
+            </span>
+            }
+          </div>
+        </div>
+
+        <!-- Row 2: meta grid -->
+        <div class="rule-card__meta">
+          <div class="meta-item">
+            <span class="meta-label">
+              <mat-icon class="meta-icon">calendar_today</mat-icon>
+              Schedule
+            </span>
+            <span class="meta-value">{{ rule.scheduleType }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">
+              <mat-icon class="meta-icon">broadcast_on_personal</mat-icon>
+              Channels
+            </span>
+            <span class="meta-value">{{ channels(rule) }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">
+              <mat-icon class="meta-icon">description</mat-icon>
+              Template
+            </span>
+            <span class="meta-value">{{ rule.consentTemplateName || '—' }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">
+              <mat-icon class="meta-icon">history</mat-icon>
+              Last run
+            </span>
+            <span class="meta-value">{{ rule.lastExecutedAt ? (rule.lastExecutedAt | date : 'short') : '—' }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">
+              <mat-icon class="meta-icon">update</mat-icon>
+              Next run
+            </span>
+            <span class="meta-value">{{ rule.nextExecutionAt ? (rule.nextExecutionAt | date : 'short') : '—' }}</span>
+          </div>
+
+          <!-- Segments — full width -->
+          <div class="meta-item meta-item--full">
+            <span class="meta-label">
+              <mat-icon class="meta-icon">group</mat-icon>
+              Audience segments
+            </span>
+            <div class="seg-chip-row">
+              <span class="seg-chip seg-chip--primary">
+                {{ primarySegmentLabel(rule) }}
+                <span class="seg-chip__tag">primary</span>
+              </span>
+              @for (code of (rule.additionalSegmentCodes ?? []); track code) {
+              <span class="seg-chip">{{ code }}</span>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 3: toggle + actions -->
+        <div class="rule-card__footer">
+          <label class="toggle" [class.toggle--on]="!!rule.executionActive"
+            [matTooltip]="'Only active rules are picked up by automatic execution.'">
+            <input type="checkbox" class="toggle__input" [checked]="!!rule.executionActive"
+              (change)="onExecutionSlideChange(rule, $event)" />
+            <span class="toggle__track">
+              <span class="toggle__thumb">
+                <mat-icon class="toggle__icon toggle__icon--on">check</mat-icon>
+                <mat-icon class="toggle__icon toggle__icon--off">close</mat-icon>
+              </span>
+            </span>
+            <span class="toggle__label">{{ rule.executionActive ? 'Active' : 'Inactive' }}</span>
+          </label>
+
+          <div class="rule-card__actions">
+            <button class="btn-action btn-action--primary" type="button" (click)="manualRun(rule)">
+              <mat-icon>play_arrow</mat-icon>
+              Manual run
+            </button>
+            <button class="btn-action" type="button" (click)="openHistory(rule)">
+              <mat-icon>history</mat-icon>
+              Audit &amp; runs
+            </button>
+          </div>
+        </div>
+
+      </div>
+      }
+    </div>
+
+    <!-- Pagination -->
+    @if (totalPages() > 1) {
+    <div class="pagination">
+      <div class="pagination__info">
+        Showing {{ pageIndex() * pageSize() + 1 }}–{{ min(pageIndex() * pageSize() + rules().length, totalItems()) }}
+        of {{ totalItems() }} rules
+      </div>
+      <div class="pagination__controls">
+        <label class="pagination__size-label">
+          Rows
+          <select class="pagination__size-select" (change)="onPageSizeChange($event)">
+            <option [value]="5" [selected]="pageSize() === 5">5</option>
+            <option [value]="10" [selected]="pageSize() === 10">10</option>
+            <option [value]="25" [selected]="pageSize() === 25">25</option>
+          </select>
+        </label>
+        <div class="pagination__nav">
+          <button class="pagination__btn" type="button" [disabled]="pageIndex() === 0" (click)="onPageChange(0)"
+            matTooltip="First page">
+            <mat-icon>first_page</mat-icon>
+          </button>
+          <button class="pagination__btn" type="button" [disabled]="pageIndex() === 0"
+            (click)="onPageChange(pageIndex() - 1)" matTooltip="Previous page">
+            <mat-icon>chevron_left</mat-icon>
+          </button>
+          <span class="pagination__page-info">Page {{ pageIndex() + 1 }} / {{ totalPages() }}</span>
+          <button class="pagination__btn" type="button" [disabled]="pageIndex() >= totalPages() - 1"
+            (click)="onPageChange(pageIndex() + 1)" matTooltip="Next page">
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+          <button class="pagination__btn" type="button" [disabled]="pageIndex() >= totalPages() - 1"
+            (click)="onPageChange(totalPages() - 1)" matTooltip="Last page">
+            <mat-icon>last_page</mat-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+    }
+  </section>
+  }
+
+  <section class="panel">
+    <h2>Recent executions</h2>
+
+    @if (execLoading()) {
+    <mat-progress-bar mode="indeterminate" class="loader" />
+    }
+
+    @if (!execLoading() && !execRows().length) {
+    <p class="exec-empty">No executions recorded yet.</p>
+    }
+
+    @if (execRows().length) {
+    <ul class="recent">
+      @for (e of execRows(); track e.id) {
+      <li class="exec-row">
+        <div class="exec-row__left">
+          <span class="exec-status-dot exec-status-dot--{{ e.status | lowercase }}"></span>
+          <div class="exec-row__body">
+            <span class="r-name">{{ e.ruleName }}</span>
+            <span class="r-meta">
+              <span class="r-trigger-pill">{{ e.triggerType }}</span>
+              {{ executionRecentLabel(e.status) }} · {{ e.eligibleCount }} recipients
+            </span>
+            @if (e.chunksTotal != null && e.chunksTotal > 0 && e.chunksCompleted != null) {
+            <span class="r-chunks">{{ e.chunksCompleted }} of {{ e.chunksTotal }} chunks completed</span>
+            }
+            @if (e.progressNotes) {
+            <span class="r-progress">{{ e.progressNotes }}</span>
+            }
+          </div>
+        </div>
+        <div class="exec-row__right">
+          <span class="exec-outcome-badge exec-outcome-badge--{{ e.status | lowercase }}">
+            {{ executionRecentLabel(e.status) }}
+          </span>
+          <span class="r-time">{{ e.startedAt | date: 'dd MMM · hh:mm a' }}</span>
+        </div>
+      </li>
+      }
+    </ul>
+
+    <!-- Pagination -->
+    @if (execTotalPages() > 1) {
+    <div class="exec-pagination">
+      <div class="exec-pg-right">
+        <label class="pg-size-label">
+          Rows
+          <select class="pg-size-select" (change)="onExecSizeChange($event)">
+            <option [value]="5" [selected]="execPageSize() === 5">5</option>
+            <option [value]="10" [selected]="execPageSize() === 10">10</option>
+            <option [value]="25" [selected]="execPageSize() === 25">25</option>
+          </select>
+        </label>
+        <button type="button" class="pagination__btn" [disabled]="execPageIndex() === 0"
+          (click)="onExecPageChange(execPageIndex() - 1)">
+          <mat-icon>chevron_left</mat-icon>
+        </button>
+        <span class="pagination__page-info">
+          Page {{ execPageIndex() + 1 }} / {{ execTotalPages() }}
+        </span>
+        <button type="button" class="pagination__btn" [disabled]="execPageIndex() >= execTotalPages() - 1"
+          (click)="onExecPageChange(execPageIndex() + 1)">
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+      </div>
+    </div>
+    }
+    }
+  </section>
+</div>

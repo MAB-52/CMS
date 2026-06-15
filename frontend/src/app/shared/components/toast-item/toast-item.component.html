@@ -1,0 +1,18 @@
+<div class="toast toast--{{ toast.type }} ciq-toast-enter">
+  <div class="toast-head">
+    <div class="toast-icon">{{ icon() }}</div>
+    <div class="toast-body">
+      <div class="toast-title">{{ toast.title }}</div>
+      @if (toast.message) {
+        <div class="toast-msg">{{ toast.message }}</div>
+      }
+    </div>
+    <button type="button" class="toast-close" (click)="dismiss.emit(toast.id)" aria-label="Close">×</button>
+  </div>
+  <div class="toast-progress">
+    <div
+      class="toast-progress-bar"
+      [style.animation-duration.ms]="animDurationMs()"
+    ></div>
+  </div>
+</div>

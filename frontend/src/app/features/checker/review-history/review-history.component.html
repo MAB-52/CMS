@@ -1,0 +1,100 @@
+<div class="page">
+  <div class="head">
+    <h1>Review History</h1>
+    <a mat-stroked-button routerLink="/checker/dashboard">Dashboard</a>
+  </div>
+
+  <p class="sub">
+    Broadcast, rule, and consent decisions you performed as Checker (from audit
+    log).
+  </p>
+
+  @if (loading()) {
+  <div class="state-loading">Loading…</div>
+  } @else {
+  <!-- Top Filters -->
+  <div class="filters">
+    <input type="search" class="field" placeholder="Search by entity name or description" [ngModel]="searchQuery()"
+      (ngModelChange)="searchQuery.set($event)" name="reviewSearch" />
+
+    <select class="field select" [ngModel]="typeFilter()" (ngModelChange)="typeFilter.set($event)" name="reviewType">
+      <option [ngValue]="'all'">All types</option>
+      <option [ngValue]="'consents'">Consents</option>
+      <option [ngValue]="'rules'">Rules</option>
+    </select>
+  </div>
+
+  <!-- Top Pagination -->
+  <div class="pager-bar pager-bar--top">
+    <button mat-stroked-button type="button" [disabled]="page() === 0" (click)="prevPage()">
+      Previous
+    </button>
+
+    <span class="page-label">Page {{ page() + 1 }}</span>
+
+    <button mat-stroked-button type="button" [disabled]="!hasNext()" (click)="nextPage()">
+      Next
+    </button>
+  </div>
+
+  <!-- Empty States -->
+  @if (!displayedRows().length) {
+  @if (!rows().length) {
+  <div class="empty">
+    @if (page() > 0) {
+    No matching review actions on this page. Try another page or adjust
+    filters.
+    } @else {
+    No matching review actions yet. Approve, reject, or request revisions
+    from the checker workbenches to populate this list.
+    }
+  </div>
+  } @else {
+  <div class="empty empty--soft">
+    No rows match your search or type filter on this page.
+  </div>
+  }
+  } @else {
+  <!-- Review List -->
+  <div class="list">
+    @for (e of displayedRows(); track e.id) {
+    <div class="row">
+      <div class="row-main">
+        <div class="row-badges">
+          <span class="action-badge" [class]="'action-badge--' + actionBadgeTone(e.action)">
+            {{ formatActionLabel(e.action) }}
+          </span>
+
+          <span class="type-chip" [class]="'type-chip--' + entityChipKind(e.entityType)">
+            {{ entityChipLabel(e.entityType) }}
+          </span>
+        </div>
+
+        <div class="row-body">
+          <div class="entity-name">{{ e.entityName }}</div>
+          <div class="desc">{{ e.description }}</div>
+        </div>
+      </div>
+
+      <div class="row-aside">
+        <span class="when">{{ e.performedAt | timeAgo }}</span>
+      </div>
+    </div>
+    }
+  </div>
+  }
+
+  <!-- Bottom Pagination Only -->
+  <div class="pager-bar">
+    <button mat-stroked-button type="button" [disabled]="page() === 0" (click)="prevPage()">
+      Previous
+    </button>
+
+    <span class="page-label">Page {{ page() + 1 }}</span>
+
+    <button mat-stroked-button type="button" [disabled]="!hasNext()" (click)="nextPage()">
+      Next
+    </button>
+  </div>
+  }
+</div>

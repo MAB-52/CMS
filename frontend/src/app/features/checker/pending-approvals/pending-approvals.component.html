@@ -1,0 +1,206 @@
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="hero">
+    <div class="hero__content">
+      <div class="hero__eyebrow">
+        Pending Review Queue
+      </div>
+      <h1>
+        Pending Approvals
+      </h1>
+      <p>
+        Review, validate, and approve pending consent requests submitted by makers.
+      </p>
+
+      <div class="hero__stats">
+        <div class="stat-card">
+          <span class="stat-card__value">
+            {{ filtered().length }}
+          </span>
+
+          <span class="stat-card__label">
+            Pending Reviews
+          </span>
+        </div>
+
+        
+      </div>
+    </div>
+    <button
+      mat-icon-button
+      type="button"
+      class="refresh-btn"
+      (click)="reload()"
+      title="Refresh"
+    >
+      🔄
+    </button>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="toolbar">
+    <div class="tabs">
+      <button
+        type="button"
+        class="tab"
+        [class.on]="typeFilter === 'ALL'"
+        (click)="typeFilter = 'ALL'; applyFilters()"
+      >
+        All
+      </button>
+    </div>
+
+    <div class="toolbar-right">
+      <mat-form-field appearance="outline" class="search">
+        <mat-label>
+          Search
+        </mat-label>
+
+        <input
+          matInput
+          [(ngModel)]="search"
+          (keyup.enter)="applyFilters()"
+          placeholder="Name or ID…"
+        />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="sort">
+        <mat-label>
+          Sort
+        </mat-label>
+        <mat-select
+          [(ngModel)]="sort"
+          (selectionChange)="applyFilters()"
+        >
+          <mat-option value="date">
+            Date ↓
+          </mat-option>
+          <mat-option value="name">
+            Name
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+      <button
+        mat-flat-button
+        color="primary"
+        type="button"
+        class="apply-btn"
+        (click)="applyFilters()"
+      >
+        Apply
+      </button>
+    </div>
+  </div>
+
+  <!-- EMPTY STATE -->
+  @if (!filtered().length) {
+    <div class="empty">
+      <div class="empty__icon">
+        ✓
+      </div>
+      <h2>
+        All caught up!
+      </h2>
+      <p>
+        No consents are waiting for your review.
+      </p>
+    </div>
+  } @else {
+
+    <!-- CARDS -->
+    <div class="cards">
+      @for (c of filtered(); track c.id) {
+        <div
+          class="card"
+          (click)="review(c)"
+        >
+          <!-- TOP -->
+          <div class="card__top">
+            <div class="left">
+
+              <span [class]="typeClass(c.type)">
+                {{ c.type | consentTypeLabel }}
+              </span>
+
+              <h3 class="name">
+                {{ c.consentName }}
+              </h3>
+
+            </div>
+            <div class="pending-icon">
+              ⏳
+            </div>
+          </div>
+
+          <!-- META -->
+          <div class="meta-row">
+
+            <span>
+              <strong>ID:</strong>
+              {{ c.consentId }}
+            </span>
+
+            <span class="dot">•</span>
+            <span>
+              <strong>Submitted by:</strong>
+              {{ c.createdBy?.fullName || '—' }}
+            </span>
+
+            <span class="dot">•</span>
+            <span>
+              {{ c.submittedAt | timeAgo }}
+            </span>
+          </div>
+          <div class="meta-row">
+
+            <span>
+              <strong>Category:</strong>
+              {{ c.category }}
+            </span>
+            <span class="dot">•</span>
+            <span>
+              <strong>Channels:</strong>
+              {{ channels(c) }}
+            </span>
+          </div>
+          <div class="meta-row">
+            <span>
+              <strong>Version:</strong>
+              {{ c.version }}
+            </span>
+            <span class="dot">•</span>
+            <span>
+              <strong>Validity:</strong>
+              {{ c.validityPeriodDays }} days
+            </span>
+          </div>
+
+          <!-- ACTIONS -->
+          <div
+            class="acts"
+            (click)="$event.stopPropagation()"
+          >
+            <!-- <button
+              mat-stroked-button
+              type="button"
+              class="preview-btn"
+              (click)="preview(c)"
+            >
+              Preview
+            </button> -->
+            <button
+              mat-flat-button
+              color="primary"
+              type="button"
+              class="review-btn"
+              (click)="review(c)"
+            >
+              Review →
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

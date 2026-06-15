@@ -1,0 +1,178 @@
+<section class="panel">
+
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <div class="panel-head">
+    <div class="head-left">
+      <span class="eyebrow">MIS Analytics</span>
+      <h2 class="panel-title">Consent Performance <em>Leaderboard</em></h2>
+    </div>
+    <div class="export-group">
+      <button type="button" class="export-btn" [disabled]="exporting()" (click)="exportCsv()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        CSV
+      </button>
+      <button type="button" class="export-btn" [disabled]="exporting()" (click)="exportExcel()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+        Excel
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Sort filter ─────────────────────────────────────────────────────── -->
+  <div class="filters">
+    <div class="sort-group">
+      <span class="sort-label">Sort by</span>
+      <div class="sort-chips">
+        <button type="button" class="sort-chip" [class.sort-chip--on]="sortKey === 'REACH'"        (click)="sortKey = 'REACH'; applySort()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M9 9h6M9 13h4"/></svg>
+          Reach
+        </button>
+        <button type="button" class="sort-chip" [class.sort-chip--on]="sortKey === 'ACCEPTANCE'"   (click)="sortKey = 'ACCEPTANCE'; applySort()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Acceptance
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Skeleton ────────────────────────────────────────────────────────── -->
+  @if (loading()) {
+    <div class="skeleton-wrap">
+      <div class="sk-thead"></div>
+      @for (_ of skRows; track $index) {
+        <div class="sk-row" [style.opacity]="1 - $index * 0.10"></div>
+      }
+    </div>
+  } @else {
+
+    <!-- ── Table ──────────────────────────────────────────────────────────── -->
+    <div class="horiz-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="th-rank">#</th>
+            <th>Template</th>
+            <th class="th-num">Broadcasts</th>
+            <th class="th-num">Invites</th>
+            <th class="th-num">Accepted</th>
+            <th class="th-bar">Acceptance</th>
+            <th class="th-num">Avg TAT&nbsp;<span class="th-unit">(h)</span></th>
+            <th class="th-action"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of rows(); track r.consentDbId; let i = $index) {
+
+            <!-- Main row -->
+            <tr class="data-row" [class.data-row--expanded]="expandedId === r.consentDbId">
+              <td class="td-rank">
+                @if (medal(i)) {
+                  <span class="medal">{{ medal(i) }}</span>
+                } @else {
+                  <span class="rank-num">{{ currentPage() * pageSize + i + 1 }}</span>
+                }
+              </td>
+              <td class="td-name">
+                <span class="name-text">{{ r.consentName }}</span>
+              </td>
+              <td class="td-num">{{ r.totalBroadcastExecutions | number }}</td>
+              <td class="td-num">{{ r.totalRecipientsInvited | number }}</td>
+              <td class="td-num td-accepted">{{ r.totalAccepted | number }}</td>
+              <td class="td-bar">
+                <div class="bar-track"
+                  [matTooltip]="'Acceptance rate: ' + (r.acceptanceRatePercent | number:'1.0-1') + '%'"
+                  matTooltipPosition="above">
+                  <div class="bar-fill" [style.width]="sparkWidth(r.acceptanceRatePercent)"></div>
+                  <span class="bar-label">{{ r.acceptanceRatePercent | number: '1.0-1' }}%</span>
+                </div>
+              </td>
+              <td class="td-num">{{ r.averageHoursToAccept ?? '—' }}</td>
+              <td class="td-action">
+                <button
+                  type="button"
+                  class="expand-btn"
+                  [class.expand-btn--open]="expandedId === r.consentDbId"
+                  (click)="toggle(r.consentDbId)"
+                  [matTooltip]="expandedId === r.consentDbId ? 'Hide channels' : 'View channels'"
+                  matTooltipPosition="above"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+              </td>
+            </tr>
+
+            <!-- Expanded channel detail -->
+            @if (expandedId === r.consentDbId) {
+              <tr class="detail-row">
+                <td colspan="9">
+                  <div class="detail-inner">
+                    <div class="detail-header">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 9.26 19.79 19.79 0 0 1 1.65 4.59 2 2 0 0 1 3.62 2.4h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.9a16 16 0 0 0 6 6l.86-.86a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 17z"/></svg>
+                      Channel breakdown
+                    </div>
+                    <table class="sub-table">
+                      <thead>
+                        <tr>
+                          <th>Channel</th>
+                          <th class="th-num">Invites</th>
+                          <th class="th-num">Accepted</th>
+                          <th class="th-bar">Success rate</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (c of r.channelSplits; track c.channel) {
+                          <tr class="sub-row">
+                            <td><span class="channel-badge">{{ c.channel }}</span></td>
+                            <td class="td-num">{{ c.invitesSent | number }}</td>
+                            <td class="td-num">{{ c.acceptedCount | number }}</td>
+                            <td class="td-bar">
+                              <div class="bar-track bar-track--sub">
+                                <div class="bar-fill bar-fill--teal" [style.width]="sparkWidth(c.successRatePercent)"></div>
+                                <span class="bar-label">{{ c.successRatePercent | number: '1.0-1' }}%</span>
+                              </div>
+                            </td>
+                          </tr>
+                        } @empty {
+                          <tr><td colspan="4" class="empty-sub">No per-channel traffic available.</td></tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </td>
+              </tr>
+            }
+
+          } @empty {
+            <tr>
+              <td colspan="9">
+                <div class="empty-state">
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.35"><circle cx="12" cy="8" r="6"/><path d="M12 14v7M8 18h8"/></svg>
+                  <p>No published templates to rank.</p>
+                  <span>Templates will appear here once they reach Published or Approved status.</span>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── Pagination ─────────────────────────────────────────────────────── -->
+    <div class="pager">
+      <span class="pager-info">
+        Page <strong>{{ currentPage() + 1 }}</strong> of <strong>{{ totalPages() || 1 }}</strong>
+      </span>
+      <div class="pager-controls">
+        <button type="button" class="pager-btn" [disabled]="currentPage() <= 0 || loading()" (click)="prev()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Prev
+        </button>
+        <button type="button" class="pager-btn" [disabled]="currentPage() >= totalPages() - 1 || loading()" (click)="next()">
+          Next
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+  }
+</section>

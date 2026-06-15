@@ -1,0 +1,81 @@
+<div class="tab-toolbar">
+  <div class="exports">
+    <button mat-stroked-button type="button" [disabled]="exporting()" (click)="exportCsv()">
+      <mat-icon>download</mat-icon> CSV
+    </button>
+    <button mat-stroked-button type="button" [disabled]="exporting()" (click)="exportExcel()">
+      <mat-icon>table_chart</mat-icon> Excel
+    </button>
+  </div>
+</div>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+<div class="filters">
+  <mat-form-field appearance="outline" class="ff">
+    <mat-label>Entity type</mat-label>
+    <mat-select [(ngModel)]="entityType">
+      <mat-option value="">All</mat-option>
+      <mat-option value="CONSENT">CONSENT</mat-option>
+      <mat-option value="BROADCAST_REQUEST">BROADCAST_REQUEST</mat-option>
+      <mat-option value="CONSENT_RULE">CONSENT_RULE</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <mat-form-field appearance="outline" class="ff">
+    <mat-label>Action</mat-label>
+    <mat-select [(ngModel)]="action">
+      <mat-option value="">All</mat-option>
+      @for (a of actions(); track a) {
+        <mat-option [value]="a">{{ a }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+  <label class="ff-date"><span>From</span><input type="date" [(ngModel)]="from" /></label>
+  <label class="ff-date"><span>To</span><input type="date" [(ngModel)]="to" /></label>
+  <mat-form-field appearance="outline" class="ff-grow">
+    <mat-label>Performed by contains</mat-label>
+    <input matInput [(ngModel)]="performedBy" />
+  </mat-form-field>
+  <button mat-stroked-button type="button" (click)="apply()">Apply</button>
+</div>
+
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Timestamp</th>
+        <th>Entity type</th>
+        <th>Entity name</th>
+        <th>Action</th>
+        <th>Performed by</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (r of rows(); track r.id) {
+        <tr>
+          <td>{{ r.performedAt | date: 'medium' }}</td>
+          <td>{{ r.entityType || '—' }}</td>
+          <td>{{ r.entityName || '—' }}</td>
+          <td>{{ r.action }}</td>
+          <td>{{ r.userName }}</td>
+          <td class="desc">{{ r.description || '—' }}</td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="6" class="empty">{{ loading() ? 'Loading…' : 'No audit rows.' }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<div class="pager">
+  <span>Page {{ currentPage() + 1 }} / {{ totalPages() || 1 }}</span>
+  <div>
+    <button mat-stroked-button type="button" [disabled]="currentPage() <= 0 || loading()" (click)="prev()">Previous</button>
+    <button mat-stroked-button type="button" [disabled]="currentPage() >= totalPages() - 1 || loading()" (click)="next()">Next</button>
+  </div>
+</div>

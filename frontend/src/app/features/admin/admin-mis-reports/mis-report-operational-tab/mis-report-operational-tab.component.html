@@ -1,0 +1,179 @@
+<section class="panel">
+  <h2>Channel performance</h2>
+  <p class="muted">Invite metrics are derived from consent invite tokens; template mix reflects published templates.</p>
+  <div class="horiz-scroll">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Channel</th>
+          <th>Invites</th>
+          <th>Accepted</th>
+          <th>Declined / no response</th>
+          <th>Success %</th>
+          <th>Drop-off %</th>
+          <th>Template mix %</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (c of channels(); track c.channel) {
+          <tr>
+            <td>{{ c.channel }}</td>
+            <td>{{ c.totalInvitesSent }}</td>
+            <td>{{ c.acceptedCount }}</td>
+            <td>{{ c.declinedOrNoResponseCount }}</td>
+            <td>{{ c.successRatePercent | number: '1.0-1' }}%</td>
+            <td>{{ c.dropOffPercent | number: '1.0-1' }}%</td>
+            <td>{{ c.templateMixPercent | number: '1.0-1' }}%</td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="7" class="empty">No channel data.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <div class="hbar-wrap">
+    @for (c of channels(); track c.channel) {
+      <div class="hbar-row">
+        <span class="hbar-name">{{ c.channel }}</span>
+        <div class="hbar-track">
+          <div class="hbar-fill" [style.width]="barWidth(c.totalInvitesSent, channels())"></div>
+        </div>
+        <span class="hbar-meta">{{ c.totalInvitesSent }}</span>
+      </div>
+    }
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Maker performance</h2>
+  <div class="horiz-scroll">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Created</th>
+          <th>Pending</th>
+          <th>Approved/Published</th>
+          <th>Rejected</th>
+          <th>Avg submit (h)</th>
+          <th>SLA 24h submit %</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (a of agents(); track a.userId) {
+          <tr>
+            <td>{{ a.fullName }}</td>
+            <td>{{ a.email }}</td>
+            <td>{{ a.role }}</td>
+            <td>{{ a.totalConsentsCreated }}</td>
+            <td>{{ a.pendingApprovals }}</td>
+            <td>{{ a.approvedOrPublished }}</td>
+            <td>{{ a.rejectedConsents }}</td>
+            <td>{{ a.averageProcessingHours | number: '1.0-1' }}</td>
+            <td>{{ a.sla24hSubmitCompliancePercent | number: '1.0-1' }}%</td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="9" class="empty">No makers found.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="tab-toolbar">
+    <h2>Turnaround time (consent workflow)</h2>
+    <div class="exports">
+      <button mat-stroked-button type="button" [disabled]="exportingTat()" (click)="exportTatCsv()">
+        <mat-icon>download</mat-icon> CSV
+      </button>
+      <button mat-stroked-button type="button" [disabled]="exportingTat()" (click)="exportTatExcel()">
+        <mat-icon>table_chart</mat-icon> Excel
+      </button>
+    </div>
+  </div>
+  @if (tatSummary(); as s) {
+    <div class="summary-cards">
+      <div class="sum-card"><span>Avg TAT (all)</span><strong>{{ s.averageTatHoursOverall ?? '—' }}</strong></div>
+      <div class="sum-card"><span>Avg approved</span><strong>{{ s.averageTatHoursApproved ?? '—' }}</strong></div>
+      <div class="sum-card"><span>Avg rejected</span><strong>{{ s.averageTatHoursRejected ?? '—' }}</strong></div>
+      <div class="sum-card"><span>Fastest</span><strong>{{ s.fastestTatHours ?? '—' }}</strong></div>
+      <div class="sum-card"><span>Slowest</span><strong>{{ s.slowestTatHours ?? '—' }}</strong></div>
+    </div>
+  }
+  <div class="filters">
+    <label class="ff-date"><span>From</span><input type="date" [(ngModel)]="tatFrom" /></label>
+    <label class="ff-date"><span>To</span><input type="date" [(ngModel)]="tatTo" /></label>
+    <mat-form-field appearance="outline" class="ff">
+      <mat-label>Status</mat-label>
+      <mat-select [(ngModel)]="tatStatus">
+        <mat-option value="">All</mat-option>
+        <mat-option value="PENDING_APPROVAL">PENDING_APPROVAL</mat-option>
+        <mat-option value="APPROVED">APPROVED</mat-option>
+        <mat-option value="REJECTED">REJECTED</mat-option>
+        <mat-option value="PUBLISHED">PUBLISHED</mat-option>
+        <mat-option value="DRAFT">DRAFT</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="ff">
+      <mat-label>Creator</mat-label>
+      <mat-select [(ngModel)]="tatCreatorId">
+        <mat-option value="">All</mat-option>
+        @for (m of creatorOptions(); track m.userId) {
+          <mat-option [value]="m.userId">{{ m.fullName }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <button mat-stroked-button type="button" (click)="applyTat()">Apply</button>
+  </div>
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+  <div class="horiz-scroll">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th>Submitted</th>
+          <th>Reviewed</th>
+          <th>TAT (h)</th>
+          <th>Creator</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of tatRows(); track r.consentDbId) {
+          <tr>
+            <td>{{ r.consentId }}</td>
+            <td>{{ r.consentName }}</td>
+            <td>{{ r.status }}</td>
+            <td>{{ r.createdAt | date: 'short' }}</td>
+            <td>{{ r.submittedAt ? (r.submittedAt | date: 'short') : '—' }}</td>
+            <td>{{ r.reviewedAt ? (r.reviewedAt | date: 'short') : '—' }}</td>
+            <td>{{ r.totalTatHours ?? '—' }}</td>
+            <td>{{ r.creatorName || '—' }}</td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="8" class="empty">{{ loading() ? 'Loading…' : 'No rows.' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <div class="pager">
+    <span>Page {{ tatPage() + 1 }} / {{ tatTotalPages() || 1 }}</span>
+    <div>
+      <button mat-stroked-button type="button" [disabled]="tatPage() <= 0 || loading()" (click)="prevTat()">Previous</button>
+      <button mat-stroked-button type="button" [disabled]="tatPage() >= tatTotalPages() - 1 || loading()" (click)="nextTat()">Next</button>
+    </div>
+  </div>
+</section>

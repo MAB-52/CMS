@@ -1,0 +1,429 @@
+// ── Variables (mirrors your existing design tokens) ─────────────
+$ai-accent:       #7c3aed;
+$ai-accent-light: #f5f3ff;
+$ai-border:       #c4b5fd;
+$ai-border-soft:  #ddd6fe;
+$ai-text-dark:    #4c1d95;
+$ai-purple-mid:   #6d28d9;
+$accent:          #6366f1;
+$border:          #e5e7eb;
+$text-primary:    #111827;
+$text-secondary:  #6b7280;
+$text-muted:      #9ca3af;
+$success:         #10b981;
+$danger:          #ef4444;
+$page-bg:         #f5f6fa;
+$white:           #ffffff;
+$radius:          10px;
+$radius-sm:       6px;
+
+// ── Card shell ────────────────────────────────────────────────────
+.ai-card {
+  background:    $white;
+  overflow:      hidden;
+  position:      relative;
+  margin-bottom: 10px;
+}
+
+// ── Gradient top stripe ───────────────────────────────────────────
+.ai-top-bar {
+  height:     3px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6, #a855f7);
+}
+
+// ── Header ────────────────────────────────────────────────────────
+.ai-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         13px 18px;
+  border-bottom:   1px solid #ede9fe;
+  background:      linear-gradient(135deg, #f5f3ff 0%, #fdf4ff 100%);
+}
+
+.ai-title {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  font-size:   13px;
+  font-weight: 600;
+  color:       $ai-text-dark;
+
+  svg { color: $ai-accent; flex-shrink: 0; }
+}
+
+.ai-badge {
+  display:     inline-flex;
+  align-items: center;
+  gap:         6px;
+  background:  #ede9fe;
+  color:       #6d28d9;
+  border:      1px solid $ai-border;
+  border-radius: 12px;
+  padding:     3px 10px;
+  font-size:   10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.ai-pulse {
+  width:        6px;
+  height:       6px;
+  border-radius: 50%;
+  background:   $ai-accent;
+  animation:    ai-pulse 1.8s ease-in-out infinite;
+  flex-shrink:  0;
+}
+
+@keyframes ai-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.35; transform: scale(0.65); }
+}
+
+// ── Body ──────────────────────────────────────────────────────────
+.ai-body {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+// ── Field wrapper ─────────────────────────────────────────────────
+.ai-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.ai-label {
+  display:     flex;
+  align-items: center;
+  gap:         6px;
+  font-size:   12px;
+  font-weight: 500;
+  color:       $text-secondary;
+}
+
+// ── Refresh button ────────────────────────────────────────────────
+.refresh-btn {
+  display:     inline-flex;
+  align-items: center;
+  justify-content: center;
+  width:       20px;
+  height:      20px;
+  border:      none;
+  background:  transparent;
+  cursor:      pointer;
+  border-radius: 4px;
+  color:       $text-muted;
+  padding:     0;
+  transition:  color 0.15s, background 0.15s;
+  margin-left: 2px;
+
+  &:hover:not(:disabled) {
+    background: #ede9fe;
+    color:      $ai-purple-mid;
+  }
+
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  svg.spinning { animation: spin 0.8s linear infinite; }
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+// ── Select ────────────────────────────────────────────────────────
+.ai-select {
+  width:         100%;
+  padding:       9px 32px 9px 12px;
+  border:        1px solid $ai-border-soft;
+  border-radius: 8px;
+  background:    #faf5ff
+    url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    no-repeat right 12px center;
+  appearance:    none;
+  color:         $text-primary;
+  font-size:     13px;
+  font-family:   inherit;
+  outline:       none;
+  cursor:        pointer;
+  transition:    border-color 0.15s, box-shadow 0.15s;
+
+  &:focus {
+    border-color: $ai-accent;
+    box-shadow:   0 0 0 3px rgba(124, 58, 237, 0.1);
+  }
+}
+
+// ── Hint ──────────────────────────────────────────────────────────
+.field-hint-warn {
+  display:     flex;
+  align-items: center;
+  gap:         4px;
+  font-size:   11px;
+  color:       #d97706;
+
+  svg { flex-shrink: 0; }
+}
+
+// ── Textarea ──────────────────────────────────────────────────────
+.ai-textarea {
+  width:         100%;
+  padding:       9px 12px;
+  border:        1px solid $ai-border-soft;
+  border-radius: 8px;
+  background:    #faf5ff;
+  color:         $text-primary;
+  font-size:     13px;
+  font-family:   inherit;
+  line-height:   1.6;
+  resize:        vertical;
+  min-height:    88px;
+  outline:       none;
+  transition:    border-color 0.15s, box-shadow 0.15s;
+
+  &:focus {
+    border-color: $ai-accent;
+    box-shadow:   0 0 0 3px rgba(124, 58, 237, 0.1);
+  }
+
+  &::placeholder { color: $text-muted; }
+}
+
+// ── Action row ────────────────────────────────────────────────────
+.ai-actions {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  flex-wrap:   wrap;
+}
+
+.btn-generate {
+  display:     inline-flex;
+  align-items: center;
+  gap:         6px;
+  padding:     8px 16px;
+  border:      none;
+  border-radius: 8px;
+  background:  $ai-accent;
+  color:       $white;
+  font-size:   12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor:      pointer;
+  transition:  background 0.15s;
+
+  &:hover:not(:disabled) { background: $ai-purple-mid; }
+  &:disabled             { opacity: 0.5; cursor: not-allowed; }
+}
+
+.btn-outline {
+  display:     inline-flex;
+  align-items: center;
+  gap:         6px;
+  padding:     7px 13px;
+  border:      1px solid $ai-border-soft;
+  border-radius: 8px;
+  background:  $ai-accent-light;
+  color:       $ai-accent;
+  font-size:   12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor:      pointer;
+  transition:  background 0.15s;
+
+  &:hover:not(:disabled) { background: #ede9fe; }
+  &:disabled             { opacity: 0.5; cursor: not-allowed; }
+}
+
+.btn-ghost {
+  display:     inline-flex;
+  align-items: center;
+  gap:         5px;
+  padding:     7px 12px;
+  border:      1px solid $border;
+  border-radius: 7px;
+  background:  $white;
+  color:       $text-secondary;
+  font-size:   12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor:      pointer;
+  transition:  background 0.15s;
+
+  &:hover { background: $page-bg; color: $text-primary; }
+}
+
+.btn-ghost-sm {
+  display:     inline-flex;
+  align-items: center;
+  gap:         4px;
+  padding:     5px 9px;
+  border:      1px solid $border;
+  border-radius: 6px;
+  background:  $white;
+  color:       $text-secondary;
+  font-size:   11px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor:      pointer;
+  transition:  background 0.15s;
+
+  &:hover { background: $page-bg; color: $text-primary; }
+}
+
+// ── Spinner inside button ─────────────────────────────────────────
+.btn-spinner {
+  width:        13px;
+  height:       13px;
+  border:       2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: $white;
+  border-radius: 50%;
+  animation:   spin 0.7s linear infinite;
+  display:     inline-block;
+  flex-shrink: 0;
+}
+
+// ── Status bar ────────────────────────────────────────────────────
+.ai-status-bar {
+  display:       flex;
+  flex-wrap:     wrap;
+  align-items:   center;
+  gap:           8px;
+  padding:       8px 12px;
+  background:    #f5f3ff;
+  border:        1px solid $ai-border-soft;
+  border-radius: 8px;
+  font-size:     11px;
+  color:         #5b21b6;
+
+  strong { font-weight: 600; color: $ai-text-dark; }
+}
+
+.status-dot {
+  width:        7px;
+  height:       7px;
+  border-radius: 50%;
+  background:   $success;
+  flex-shrink:  0;
+}
+
+.sep { color: $ai-border; }
+
+.status-ok {
+  font-weight: 600;
+  color:       $success;
+}
+
+// ── Error bar ─────────────────────────────────────────────────────
+.ai-error-bar {
+  display:       flex;
+  align-items:   flex-start;
+  gap:           8px;
+  padding:       10px 12px;
+  background:    #fef2f2;
+  border:        1px solid #fecaca;
+  border-radius: 8px;
+  font-size:     12px;
+  color:         #991b1b;
+
+  svg { flex-shrink: 0; margin-top: 1px; color: $danger; }
+}
+
+// ── Preview panel ─────────────────────────────────────────────────
+.ai-preview-panel {
+  border:        1px solid $ai-border-soft;
+  border-radius: 10px;
+  overflow:      hidden;
+}
+
+.preview-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         9px 13px;
+  background:      #f5f3ff;
+  border-bottom:   1px solid $ai-border-soft;
+}
+
+.preview-title {
+  display:     flex;
+  align-items: center;
+  gap:         6px;
+  font-size:   11px;
+  font-weight: 600;
+  color:       $ai-purple-mid;
+
+  svg { color: $ai-purple-mid; }
+}
+
+.preview-header-actions {
+  display: flex;
+  gap:     5px;
+}
+
+.preview-body {
+  padding:     13px 14px;
+  max-height:  160px;
+  overflow-y:  auto;
+  font-size:   12px;
+  line-height: 1.75;
+  color:       $text-primary;
+  background:  $white;
+  white-space: pre-wrap;
+  word-break:  break-word;
+
+  // Subtle scrollbar
+  &::-webkit-scrollbar       { width: 4px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: $ai-border-soft; border-radius: 4px; }
+}
+
+.preview-actions {
+  display:     flex;
+  gap:         6px;
+  flex-wrap:   wrap;
+  padding:     9px 13px;
+  border-top:  1px solid #ede9fe;
+  background:  #faf5ff;
+}
+
+.btn-insert {
+  display:     inline-flex;
+  align-items: center;
+  gap:         5px;
+  padding:     6px 12px;
+  border:      1px solid $accent;
+  border-radius: 6px;
+  background:  #eef0ff;
+  color:       $accent;
+  font-size:   11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor:      pointer;
+  transition:  background 0.15s, color 0.15s;
+
+  &:hover { background: $accent; color: $white; }
+}
+
+// ── Shimmer loading ───────────────────────────────────────────────
+.shimmer-wrap {
+  padding:    14px;
+  background: $white;
+}
+
+.shimmer-line {
+  height:        11px;
+  border-radius: 4px;
+  margin-bottom: 9px;
+  background:    linear-gradient(90deg, #f3f0ff 25%, #e9e3ff 50%, #f3f0ff 75%);
+  background-size: 200% 100%;
+  animation:   shimmer 1.4s infinite;
+
+  &:last-child { margin-bottom: 0; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

@@ -1,0 +1,73 @@
+:root {
+  --color-primary: #6366f1;
+  --color-primary-dark: #4f46e5;
+  --color-primary-light: #e0e7ff;
+  --color-success: #16a34a;
+  --color-success-light: #f0fdf4;
+  --color-success-border: #bbf7d0;
+  --color-error: #dc2626;
+  --color-error-light: #fef2f2;
+  --color-error-border: #fecaca;
+  --color-warning: #d97706;
+  --color-warning-light: #fffbeb;
+  --color-warning-border: #fde68a;
+  --color-info: #2563eb;
+  --color-info-light: #eff6ff;
+  --color-info-border: #bfdbfe;
+  --color-amber: #f59e0b;
+  --color-amber-light: #fffbeb;
+  --color-amber-border: #fcd34d;
+  --color-purple-badge: #7c3aed;
+
+  --sidebar-bg: #0f172a;
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-active-bg: rgba(99, 102, 241, 0.18);
+  --sidebar-active-border: #6366f1;
+  --sidebar-text: #94a3b8;
+  --sidebar-text-active: #ffffff;
+  --sidebar-text-muted: #475569;
+  --sidebar-width: 260px;
+
+  --page-bg: #f1f5f9;
+  --card-bg: #ffffff;
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --card-radius: 12px;
+  --card-border: 1px solid #e2e8f0;
+  --input-radius: 8px;
+  --btn-radius: 8px;
+  --input-height: 44px;
+  --input-border-color: #e2e8f0;
+  --input-bg: #ffffff;
+  --input-bg-disabled: #f8fafc;
+  --input-placeholder-color: #94a3b8;
+  --input-text-color: #111827;
+  --input-focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  --input-focus-border: var(--color-info);
+  --input-error-border: var(--color-error);
+  --input-error-ring: 0 0 0 3px rgba(220, 38, 38, 0.1);
+
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+
+  --text-12: 12px;
+  --text-13: 13px;
+  --text-14: 14px;
+  --text-16: 16px;
+  --text-18: 18px;
+  --text-24: 24px;
+  --text-32: 32px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+}

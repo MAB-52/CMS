@@ -1,0 +1,14 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+  padding: 2rem;
+}
+
+.err {
+  color: #b91c1c;
+  text-align: center;
+  max-width: 28rem;
+}

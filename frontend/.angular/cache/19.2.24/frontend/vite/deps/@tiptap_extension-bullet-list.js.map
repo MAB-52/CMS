@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../node_modules/@tiptap/extension-bullet-list/dist/index.js"],
+  "sourcesContent": ["// src/index.ts\nimport { BulletList } from \"@tiptap/extension-list\";\nimport { BulletList as BulletList2 } from \"@tiptap/extension-list\";\nvar index_default = BulletList;\nexport { BulletList2 as BulletList, index_default as default };\n"],
+  "mappings": ";;;;;;;AAGA,IAAI,gBAAgB;",
+  "names": []
+}

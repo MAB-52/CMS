@@ -1,0 +1,373 @@
+@use '../../../../styles/variables' as *;
+
+/* ─────────────────────────────────────────
+   PAGE
+───────────────────────────────────────── */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.14), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.12), transparent 30%),
+    linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%);
+}
+
+/* ─────────────────────────────────────────
+   CARD
+───────────────────────────────────────── */
+.login-card {
+  width: 100%;
+  max-width: 470px;
+  padding: 44px 40px;
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow:
+    0 10px 40px rgba(15, 23, 42, 0.08),
+    0 2px 8px rgba(15, 23, 42, 0.05);
+  position: relative;
+  /* FIX: was clipping focus ring box-shadow on fields */
+  overflow: visible;
+}
+
+.login-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 30px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(14, 165, 233, 0.02));
+  pointer-events: none;
+}
+
+/* ─────────────────────────────────────────
+   BRAND
+───────────────────────────────────────── */
+.brand-block {
+  margin-bottom: 28px;
+  position: relative;
+  z-index: 1;
+}
+
+.logo-title {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -1px;
+  background: linear-gradient(135deg, #2563eb, #0ea5e9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.logo-sub {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+/* ─────────────────────────────────────────
+   HEADINGS
+───────────────────────────────────────── */
+.welcome {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+  position: relative;
+  z-index: 1;
+}
+
+.sub {
+  margin: 10px 0 32px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #64748b;
+  position: relative;
+  z-index: 1;
+}
+
+/* ─────────────────────────────────────────
+   ERROR BANNER
+───────────────────────────────────────── */
+.err-banner {
+  margin-bottom: 22px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+  font-size: 14px;
+  font-weight: 600;
+  position: relative;
+  z-index: 1;
+
+  &::before {
+    content: '❌ ';
+  }
+}
+
+/* ─────────────────────────────────────────
+   FORM
+───────────────────────────────────────── */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ─────────────────────────────────────────
+   PREFIX ICON
+───────────────────────────────────────── */
+.pfx {
+  font-size: 15px;
+  line-height: 1;
+  opacity: 0.75;
+}
+
+/* ─────────────────────────────────────────
+   MATERIAL FIELD OVERRIDES
+───────────────────────────────────────── */
+.field {
+  width: 100%;
+}
+
+/* wrapper — single clean border, no double lines */
+::ng-deep .field .mat-mdc-text-field-wrapper {
+  border-radius: 18px !important;
+  background: rgba(255, 255, 255, 0.97) !important;
+  border: 1.5px solid rgba(148, 163, 184, 0.35);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+/* FIX: kill ALL outline strokes — we use wrapper border only */
+::ng-deep .field .mdc-notched-outline {
+  display: none !important;
+}
+
+/* hover */
+::ng-deep .field:hover .mat-mdc-text-field-wrapper {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+/* focus */
+::ng-deep .field.mat-focused .mat-mdc-text-field-wrapper {
+  background: #ffffff !important;
+  border-color: #3b82f6;
+  border-width: 2px;
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 4px rgba(59, 130, 246, 0.10),
+    0 10px 24px rgba(37, 99, 235, 0.10);
+}
+
+/* flex row — vertically centre all children including prefix */
+::ng-deep .field .mat-mdc-form-field-flex {
+  min-height: 58px;
+  padding-inline: 14px !important;
+  align-items: center !important;
+}
+
+/* infix — reduced top padding so text sits centred, not pushed down */
+::ng-deep .field .mat-mdc-form-field-infix {
+  min-height: 58px;
+  padding-top: 18px !important;
+  padding-bottom: 8px !important;
+}
+
+/* FIX: prefix icon — force vertical centre alignment */
+::ng-deep .field .mat-mdc-form-field-text-prefix {
+  display: flex !important;
+  align-items: center !important;
+  /* nudge down slightly to sit on the text baseline */
+  padding-top: 10px;
+  margin-right: 4px;
+}
+
+/* label */
+::ng-deep .field .mat-mdc-floating-label {
+  color: #64748b !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+::ng-deep .field .mdc-floating-label--float-above {
+  color: #475569 !important;
+}
+
+::ng-deep .field.mat-focused .mat-mdc-floating-label {
+  color: #2563eb !important;
+}
+
+/* input text */
+::ng-deep .field input.mat-mdc-input-element {
+  color: #0f172a !important;
+  font-size: 18px !important;
+  font-weight: 500;
+  caret-color: #3b82f6;
+}
+
+::ng-deep .field input.mat-mdc-input-element::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* password toggle */
+::ng-deep .field button[mat-icon-button] {
+  color: #64748b;
+  /* FIX: pull toggle down to match text baseline like the prefix */
+  margin-top: 10px;
+  transition: color 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    color: #2563eb;
+    transform: scale(1.08);
+  }
+}
+
+/* subscript / error */
+::ng-deep .field .mat-mdc-form-field-subscript-wrapper {
+  padding-inline: 4px;
+  margin-top: 4px;
+}
+
+::ng-deep .field .mat-mdc-form-field-error {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ─────────────────────────────────────────
+   SUBMIT BUTTON
+───────────────────────────────────────── */
+.submit-btn {
+  height: 56px !important;
+  border-radius: 18px !important;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: linear-gradient(135deg, #2563eb, #0ea5e9) !important;
+  color: white !important;
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.28);
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    opacity 0.22s ease;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 36px rgba(37, 99, 235, 0.34);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.72;
+  }
+}
+
+/* ─────────────────────────────────────────
+   LOADING / SUCCESS
+───────────────────────────────────────── */
+.spin {
+  display: inline-block;
+  margin-right: 6px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.success-pulse {
+  animation: pulseGlow 1.4s ease infinite;
+}
+
+@keyframes pulseGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.35);
+  }
+
+  70% {
+    box-shadow: 0 0 0 14px rgba(37, 99, 235, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+  }
+}
+
+/* ─────────────────────────────────────────
+   FOOTER
+───────────────────────────────────────── */
+.version {
+  margin-top: 28px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+  position: relative;
+  z-index: 1;
+}
+
+.forgot-password-link {
+  text-align: right;
+  margin-top: 16px;
+  /* Increased from -8px */
+  margin-bottom: 8px;
+}
+
+.forgot-link {
+  color: #3b82f6;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  /* Add pointer cursor */
+  display: inline-block;
+  /* Make it clickable */
+
+  &:hover {
+    color: #2563eb;
+    text-decoration: underline;
+  }
+}
+
+/* ─────────────────────────────────────────
+   MOBILE
+───────────────────────────────────────── */
+@media (max-width: 640px) {
+  .login-page {
+    padding: 18px;
+    align-items: flex-start;
+    padding-top: 48px;
+  }
+
+  .login-card {
+    padding: 32px 22px;
+    border-radius: 24px;
+  }
+
+  .logo-title {
+    font-size: 28px;
+  }
+
+  .welcome {
+    font-size: 26px;
+  }
+}

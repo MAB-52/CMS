@@ -1,0 +1,252 @@
+<div class="public-page" dir="ltr">
+
+  <!-- Ambient background orbs -->
+  <div class="bg-orb bg-orb--1" aria-hidden="true"></div>
+  <div class="bg-orb bg-orb--2" aria-hidden="true"></div>
+  <div class="bg-orb bg-orb--3" aria-hidden="true"></div>
+  <div class="bg-orb bg-orb--4" aria-hidden="true"></div>
+
+  <div class="shell-card">
+
+    <!-- Header -->
+    <header class="card-header">
+      <div class="brand">
+        <div class="brand-icon-wrap">
+          <span class="brand-icon-inner">C</span>
+        </div>
+        ConsentIQ
+      </div>
+      <div class="header-badge">
+        <span class="header-badge__dot"></span>
+        Secure Request
+      </div>
+    </header>
+
+    <!-- Decorative gradient strip -->
+    <div class="gradient-strip" aria-hidden="true"></div>
+
+    <h1 class="title">Consent Request</h1>
+    <p class="lede">Review the details below and let us know your decision.</p>
+
+    <!-- Loading -->
+    @if (loading()) {
+    <div class="center">
+      <div class="spinner-wrap">
+        <mat-progress-spinner diameter="40" mode="indeterminate" />
+      </div>
+      <p class="muted">Loading your request…</p>
+    </div>
+    } @else {
+
+    <!-- Error -->
+    @if (errorMessage(); as err) {
+    <div class="banner banner--error" role="alert">
+      <span class="banner-icon banner-icon--error">⚠</span>
+      <span>{{ err }}</span>
+    </div>
+    } @else {
+
+    @if (detail(); as d) {
+
+    <!-- Inline notice banner -->
+    @if (inlineNotice(); as note) {
+    <div class="banner" [class.banner--ok]="d.state === 'ACCEPTED'" [class.banner--deny]="d.state === 'REJECTED'"
+      [class.banner--muted]="d.state === 'EXPIRED' || d.state === 'WITHDRAWN'" role="status">
+      <span class="banner-icon">
+        @if (d.state === 'ACCEPTED') { ✓ }
+        @else if (d.state === 'REJECTED' || d.state === 'WITHDRAWN') { ✕ }
+        @else { ℹ }
+      </span>
+      <span>{{ note }}</span>
+    </div>
+    }
+
+    <!-- Consent details panel -->
+    <section class="panel">
+      <div class="panel__accent" aria-hidden="true"></div>
+
+      <div class="greet">
+        <span class="greet__avatar">{{ d.customerDisplayName?.charAt(0) }}</span>
+        Hello, <strong>{{ d.customerDisplayName }}</strong>
+      </div>
+
+      <h2 class="consent-title">{{ d.consentTitle }}</h2>
+
+      @if (d.descriptionPreview) {
+      <p class="body-text">{{ d.descriptionPreview }}</p>
+      }
+
+      <!-- Message block: prefer resolved HTML (tags + images), fall back to plain text -->
+      @if (d.resolvedMessageHtml) {
+      <div class="message-block">
+        <div class="message-block__label">
+          <span class="label-icon">💬</span>
+          What you are being asked to approve
+        </div>
+        <div class="message-preview message-preview--html"
+          [innerHTML]="safeResolvedHtml(d.resolvedMessageHtml)"></div>
+      </div>
+      } @else if (d.messagePreview) {
+      <div class="message-block">
+        <div class="message-block__label">
+          <span class="label-icon">💬</span>
+          What you are being asked to approve
+        </div>
+        <div class="message-preview">{{ d.messagePreview }}</div>
+      </div>
+      }
+
+      @if (d.deliveryChannelsSummary) {
+      <div class="delivery-summary" role="region" aria-label="Communication channels for this request">
+        <div class="delivery-summary__k">
+          <span class="ds-icon">📡</span>
+          {{ d.deliveryChannelsSummary.includes(', ')
+          ? 'Channels'
+          : 'Channel' }}
+        </div>
+        <div class="delivery-chips">
+          @for (ch of d.deliveryChannelsSummary.split(', '); track ch) {
+          <span class="delivery-chip">{{ ch }}</span>
+          }
+        </div>
+      </div>
+      }
+
+      @if (d.validityPeriodDays && d.validityPeriodDays > 0) {
+      <div class="expiry-badge">
+        <span class="expiry-dot"></span>
+        Consent valid for {{ d.validityPeriodDays }} day{{ d.validityPeriodDays === 1 ? '' : 's' }} from acceptance
+      </div>
+      } @else if (d.expiresAt) {
+      <div class="expiry-badge">
+        <span class="expiry-dot"></span>
+        Valid until {{ d.expiresAt | date: 'dd MMM yyyy' }}
+      </div>
+      }
+    </section>
+
+    <!-- ── READY STATE ── -->
+    @if (d.state === 'READY') {
+
+    <!-- ── CHANNEL PREFERENCE ── -->
+    @if (d.availableChannels && d.availableChannels.length >= 1) {
+    <div class="pref-section pref-section--purple">
+      <div class="pref-section__head">
+        <div class="pref-section__icon-wrap pref-section__icon-wrap--purple">
+          📡
+        </div>
+        <div>
+          <h3 class="pref-section__title">Preferred channels</h3>
+          <p class="pref-section__hint">
+            Choose how you'd like to receive this consent communication.
+            <strong class="pref-required">At least one channel is required to accept.</strong>
+          </p>
+        </div>
+      </div>
+
+      <div class="chip-grid" role="group" aria-label="Channel preferences">
+        @for (ch of d.availableChannels; track ch) {
+        <button type="button" class="chip" [class.chip--active]="channelOn(ch)" (click)="toggleChannel(ch)"
+          [attr.aria-pressed]="channelOn(ch)">
+          <span class="chip__check" aria-hidden="true">
+            @if (channelOn(ch)) { ✓ }
+          </span>
+          <span class="chip__label">{{ ch }}</span>
+        </button>
+        }
+      </div>
+
+      @if (channelPrefError(); as chErr) {
+      <p class="feedback-err">{{ chErr }}</p>
+      }
+    </div>
+    }
+
+    <!-- ── LANGUAGE PREFERENCE ── -->
+    <div class="pref-section pref-section--teal">
+      <div class="pref-section__head">
+        <div class="pref-section__icon-wrap pref-section__icon-wrap--teal">
+          🌐
+        </div>
+        <div>
+          <h3 class="pref-section__title">Language preference</h3>
+          <p class="pref-section__hint">
+            Choose the language(s) you'd like to receive this communication in.
+          </p>
+        </div>
+      </div>
+
+      <div class="chip-grid chip-grid--teal" role="group" aria-label="Language preferences">
+        @for (lang of languages; track lang.value) {
+        <button type="button" class="chip" [class.chip--active]="selectedLangs.has(lang.value)"
+          [class.chip--locked]="lang.value === 'english'" [disabled]="lang.value === 'english'"
+          (click)="toggleLang(lang.value)" [attr.aria-pressed]="selectedLangs.has(lang.value)">
+          <span class="chip__check" aria-hidden="true">
+            @if (selectedLangs.has(lang.value)) { ✓ }
+          </span>
+          <span class="chip__label">{{ lang.label }}</span>
+        </button>
+        }
+      </div>
+
+      @if (langError(); as langErr) {
+      <p class="feedback-err">{{ langErr }}</p>
+      }
+    </div>
+
+    <!-- ── DECISION ── -->
+    <div class="decision-section">
+      <div class="decision-divider">
+        <span class="decision-divider__text">✦ Your decision ✦</span>
+      </div>
+
+      <div class="actions">
+        <button mat-flat-button type="button" class="btn-action btn-accept" [disabled]="submitting()"
+          (click)="submit('ACCEPT')">
+          @if (submitting()) {
+          <span class="btn-spinner btn-spinner--white"></span>
+          Processing…
+          } @else {
+          <span class="btn-accept__icon" aria-hidden="true">✓</span>
+          <span>
+            Accept consent
+            <span class="btn-accept__sub">I agree to receive communications</span>
+          </span>
+          }
+        </button>
+
+        <div class="actions-row">
+          <button mat-stroked-button type="button" class="btn-action btn-decline" [disabled]="submitting()"
+            (click)="submit('DECLINE')">
+            ✕ Decline
+          </button>
+
+          <!-- <button mat-button type="button" class="btn-action btn-withdraw" [disabled]="submitting()"
+            (click)="submit('WITHDRAW')">
+            ↩ Withdraw
+          </button> -->
+        </div>
+      </div>
+
+      <p class="fine-print">
+        <span class="fine-print__icon">🔒</span>
+        You can only submit once. Contact support if you need clarification before deciding.
+      </p>
+    </div>
+
+    }
+    }
+    }
+    }
+
+    <!-- Footer -->
+    <footer class="card-footer">
+      <span>Powered by ConsentIQ</span>
+      <span class="footer-sep">·</span>
+      <span>Privacy Policy</span>
+      <span class="footer-sep">·</span>
+      <span>Help</span>
+    </footer>
+
+  </div>
+</div>

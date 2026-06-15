@@ -1,0 +1,298 @@
+@if (rule(); as r) {
+<div class="crr-page">
+
+  <!-- Top Nav -->
+  <div class="crr-subnav">
+    <a class="crr-back-link" routerLink="/checker/rules/pending">
+      <span class="crr-back-link__arrow">←</span>
+      Pending Rules
+    </a>
+  </div>
+
+  <!-- Hero -->
+  <section class="crr-hero">
+    <div class="crr-hero__left">
+      <div class="crr-eyebrow">Checker Review</div>
+
+      <h1 class="crr-title">
+        {{ r.ruleName }}
+      </h1>
+
+      <div class="crr-hero__meta">
+        <span class="crr-meta-pill">
+          Rule Engine
+        </span>
+
+        <span class="crr-meta-dot"></span>
+
+        <span class="crr-meta-text">
+          Submitted by
+          <strong>{{ r.createdByName }}</strong>
+        </span>
+
+        <span class="crr-meta-dot"></span>
+
+        <span class="crr-timestamp">
+          {{ r.submittedAt | date:'dd MMM yyyy · hh:mm a' }}
+        </span>
+      </div>
+    </div>
+
+    <div class="crr-hero__right">
+      <app-workflow-status-badge [status]="r.status" />
+
+      <div class="crr-id-badge">
+        #{{ r.id }}
+      </div>
+    </div>
+  </section>
+
+  <!-- Info Banner -->
+  <section class="crr-banner">
+    <div class="crr-banner__icon">
+      ⚙
+    </div>
+
+    <div class="crr-banner__content">
+      <div class="crr-banner__title">
+        Review Pending Approval
+      </div>
+
+      <div class="crr-banner__desc">
+        Validate the rule configuration carefully before approving,
+        rejecting, or requesting changes.
+      </div>
+    </div>
+  </section>
+
+  <!-- Rule Details -->
+  <section class="crr-section">
+
+    <div class="crr-section__header">
+      <div class="crr-section-label">
+        <span class="crr-section-label__dot"></span>
+        Rule Details
+      </div>
+    </div>
+
+    <div class="crr-grid">
+
+      <div class="crr-card">
+        <div class="crr-card__label">Rule Name</div>
+        <div class="crr-card__value crr-card__value--strong">
+          {{ r.ruleName }}
+        </div>
+      </div>
+
+      <div class="crr-card">
+        <div class="crr-card__label">Rule ID</div>
+        <div class="crr-card__value crr-card__value--mono">
+          {{ r.id }}
+        </div>
+      </div>
+
+      <div class="crr-card">
+        <div class="crr-card__label">Rule Type</div>
+
+        <div class="crr-card__value">
+          <span class="crr-type-pill">
+            {{ r.ruleType }}
+          </span>
+        </div>
+      </div>
+
+      <div class="crr-card">
+        <div class="crr-card__label">Scenario</div>
+
+        <div class="crr-card__value">
+          {{ r.predefinedScenario || '—' }}
+        </div>
+      </div>
+
+      <!-- <div class="crr-card">
+        <div class="crr-card__label">Primary Segment</div>
+
+        <div class="crr-card__value">
+          {{ r.primarySegment }}
+        </div>
+      </div> -->
+
+      <div class="crr-card crr-card--full">
+        <div class="crr-card__label">Audience Segments</div>
+        <div class="crr-chip-wrap">
+          <!-- Primary segment always shown first with a distinguishing label -->
+          <span class="crr-chip">
+            {{ r.primarySegment }}
+            <span class="crr-chip__tag">primary</span>
+          </span>
+          @for (seg of (r.additionalSegmentCodes || []); track seg) {
+          <span class="crr-chip">{{ seg }}</span>
+          }
+          @if (!(r.additionalSegmentCodes || []).length) {
+          <span class="crr-empty">No additional segments</span>
+          }
+        </div>
+      </div>
+
+      <div class="crr-card">
+        <div class="crr-card__label">Consent Template</div>
+        <div class="crr-card__value">
+          {{ r.consentTemplateName || '—' }}
+        </div>
+      </div>
+
+      <div class="crr-card">
+        <div class="crr-card__label">Schedule</div>
+
+        <div class="crr-card__value crr-card__value--mono">
+          {{ r.scheduleType }}
+        </div>
+      </div>
+
+      <div class="crr-card crr-card--full">
+        <div class="crr-card__label">
+          Broadcast Channels
+        </div>
+
+        <div class="crr-chip-wrap">
+
+          @for (ch of (r.broadcastChannels || []); track ch) {
+          <span class="crr-chip">
+            {{ ch }}
+          </span>
+          }
+
+          @if (!(r.broadcastChannels || []).length) {
+          <span class="crr-empty">
+            —
+          </span>
+          }
+
+        </div>
+      </div>
+
+      <div class="crr-card crr-card--full">
+        <div class="crr-card__label">
+          Description
+        </div>
+
+        <div class="crr-card__value crr-card__value--notes">
+          {{ r.ruleDescription || '—' }}
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Audit -->
+  <section class="crr-section">
+
+    <div class="crr-section__header">
+
+      <div class="crr-section-label">
+        <span class="crr-section-label__dot crr-section-label__dot--amber"></span>
+        Audit Trail
+      </div>
+
+      <div class="crr-count-pill">
+        {{ audit().length }} events
+      </div>
+
+    </div>
+
+    <div class="crr-timeline">
+
+      @for (a of audit(); track a.id; let last = $last) {
+
+      <div class="crr-timeline__item">
+
+        <div class="crr-timeline__spine">
+          <div class="crr-timeline__dot"></div>
+
+          @if (!last) {
+          <div class="crr-timeline__line"></div>
+          }
+        </div>
+
+        <div class="crr-timeline__card">
+
+          <div class="crr-timeline__top">
+
+            <div class="crr-action-pill">
+              {{ a.action }}
+            </div>
+
+            <div class="crr-timestamp crr-timestamp--sm">
+              {{ a.performedAt | date:'dd MMM yyyy · hh:mm a' }}
+            </div>
+
+          </div>
+
+          <div class="crr-timeline__user">
+            {{ a.userName }}
+          </div>
+
+          <div class="crr-timeline__desc">
+            {{ a.description }}
+          </div>
+
+        </div>
+
+      </div>
+
+      }
+
+      @if (!audit().length) {
+      <div class="crr-empty-box">
+        No audit events recorded yet.
+      </div>
+      }
+
+    </div>
+
+  </section>
+
+  <div class="crr-spacer"></div>
+
+</div>
+
+<!-- Sticky Bar -->
+<div class="crr-bar" [class.crr-bar--disabled]="!canDecide()">
+
+  <div class="crr-bar__left">
+
+    <div class="crr-bar__label">
+      Decision Required
+    </div>
+
+    <div class="crr-bar__name">
+      {{ r.ruleName }}
+    </div>
+
+    <div class="crr-bar__sub">
+      Your decision will be recorded in the workflow audit trail.
+    </div>
+
+  </div>
+
+  <div class="crr-bar__actions">
+
+    <button class="crr-btn crr-btn--approve" [disabled]="!canDecide() || busy()" (click)="approve()">
+
+      ✓ Approve
+    </button>
+
+    <button class="crr-btn crr-btn--revise" [disabled]="!canDecide() || busy()" (click)="revision()">
+
+      ↩ Request Revision
+    </button>
+
+    <button class="crr-btn crr-btn--reject" [disabled]="!canDecide() || busy()" (click)="reject()">
+
+      ✕ Reject
+    </button>
+
+  </div>
+
+</div>
+}

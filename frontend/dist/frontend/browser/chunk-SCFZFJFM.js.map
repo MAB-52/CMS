@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/shared/pipes/consent-type-label.pipe.ts"],
+  "sourcesContent": ["import { Pipe, PipeTransform } from '@angular/core';\r\nimport { ConsentType } from '../../core/models/consent.model';\r\n\r\n@Pipe({\r\n  name: 'consentTypeLabel',\r\n  standalone: true,\r\n})\r\nexport class ConsentTypeLabelPipe implements PipeTransform {\r\n  transform(value: ConsentType | string | null | undefined): string {\r\n    switch (value) {\r\n      case 'NEW_TEMPLATE':\r\n        return 'New Template';\r\n      case 'VERSION_UPDATE':\r\n        return 'Version Update';\r\n      case 'RENEWAL':\r\n        return 'Renewal';\r\n      default:\r\n        return String(value ?? '');\r\n    }\r\n  }\r\n}\r\n"],
+  "mappings": ";;;;;;;AAOM,IAAO,uBAAP,MAAO,sBAAoB;EAC/B,UAAU,OAA8C;AACtD,YAAQ,OAAO;MACb,KAAK;AACH,eAAO;MACT,KAAK;AACH,eAAO;MACT,KAAK;AACH,eAAO;MACT;AACE,eAAO,OAAO,SAAS,EAAE;IAC7B;EACF;;;uCAZW,uBAAoB;IAAA;EAAA;;+FAApB,uBAAoB,MAAA,KAAA,CAAA;EAAA;;;sEAApB,sBAAoB,CAAA;UAJhC;WAAK;MACJ,MAAM;MACN,YAAY;KACb;;;",
+  "names": []
+}

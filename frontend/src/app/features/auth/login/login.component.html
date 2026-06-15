@@ -1,0 +1,63 @@
+<div class="login-page">
+  <div class="login-card">
+
+    <div class="brand-block">
+      <div class="logo-title">ConsentIQ</div>
+      <!-- <div class="logo-sub">V2 · Maker-Checker Edition</div> -->
+    </div>
+
+    <h1 class="welcome">Welcome back</h1>
+    <p class="sub">Sign in to your account</p>
+
+    @if (errorBanner()) {
+      <div class="err-banner">{{ errorBanner() }}</div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="form">
+
+      <mat-form-field appearance="outline" floatLabel="always" class="field">
+        <mat-label>Email</mat-label>
+        <span matPrefix class="pfx">📧&nbsp;</span>
+        <input matInput type="email" formControlName="email" autocomplete="username" placeholder="Email Address" />
+        @if (form.controls.email.touched && form.controls.email.hasError('required')) {
+          <mat-error>Email is required</mat-error>
+        }
+        @if (form.controls.email.touched && form.controls.email.hasError('email')) {
+          <mat-error>Enter a valid email</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" floatLabel="always" class="field">
+        <mat-label>Password</mat-label>
+        <span matPrefix class="pfx">🔒&nbsp;</span>
+        <input matInput [type]="hidePw() ? 'password' : 'text'"
+               formControlName="password" autocomplete="current-password"
+               placeholder="Password" />
+        <button mat-icon-button matSuffix type="button"
+                (click)="togglePw()" aria-label="Toggle password visibility">
+          <mat-icon>{{ hidePw() ? 'visibility' : 'visibility_off' }}</mat-icon>
+        </button>
+        @if (form.controls.password.touched && form.controls.password.hasError('required')) {
+          <mat-error>Password is required</mat-error>
+        }
+      </mat-form-field>
+
+      <button mat-flat-button color="primary" class="submit-btn"
+              type="submit" [disabled]="loading()"
+              [class.success-pulse]="successPulse()">
+        @if (loading()) {
+          <span class="spin">⏳</span> Signing in...
+        } @else {
+          Sign In
+        }
+      </button>
+
+    </form>
+
+    <div class="forgot-password-link">
+      <a routerLink="/forgot-password" class="forgot-link">Forgot Password?</a>
+    </div>
+
+    <p class="version">ConsentIQ  · Secure · Compliant</p>
+  </div>
+</div>

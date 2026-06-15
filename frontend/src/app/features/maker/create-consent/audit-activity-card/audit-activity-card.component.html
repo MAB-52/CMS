@@ -1,0 +1,36 @@
+<div class="card">
+  <div class="head">
+    <h2 class="title">🕐 Recent Activity</h2>
+    <a routerLink="/maker/audit" class="link">View All →</a>
+  </div>
+
+  @if (!consentDbId) {
+    <p class="muted">Save a draft to see audit entries for this consent.</p>
+  } @else if (loading) {
+    <div class="skel-list">
+      @for (x of [1, 2, 3, 4, 5]; track x) {
+        <div class="skel-row"></div>
+      }
+    </div>
+  } @else if (error) {
+    <div class="err">
+      Failed to load activity.
+      <button type="button" mat-stroked-button (click)="load()">Retry</button>
+    </div>
+  } @else if (!entries.length) {
+    <p class="muted center">No activity yet.</p>
+  } @else {
+    <div class="timeline">
+      @for (e of entries; track e.id) {
+        <div class="tl-row">
+          <div class="tl-dot">{{ iconFor(e.action) }}</div>
+          <div class="tl-body">
+            <div class="tl-action">{{ e.action.replaceAll('_', ' ') }}</div>
+            <div class="tl-desc">{{ e.description }}</div>
+          </div>
+          <div class="tl-time" [title]="e.performedAt">{{ e.performedAt | timeAgo }}</div>
+        </div>
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,208 @@
+<div class="crd-page">
+
+  <!-- Hero -->
+  <section class="crd-hero">
+    <div class="crd-hero__left">
+      <div class="crd-eyebrow">
+        Checker Dashboard
+      </div>
+
+      <h1 class="crd-title">
+        Review & Approval Center
+      </h1>
+
+      <p class="crd-subtitle">
+        Monitor pending approvals, review automation requests,
+        and track recent checker activity.
+      </p>
+    </div>
+
+    <div class="crd-hero__right">
+      <div class="crd-hero-badge">
+        Workflow Operations
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats -->
+  <section class="crd-stats">
+
+    <div class="crd-stat crd-stat--amber">
+
+      <div class="crd-stat__top">
+        <span class="crd-stat__icon">⏳</span>
+        <span class="crd-stat__label">Pending Review</span>
+      </div>
+
+      <div class="crd-stat__value">
+        {{ stats()?.pendingReview ?? '—' }}
+      </div>
+    </div>
+
+    <div class="crd-stat crd-stat--green">
+
+      <div class="crd-stat__top">
+        <span class="crd-stat__icon">✅</span>
+        <span class="crd-stat__label">Approved Today</span>
+      </div>
+
+      <div class="crd-stat__value">
+        {{ stats()?.approvedToday ?? '—' }}
+      </div>
+    </div>
+
+    <div class="crd-stat crd-stat--red">
+      <div class="crd-stat__top">
+        <span class="crd-stat__icon">❌</span>
+        <span class="crd-stat__label">Rejected</span>
+      </div>
+
+      <div class="crd-stat__value">
+        {{ stats()?.rejectedTotal ?? '—' }}
+      </div>
+    </div>
+    <div class="crd-stat crd-stat--indigo">
+      <div class="crd-stat__top">
+        <span class="crd-stat__icon">📊</span>
+        <span class="crd-stat__label">Total Reviewed</span>
+      </div>
+
+      <div class="crd-stat__value">
+        {{ stats()?.totalReviewed ?? '—' }}
+      </div>
+    </div>
+  </section>
+
+  <!-- Automation Banner -->
+  <section class="crd-banner">
+    <div class="crd-banner__left">
+      <div class="crd-section-label">
+        <span class="crd-section-label__dot"></span>
+        Automation Queue
+      </div>
+
+      <div class="crd-banner__title">
+        Rules & Broadcast Reviews
+      </div>
+
+      <p class="crd-banner__desc">
+        Review automation rules and broadcast requests on
+        dedicated approval queues.
+      </p>
+    </div>
+
+    <div class="crd-banner__actions">
+
+      <a
+        class="crd-btn crd-btn--secondary"
+        routerLink="/checker/rules/pending">
+        Pending Rules
+      </a>
+
+      <a
+        class="crd-btn crd-btn--secondary"
+        routerLink="/checker/broadcasts/pending">
+        Pending Broadcasts
+      </a>
+    </div>
+  </section>
+
+  <!-- Pending Consents -->
+  <section class="crd-card">
+    <div class="crd-card__header">
+      <div>
+        <div class="crd-section-label">
+          <span class="crd-section-label__dot"></span>
+          Queue
+        </div>
+        <h2 class="crd-card__title">
+          Pending Consents
+        </h2>
+      </div>
+
+      <a
+        class="crd-btn crd-btn--secondary"
+        routerLink="/checker/pending">
+        View All
+      </a>
+    </div>
+    @if (!pending().length) {
+
+    <div class="crd-empty">
+      No pending consent requests.
+    </div>
+
+    } @else {
+    <ul class="crd-list">
+      @for (c of pending(); track c.id) {
+      <li class="crd-list__item">
+        <a
+          class="crd-list__link"
+          [routerLink]="['/checker/consents', c.id, 'review']">
+          {{ c.consentName }}
+        </a>
+        <div class="crd-list__meta">
+          <span class="crd-list__id">
+            {{ c.consentId }}
+          </span>
+          <span class="crd-list__dot"></span>
+          <span>
+            {{ c.updatedAt | timeAgo }}
+          </span>
+        </div>
+      </li>
+      }
+    </ul>
+    }
+  </section>
+
+  <!-- Recent Activity -->
+  <section class="crd-card">
+    <div class="crd-card__header">
+      <div>
+        <div class="crd-section-label">
+          <span class="crd-section-label__dot crd-section-label__dot--amber"></span>
+          Audit
+        </div>
+
+        <h2 class="crd-card__title">
+          Recent Review Activity
+        </h2>
+      </div>
+    </div>
+
+    @if (!feed().length) {
+    <div class="crd-empty">
+      No recent review activity.
+    </div>
+    } @else {
+
+    <div class="crd-timeline">
+      @for (e of feed(); track e.id; let last = $last) {
+      <div class="crd-timeline__item">
+        <div class="crd-timeline__spine">
+          <div class="crd-timeline__dot"></div>
+          @if (!last) {
+          <div class="crd-timeline__line"></div>
+          }
+        </div>
+        <div class="crd-timeline__card">
+          <div class="crd-timeline__action">
+            {{ e.action }}
+          </div>
+          <div class="crd-timeline__desc">
+            {{ e.description }}
+          </div>
+          <div class="crd-timeline__meta">
+            {{ e.performedAt | timeAgo }}
+          </div>
+        </div>
+      </div>
+      }
+    </div>
+    }
+  </section>
+</div>
+
+
+

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../node_modules/@tiptap/extension-list-item/dist/index.js"],
+  "sourcesContent": ["// src/index.ts\nimport { ListItem } from \"@tiptap/extension-list\";\nimport { ListItem as ListItem2 } from \"@tiptap/extension-list\";\nvar index_default = ListItem;\nexport { ListItem2 as ListItem, index_default as default };\n"],
+  "mappings": ";;;;;;;AAGA,IAAI,gBAAgB;",
+  "names": []
+}

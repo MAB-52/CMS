@@ -1,0 +1,88 @@
+@use './mixins' as *;
+
+.ciq-btn-primary {
+  @include btn-base;
+  background: var(--color-primary);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+
+  &:hover:not(:disabled) {
+    background: var(--color-primary-dark);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+.ciq-btn-secondary {
+  @include btn-base;
+  background: #fff;
+  border-color: #e2e8f0;
+  color: #374151;
+
+  &:hover:not(:disabled) {
+    background: #f9fafb;
+  }
+}
+
+.ciq-btn-danger {
+  @include btn-base;
+  background: var(--color-error);
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    background: #b91c1c;
+  }
+}
+
+.ciq-btn-success {
+  @include btn-base;
+  background: var(--color-success);
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    background: #15803d;
+  }
+}
+
+.ciq-btn-warning {
+  @include btn-base;
+  background: var(--color-warning);
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    background: #b45309;
+  }
+}
+
+.ciq-btn-ghost {
+  @include btn-base;
+  background: transparent;
+  color: #6b7280;
+
+  &:hover:not(:disabled) {
+    background: #f3f4f6;
+  }
+}
+
+.ciq-card {
+  @include card-surface;
+  padding: 24px;
+}
+
+.ciq-input {
+  @include input-base;
+  width: 100%;
+  font-family: var(--font-body);
+}
+
+.preview-tag {
+  background: #e0e7ff;
+  color: #4338ca;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 13px;
+}

@@ -1,0 +1,32 @@
+<div class="public-page" dir="ltr">
+  <div class="shell-card">
+    <div class="brand">ConsentIQ</div>
+    <h1 class="title">Consent message</h1>
+    <p class="lede">Read the full consent text in the language you selected.</p>
+
+    @if (loading()) {
+      <div class="center">
+        <mat-progress-spinner diameter="44" mode="indeterminate" />
+        <p class="muted">Loading translation…</p>
+      </div>
+    } @else {
+      @if (errorMessage(); as err) {
+        <div class="banner banner--error" role="alert">{{ err }}</div>
+      } @else {
+        <a
+          class="back-link"
+          routerLink="/public/consent/respond"
+          [queryParams]="{ token: token() }"
+        >
+          ← Back to consent request
+        </a>
+
+        <section class="panel">
+          <div class="greet">Hello, {{ customerDisplayName() }}</div>
+          <h2 class="consent-title">{{ consentTitle() }}</h2>
+          <div class="translated-content" [innerHTML]="safeHtml()"></div>
+        </section>
+      }
+    }
+  </div>
+</div>

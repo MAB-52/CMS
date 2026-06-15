@@ -1,0 +1,600 @@
+@use '../../../../styles/variables' as *;
+
+/* ─────────────────────────────────────────
+   PAGE
+───────────────────────────────────────── */
+
+.page {
+  min-height: 100vh;
+  padding: 2rem;
+  background:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.10), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.08), transparent 28%),
+    linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+  color: #0f172a;
+}
+
+/* ─────────────────────────────────────────
+   HEADER
+───────────────────────────────────────── */
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.8rem;
+  flex-wrap: wrap;
+}
+
+.head h1 {
+  margin: 0;
+  font-size: clamp(2rem, 3vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+}
+
+.head a[mat-flat-button] {
+  height: 48px;
+  padding-inline: 1.4rem;
+  border-radius: 14px;
+  font-weight: 700;
+  background:
+    linear-gradient(135deg,
+      #6366f1,
+      #2563eb) !important;
+  box-shadow:
+    0 10px 24px rgba(37, 99, 235, 0.24);
+
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.head a[mat-flat-button]:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 14px 32px rgba(37, 99, 235, 0.34);
+}
+
+/* ─────────────────────────────────────────
+   FILTERS
+───────────────────────────────────────── */
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1.1rem 1.2rem;
+  margin-bottom: 1.8rem;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  box-shadow:
+    0 12px 36px rgba(15, 23, 42, 0.06);
+}
+
+/* tabs */
+
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.tab {
+  height: 42px;
+  padding: 0 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  color: #475569;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.tab:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(99, 102, 241, 0.22);
+}
+
+.tab.on {
+  background:
+    linear-gradient(135deg,
+      #6366f1,
+      #2563eb);
+  border-color: transparent;
+  color: white;
+  box-shadow:
+    0 10px 22px rgba(37, 99, 235, 0.22);
+}
+
+/* search + sort */
+
+.search,
+.sort {
+  min-width: 220px;
+}
+
+/* apply button */
+
+.filters button[mat-stroked-button] {
+  height: 46px;
+  padding-inline: 1.2rem;
+  border-radius: 14px !important;
+  font-weight: 700 !important;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.2) !important;
+  transition: all 0.18s ease;
+}
+
+.filters button[mat-stroked-button]:hover {
+
+  transform: translateY(-1px);
+
+  background: white;
+
+  border-color: rgba(99, 102, 241, 0.28) !important;
+
+  box-shadow:
+    0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+/* ─────────────────────────────────────────
+   STATES
+───────────────────────────────────────── */
+
+.muted,
+.empty {
+  padding: 2rem;
+  border-radius: 24px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(14px);
+  color: #64748b;
+  font-weight: 600;
+  box-shadow:
+    0 10px 28px rgba(15, 23, 42, 0.05);
+}
+
+/* ─────────────────────────────────────────
+   LIST GRID
+───────────────────────────────────────── */
+
+.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 1.4rem;
+}
+
+/* ─────────────────────────────────────────
+   CARD
+───────────────────────────────────────── */
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.35rem;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(18px);
+  box-shadow:
+    0 14px 40px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
+}
+
+.card:hover {
+
+  transform: translateY(-3px);
+  border-color: rgba(99, 102, 241, 0.18);
+  box-shadow:
+    0 20px 48px rgba(15, 23, 42, 0.10);
+}
+
+/* revision glow */
+
+.card.rev {
+
+  border-color: rgba(249, 115, 22, 0.22);
+  background:
+    linear-gradient(180deg,
+      rgba(255, 247, 237, 0.92),
+      rgba(255, 255, 255, 0.78));
+}
+
+.card.rev::before {
+
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top right, rgba(249, 115, 22, 0.14), transparent 28%);
+  pointer-events: none;
+}
+
+/* ─────────────────────────────────────────
+   CARD STATUS TINTS
+───────────────────────────────────────── */
+
+/* already exists — keeping for reference */
+.card.rev {
+  border-color: rgba(249, 115, 22, 0.22);
+  background: linear-gradient(180deg, rgba(255, 247, 237, 0.92), rgba(255, 255, 255, 0.78));
+}
+
+.card.rev::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(249, 115, 22, 0.14), transparent 48%);
+  pointer-events: none;
+}
+
+/* APPROVED — soft green */
+.card.approved {
+  border-color: rgba(22, 163, 74, 0.18);
+  background: linear-gradient(180deg, rgba(240, 253, 244, 0.95), rgba(255, 255, 255, 0.80));
+}
+
+.card.approved::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(22, 163, 74, 0.311), transparent 48%);
+  pointer-events: none;
+}
+
+/* REJECTED — soft red */
+.card.rejected {
+  border-color: rgba(220, 38, 38, 0.18);
+  background: linear-gradient(180deg, rgba(254, 242, 242, 0.95), rgba(255, 255, 255, 0.80));
+}
+
+.card.rejected::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(255, 0, 0, 0.169), transparent 48%);
+  pointer-events: none;
+}
+
+/* DRAFT — soft slate/blue */
+.card.draft {
+  border-color: rgba(99, 102, 241, 0.14);
+  background: linear-gradient(180deg, rgba(238, 242, 255, 0.90), rgba(255, 255, 255, 0.80));
+}
+
+.card.draft::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(99, 101, 241, 0.274), transparent 48%);
+  pointer-events: none;
+}
+
+/* PENDING APPROVAL — soft amber/yellow */
+.card.pending {
+  border-color: rgba(245, 158, 11, 0.18);
+  background: linear-gradient(180deg, rgba(255, 251, 235, 0.95), rgba(255, 255, 255, 0.80));
+}
+
+.card.pending::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.10), transparent 48%);
+  pointer-events: none;
+}
+
+
+.card.published {
+  border-color: rgba(164, 6, 212, 0.1);
+  background: linear-gradient(180deg, rgba(236, 254, 255, 0.95), rgba(255, 255, 255, 0.80));
+}
+
+.card.published::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(164, 6, 212, 0.365), transparent 48%);
+  pointer-events: none;
+}
+
+/* ─────────────────────────────────────────
+   ROWS
+───────────────────────────────────────── */
+
+.row1 {
+
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.name {
+
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.meta {
+  margin-top: 0.35rem;
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.badges {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.type {
+  padding: 0.38rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.10);
+  color: #4338ca;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.row2,
+.row3 {
+  color: #64748b;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.row3 {
+  font-weight: 600;
+}
+
+/* ─────────────────────────────────────────
+   REVISION NOTE
+───────────────────────────────────────── */
+
+.rev-note {
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg,
+      rgba(249, 115, 22, 0.10),
+      rgba(251, 146, 60, 0.08));
+
+  border: 1px solid rgba(249, 115, 22, 0.14);
+  color: #9a3412;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+/* ─────────────────────────────────────────
+   ACTIONS
+───────────────────────────────────────── */
+
+.actions {
+
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: 0.4rem;
+}
+
+/* outline buttons */
+
+.actions button[mat-stroked-button],
+.actions a[mat-stroked-button] {
+  height: 42px;
+  padding-inline: 1rem;
+  border-radius: 14px !important;
+  font-weight: 700 !important;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.18) !important;
+  transition: all 0.18s ease;
+}
+
+.actions button[mat-stroked-button]:hover,
+.actions a[mat-stroked-button]:hover {
+
+  transform: translateY(-1px);
+  background: white;
+  border-color: rgba(99, 102, 241, 0.24) !important;
+  box-shadow:
+    0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+/* primary buttons */
+
+.actions button[mat-flat-button],
+.actions a[mat-flat-button] {
+  height: 42px;
+  padding-inline: 1rem;
+  border-radius: 14px !important;
+  font-weight: 700 !important;
+  background:
+    linear-gradient(135deg,
+      #6366f1,
+      #2563eb) !important;
+
+  box-shadow:
+    0 8px 22px rgba(37, 99, 235, 0.24);
+
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.actions button[mat-flat-button]:hover,
+.actions a[mat-flat-button]:hover {
+
+  transform: translateY(-1px);
+  box-shadow:
+    0 12px 28px rgba(37, 99, 235, 0.34);
+}
+
+/* ─────────────────────────────────────────
+   MATERIAL FIXES — scoped to .filters only
+───────────────────────────────────────── */
+
+/* hide subscript gap */
+.filters ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}
+
+/* wrapper */
+.filters ::ng-deep .mat-mdc-text-field-wrapper {
+  border-radius: 16px !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  transition:
+    background 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+/* outline strokes — resting */
+.filters ::ng-deep .mdc-notched-outline__leading,
+.filters ::ng-deep .mdc-notched-outline__notch,
+.filters ::ng-deep .mdc-notched-outline__trailing {
+  border-color: rgba(148, 163, 184, 0.28) !important;
+  transition: border-color 0.18s ease;
+}
+
+.filters ::ng-deep .mdc-notched-outline__notch {
+  border-right: none !important;
+}
+
+/* hover */
+.filters ::ng-deep .mat-mdc-form-field:hover .mdc-notched-outline__leading,
+.filters ::ng-deep .mat-mdc-form-field:hover .mdc-notched-outline__notch,
+.filters ::ng-deep .mat-mdc-form-field:hover .mdc-notched-outline__trailing {
+  border-color: rgba(99, 102, 241, 0.35) !important;
+}
+
+/* focus */
+.filters ::ng-deep .mat-mdc-form-field.mat-focused .mdc-notched-outline__leading,
+.filters ::ng-deep .mat-mdc-form-field.mat-focused .mdc-notched-outline__notch,
+.filters ::ng-deep .mat-mdc-form-field.mat-focused .mdc-notched-outline__trailing {
+  border-color: #6366f1 !important;
+  border-width: 2px !important;
+}
+
+.filters ::ng-deep .mat-mdc-form-field.mat-focused .mat-mdc-text-field-wrapper {
+  background: #ffffff !important;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.10);
+}
+
+/* label resting */
+.filters ::ng-deep .mat-mdc-floating-label {
+  color: #64748b !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+/* label focused */
+.filters ::ng-deep .mat-mdc-form-field.mat-focused .mat-mdc-floating-label {
+  color: #6366f1 !important;
+}
+
+/* input / select text */
+.filters ::ng-deep .mat-mdc-input-element {
+  color: #0f172a !important;
+  font-size: 14px !important;
+  font-weight: 500;
+  caret-color: #6366f1;
+}
+
+.filters ::ng-deep .mat-mdc-select-value {
+  color: #0f172a !important;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.filters ::ng-deep .mat-mdc-select-arrow {
+  color: #64748b;
+}
+
+/* dropdown panel */
+::ng-deep .mat-mdc-select-panel {
+  border-radius: 16px !important;
+  padding: 6px !important;
+  background: #ffffff !important;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12) !important;
+}
+
+::ng-deep .mat-mdc-option {
+  border-radius: 10px !important;
+  font-size: 14px !important;
+  font-weight: 500;
+  min-height: 42px !important;
+  transition: background 0.14s ease;
+}
+
+::ng-deep .mat-mdc-option:hover {
+  background: rgba(99, 102, 241, 0.08) !important;
+}
+
+::ng-deep .mat-mdc-option.mdc-list-item--selected {
+  background: rgba(99, 102, 241, 0.10) !important;
+  color: #4338ca !important;
+  font-weight: 700 !important;
+}
+
+/* ─────────────────────────────────────────
+   MOBILE
+───────────────────────────────────────── */
+
+@media (max-width: 768px) {
+
+  .page {
+    padding: 1rem;
+  }
+
+  .filters {
+    padding: 1rem;
+  }
+
+  .search,
+  .sort {
+    width: 100%;
+  }
+
+  .list {
+    grid-template-columns: 1fr;
+  }
+
+  .row1 {
+    flex-direction: column;
+  }
+
+  .actions {
+    width: 100%;
+  }
+
+  .actions button,
+  .actions a {
+    flex: 1;
+  }
+}

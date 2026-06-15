@@ -1,0 +1,117 @@
+<div class="page">
+  <div class="hero">
+    <div>
+      <p class="eyebrow">Rule engine</p>
+      <h1>Scenario &amp; automation rules</h1>
+      <p class="lede">
+        Define consent-related outreach rules with maker–checker control.
+        Approved rules can be published live when you are ready.
+      </p>
+    </div>
+    <a
+      mat-flat-button
+      color="primary"
+      routerLink="/maker/rules/new"
+      class="cta"
+    >
+      + New rule
+    </a>
+  </div>
+
+  @if (loading()) {
+    <div class="state-card">Loading rules…</div>
+  } @else if (!rows().length) {
+    <div class="state-card empty">
+      <div class="state-title">No rules yet</div>
+      <p>
+        Create your first scenario rule to align consent journeys with customer
+        segments.
+      </p>
+    </div>
+  } @else {
+    <!-- Top toolbar -->
+    <div class="toolbar">
+      <input
+        type="search"
+        class="field"
+        placeholder="Filter by name (this page)"
+        [(ngModel)]="searchQuery"
+        name="ruleSearch"
+      />
+
+      <select
+        class="field select"
+        [(ngModel)]="statusFilter"
+        name="ruleStatus"
+        (ngModelChange)="onStatusChange()"
+      >
+        <option [ngValue]="''">All statuses</option>
+        @for (st of ruleStatuses; track st) {
+          <option [ngValue]="st">{{ formatStatusLabel(st) }}</option>
+        }
+      </select>
+
+      <div class="pager">
+        <button
+          mat-stroked-button
+          type="button"
+          [disabled]="page() === 0"
+          (click)="prevPage()"
+        >
+          Previous
+        </button>
+
+        <span class="page-label">Page {{ page() + 1 }}</span>
+
+        <button
+          mat-stroked-button
+          type="button"
+          [disabled]="!hasNext()"
+          (click)="nextPage()"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+
+    <!-- Rule cards grid -->
+    <div class="grid">
+      @for (r of displayedRows(); track r.id) {
+        <a class="rule-card" [routerLink]="['/maker/rules', r.id]">
+          <div class="card-top">
+            <app-workflow-status-badge [status]="r.status" />
+            <span class="muted">{{ r.updatedAt | timeAgo }}</span>
+          </div>
+
+          <h2>{{ r.ruleName }}</h2>
+
+          <p class="desc">{{ r.ruleDescription || '—' }}</p>
+
+          <div class="chips">
+            <span class="chip">
+              {{
+                r.ruleType === 'PREDEFINED_SCENARIO'
+                  ? 'Scenario'
+                  : 'Custom'
+              }}
+            </span>
+
+            @if (r.predefinedScenario) {
+              <span class="chip accent">{{ r.predefinedScenario }}</span>
+            }
+
+            <span class="chip">{{ r.primarySegment }}</span>
+          </div>
+        </a>
+      }
+    </div>
+
+    <!-- No matches message -->
+    @if (rows().length && !displayedRows().length) {
+      <div class="no-matches">
+        No rules on this page match your name filter.
+      </div>
+    }
+  }
+</div>
+

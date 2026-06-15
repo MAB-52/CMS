@@ -1,0 +1,340 @@
+@use '../../../../styles/variables' as *;
+
+/* ─────────────────────────────────────────────
+   PAGE
+───────────────────────────────────────────── */
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+
+  max-width: 1500px;
+  margin: 0 auto;
+
+  padding: var(--space-5);
+
+  animation: fadeIn .28s ease;
+}
+
+/* ─────────────────────────────────────────────
+   HERO / TOP BAR
+───────────────────────────────────────────── */
+
+.top {
+  position: relative;
+  overflow: hidden;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+
+  padding: 2rem 2.2rem;
+
+  border-radius: 30px;
+
+  background:
+    radial-gradient(circle at top right, rgba(59,130,246,.10), transparent 34%),
+    radial-gradient(circle at bottom left, rgba(37,99,235,.06), transparent 30%),
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.96) 0%,
+      rgba(248,250,252,.98) 100%
+    );
+
+  border: 1px solid rgba(148,163,184,.14);
+
+  box-shadow:
+    0 18px 40px rgba(15,23,42,.06),
+    inset 0 1px 0 rgba(255,255,255,.85);
+}
+
+.top::before {
+  content: '';
+
+  position: absolute;
+  top: -80px;
+  right: -80px;
+
+  width: 240px;
+  height: 240px;
+
+  border-radius: 999px;
+
+  background: rgba(59,130,246,.10);
+
+  filter: blur(70px);
+
+  pointer-events: none;
+}
+
+.top > div {
+  position: relative;
+  z-index: 1;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+
+  margin-bottom: .9rem;
+
+  padding: .42rem .8rem;
+
+  border-radius: 999px;
+
+  background: rgba(37,99,235,.08);
+  border: 1px solid rgba(37,99,235,.10);
+
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+
+  color: #2563eb;
+}
+
+.top h1 {
+  margin: 0;
+
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -.04em;
+
+  color: #0f172a;
+}
+
+/* ─────────────────────────────────────────────
+   CARD
+───────────────────────────────────────────── */
+
+:host ::ng-deep .mat-mdc-card {
+  overflow: hidden;
+
+  border-radius: 30px !important;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255,255,255,.96) 0%,
+      rgba(248,250,252,.98) 100%
+    );
+
+  border: 1px solid rgba(148,163,184,.14);
+
+  box-shadow:
+    0 18px 40px rgba(15,23,42,.06),
+    inset 0 1px 0 rgba(255,255,255,.9);
+}
+
+:host ::ng-deep .mat-mdc-card-content {
+  padding: 0 !important;
+}
+
+/* ─────────────────────────────────────────────
+   TABLE
+───────────────────────────────────────────── */
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.tbl {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* header */
+
+:host ::ng-deep .mat-mdc-header-row {
+  height: 60px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(248,250,252,.95),
+      rgba(241,245,249,.92)
+    );
+}
+
+:host ::ng-deep .mat-mdc-header-cell {
+  border-bottom: 1px solid rgba(226,232,240,.9) !important;
+
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+
+  color: #64748b;
+}
+
+/* rows */
+
+:host ::ng-deep .mat-mdc-row {
+  height: 74px;
+
+  transition:
+    background .18s ease,
+    transform .18s ease;
+}
+
+:host ::ng-deep .mat-mdc-row:hover {
+  background: rgba(248,250,252,.9);
+}
+
+:host ::ng-deep .mat-mdc-cell {
+  border-bottom: 1px solid rgba(241,245,249,.9) !important;
+
+  font-size: 14px;
+  color: #334155;
+}
+
+/* first column stronger */
+
+:host ::ng-deep .mat-column-action {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* entity badge feel */
+
+:host ::ng-deep .mat-column-entity {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+/* timestamp */
+
+:host ::ng-deep .mat-column-when {
+  white-space: nowrap;
+  color: #64748b;
+  font-size: 13px;
+}
+
+/* ─────────────────────────────────────────────
+   PAGER
+───────────────────────────────────────────── */
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+
+  padding: 1.2rem 1.5rem;
+
+  border-top: 1px solid rgba(226,232,240,.75);
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255,255,255,.65),
+      rgba(248,250,252,.92)
+    );
+}
+
+.pager span {
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+}
+
+/* ─────────────────────────────────────────────
+   BUTTONS
+───────────────────────────────────────────── */
+
+:host ::ng-deep .mat-mdc-stroked-button,
+:host ::ng-deep .mat-mdc-unelevated-button {
+  border-radius: 14px !important;
+  font-weight: 700 !important;
+  letter-spacing: .01em;
+}
+
+:host ::ng-deep .mat-mdc-stroked-button {
+  border-color: rgba(148,163,184,.28) !important;
+}
+
+/* ─────────────────────────────────────────────
+   SCROLLBAR
+───────────────────────────────────────────── */
+
+.table-wrap::-webkit-scrollbar {
+  height: 10px;
+}
+
+.table-wrap::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(148,163,184,.35);
+}
+
+.table-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ─────────────────────────────────────────────
+   RESPONSIVE
+───────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+
+  .top {
+    padding: 1.8rem;
+    border-radius: 24px;
+  }
+
+  .pager {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 640px) {
+
+  .wrap {
+    padding: 12px;
+  }
+
+  .top {
+    padding: 1.5rem;
+    gap: 1.5rem;
+  }
+
+  .top h1 {
+    font-size: 1.8rem;
+  }
+
+  :host ::ng-deep .mat-mdc-header-cell,
+  :host ::ng-deep .mat-mdc-cell {
+    padding-inline: 14px !important;
+  }
+
+  .pager {
+    flex-direction: column;
+  }
+
+  .pager button {
+    width: 100%;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   ANIMATION
+───────────────────────────────────────────── */
+
+@keyframes fadeIn {
+
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

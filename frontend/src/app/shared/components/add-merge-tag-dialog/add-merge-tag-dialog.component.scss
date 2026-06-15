@@ -1,0 +1,29 @@
+.boolean-labels {
+  margin: 4px 0 8px;
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.boolean-hint {
+  font-size: 12px;
+  color: #475569;
+  margin-bottom: 10px;
+}
+
+.boolean-row {
+  display: flex;
+  gap: 12px;
+
+  .half-width { flex: 1; }
+}
+
+.boolean-preview {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #64748b;
+
+  .preview-true  { color: #059669; font-weight: 600; }
+  .preview-false { color: #dc2626; font-weight: 600; }
+}

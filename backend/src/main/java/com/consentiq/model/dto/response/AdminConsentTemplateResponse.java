@@ -1,0 +1,25 @@
+package com.consentiq.model.dto.response;
+
+import java.util.List;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class AdminConsentTemplateResponse {
+
+    private Long id;
+    private String consentId;
+    private String consentName;
+//    private List<String> deliveryChannels;
+    private boolean channelEmail;
+    private boolean channelSms;
+    private boolean channelPush;
+    private boolean channelWhatsapp;
+    private boolean channelRcs;
+}

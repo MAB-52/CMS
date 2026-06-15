@@ -1,0 +1,142 @@
+@use './variables' as *;
+
+/* Native controls — single-line height token (exclude Angular Material inputs to avoid double borders) */
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='hidden']):not(
+    .mat-mdc-input-element
+  ):not(.mdc-text-field__input),
+select:not([multiple]):not(.mat-mdc-select-min-line) {
+  min-height: var(--input-height);
+  box-sizing: border-box;
+}
+
+textarea {
+  box-sizing: border-box;
+}
+
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='hidden']):not(
+    .mat-mdc-input-element
+  ):not(.mdc-text-field__input),
+textarea:not(.mat-mdc-input-element),
+select:not(.mat-mdc-select-min-line) {
+  font-family: var(--font-body);
+  font-size: var(--text-14);
+  color: var(--input-text-color);
+  background-color: var(--input-bg);
+  border: 1px solid var(--input-border-color);
+  border-radius: var(--input-radius);
+  padding: 10px 14px;
+  line-height: 1.4;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+textarea {
+  min-height: 96px;
+  padding: 12px 14px;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--input-placeholder-color);
+}
+
+input:hover:not(:disabled):not(:read-only),
+textarea:hover:not(:disabled):not(:read-only),
+select:hover:not(:disabled) {
+  border-color: #cbd5e1;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  border-color: var(--input-focus-border);
+  box-shadow: var(--input-focus-ring);
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+  background-color: var(--input-bg-disabled);
+  color: #9ca3af;
+  cursor: not-allowed;
+  border-color: var(--input-border-color);
+}
+
+input:read-only,
+textarea:read-only {
+  background-color: var(--input-bg-disabled);
+  border-color: var(--input-border-color);
+}
+
+/* Error state — native controls (exclude Material-managed inputs) */
+form input.ng-touched.ng-invalid:not(.mat-mdc-input-element),
+form textarea.ng-touched.ng-invalid:not(.mat-mdc-input-element),
+form select.ng-touched.ng-invalid {
+  border-color: var(--input-error-border);
+  box-shadow: var(--input-error-ring);
+}
+
+form mat-form-field.ng-invalid.ng-touched .mdc-text-field--outlined:not(.mdc-text-field--disabled) .mdc-notched-outline__leading,
+form mat-form-field.ng-invalid.ng-touched .mdc-text-field--outlined:not(.mdc-text-field--disabled) .mdc-notched-outline__notch,
+form mat-form-field.ng-invalid.ng-touched .mdc-text-field--outlined:not(.mdc-text-field--disabled) .mdc-notched-outline__trailing {
+  border-color: var(--input-error-border) !important;
+}
+
+form mat-form-field.ng-invalid.ng-touched.mat-focused .mdc-text-field--outlined .mdc-notched-outline__leading,
+form mat-form-field.ng-invalid.ng-touched.mat-focused .mdc-text-field--outlined .mdc-notched-outline__notch,
+form mat-form-field.ng-invalid.ng-touched.mat-focused .mdc-text-field--outlined .mdc-notched-outline__trailing {
+  border-color: var(--input-error-border) !important;
+}
+
+mat-form-field .mat-mdc-form-field-error,
+mat-error {
+  color: var(--color-error);
+  font-size: var(--text-12);
+  font-weight: 500;
+}
+
+/* Native helper under fields */
+.field-error {
+  display: block;
+  margin-top: 6px;
+  font-size: var(--text-12);
+  font-weight: 500;
+  color: var(--color-error);
+}
+
+/* Material outline fields — align height with token */
+.mat-mdc-form-field-type-mat-input:not(.mat-form-field-disabled) .mat-mdc-text-field-wrapper,
+.mat-mdc-form-field-type-mat-select:not(.mat-form-field-disabled) .mat-mdc-text-field-wrapper {
+  border-radius: var(--input-radius);
+}
+
+.mat-mdc-form-field-type-mat-input .mat-mdc-form-field-infix,
+.mat-mdc-form-field-type-mat-select .mat-mdc-form-field-infix {
+  min-height: var(--input-height);
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.mat-mdc-select-panel {
+  border-radius: var(--input-radius) !important;
+  border: 1px solid var(--input-border-color);
+}
+
+.mat-mdc-form-field.mat-focused:not(.ng-invalid) .mdc-text-field--outlined .mdc-notched-outline__leading,
+.mat-mdc-form-field.mat-focused:not(.ng-invalid) .mdc-text-field--outlined .mdc-notched-outline__notch,
+.mat-mdc-form-field.mat-focused:not(.ng-invalid) .mdc-text-field--outlined .mdc-notched-outline__trailing {
+  border-color: var(--input-focus-border) !important;
+}
+
+.mat-mdc-form-field.mat-form-field-disabled .mat-mdc-text-field-wrapper {
+  background-color: var(--input-bg-disabled);
+  cursor: not-allowed;
+}
+
+.mat-mdc-form-field.mat-form-field-disabled .mat-mdc-select,
+.mat-mdc-form-field.mat-form-field-disabled input {
+  cursor: not-allowed;
+}

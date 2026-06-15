@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../node_modules/@tiptap/extension-history/dist/index.js"],
+  "sourcesContent": ["// src/index.ts\nimport { UndoRedo } from \"@tiptap/extensions\";\nimport { UndoRedo as UndoRedo2 } from \"@tiptap/extensions\";\nvar index_default = UndoRedo;\nexport { UndoRedo2 as History, index_default as default };\n"],
+  "mappings": ";;;;;;;AAGA,IAAI,gBAAgB;",
+  "names": []
+}

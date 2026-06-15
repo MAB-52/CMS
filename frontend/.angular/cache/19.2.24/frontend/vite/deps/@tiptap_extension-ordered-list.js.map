@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../node_modules/@tiptap/extension-ordered-list/dist/index.js"],
+  "sourcesContent": ["// src/index.ts\nimport { OrderedList } from \"@tiptap/extension-list\";\nimport { OrderedList as OrderedList2 } from \"@tiptap/extension-list\";\nvar index_default = OrderedList;\nexport { OrderedList2 as OrderedList, index_default as default };\n"],
+  "mappings": ";;;;;;;AAGA,IAAI,gBAAgB;",
+  "names": []
+}

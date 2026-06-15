@@ -1,0 +1,91 @@
+<div class="preview-wrap">
+  <div class="preview-head">
+    <span class="preview-title">📱 Channel Previews</span>
+    <span class="preview-sub">Click a channel tab to see how the message will appear</span>
+  </div>
+
+  @if (!activeChannels.length) {
+    <div class="empty-prev">
+      <div class="empty-ico">📡</div>
+      <p>No delivery channels configured for this consent</p>
+    </div>
+  } @else {
+    <mat-tab-group [(selectedIndex)]="activeTab" class="tabs" animationDuration="200ms">
+      @for (id of activeChannels; track id) {
+        <mat-tab [label]="tabLabel(id)">
+
+          @if (id === 'EMAIL') {
+            <div class="mock-email">
+              <div class="mock-h">From: noreply&#64;consentiq.com</div>
+              <div class="mock-h">To: john.doe&#64;example.com</div>
+              <div class="mock-h">Subject: Action Required: Consent Request</div>
+              <div class="mock-body">
+                <div class="logo-ph">[Company Logo Area]</div>
+                <div class="html-prev" [innerHTML]="processedEmailHtml()"></div>
+                <div class="foot">ConsentIQ · Unsubscribe · Privacy Policy</div>
+              </div>
+            </div>
+          }
+
+          @if (id === 'SMS') {
+            <div class="mock-sms-wrap">
+              <div class="mock-phone">
+                <div class="sms-bubble">
+                  <div class="sms-title">ConsentIQ</div>
+                  <div class="sms-txt">{{ smsBody() }}</div>
+                </div>
+                <div class="sms-time">9:41 AM</div>
+              </div>
+              <div class="sms-meta">{{ smsLen() }} / 160 characters</div>
+              @if (smsLen() > 160) {
+                <div class="sms-warn">⚠️ Message will be split into 2 SMS</div>
+              }
+            </div>
+          }
+
+          @if (id === 'PUSH') {
+            <div class="mock-push">
+              <div class="push-top">
+                <span>🔔 ConsentIQ</span>
+                <span class="now">now</span>
+              </div>
+              <div class="push-title">Action Required</div>
+              <div class="push-body">{{ pushBody() }}</div>
+            </div>
+          }
+
+          @if (id === 'WHATSAPP') {
+            <div class="mock-wa">
+              <div class="wa-head">🟢 ConsentIQ</div>
+              <div class="wa-body">
+                <div class="wa-bubble">
+                  @for (imgSrc of waData().images; track imgSrc) {
+                    <img [src]="imgSrc" alt="consent image" class="wa-img" />
+                  }
+                  {{ waData().text }}
+                  <span class="wa-meta">9:41 ✓✓</span>
+                </div>
+              </div>
+            </div>
+          }
+
+          @if (id === 'RCS') {
+            <div class="mock-rcs">
+              <div class="rcs-head">🌐 ConsentIQ</div>
+              <div class="rcs-body">
+                <div class="rcs-bubble">
+                  @for (imgSrc of rcsData().images; track imgSrc) {
+                    <img [src]="imgSrc" alt="consent image" class="rcs-img" />
+                  }
+                  {{ rcsData().text }}
+                  <span class="rcs-meta">9:41 ✓✓</span>
+                </div>
+              </div>
+            </div>
+          }
+
+        </mat-tab>
+      }
+    </mat-tab-group>
+  }
+</div>

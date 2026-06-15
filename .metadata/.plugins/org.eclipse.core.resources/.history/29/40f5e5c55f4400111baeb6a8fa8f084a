@@ -1,0 +1,18 @@
+package com.consentiq.util;
+
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
+public class HtmlTextUtil {
+
+    public static String stripToPlain(String html, int maxLen) {
+        if (html == null || html.isBlank()) {
+            return "";
+        }
+        String plain = html.replaceAll("<[^>]*>", " ").replaceAll("\\s+", " ").trim();
+        if (plain.length() <= maxLen) {
+            return plain;
+        }
+        return plain.substring(0, maxLen - 1) + "…";
+    }
+}

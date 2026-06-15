@@ -1,0 +1,53 @@
+.recurring-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.full {
+  width: 100%;
+}
+
+.time-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.section-label {
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.dow-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.info {
+  font-size: 13px;
+  color: #444;
+  margin: 0;
+}
+
+.preview {
+  font-size: 13px;
+  margin: 0;
+  padding: 8px 12px;
+  background: #f5f7fa;
+  border-radius: 6px;
+}
+
+.preview-label {
+  font-weight: 600;
+}
+
+.alert.warn {
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #fff8e6;
+  border: 1px solid #f0d090;
+  font-size: 13px;
+}

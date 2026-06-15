@@ -1,0 +1,136 @@
+<div class="tab-toolbar">
+  <div class="toolbar-left">
+    <span class="toolbar-title">Consent Management</span>
+    <span class="toolbar-sub">Manage and monitor customer consent records</span>
+  </div>
+  <div class="exports">
+    <button mat-stroked-button type="button" [disabled]="exporting()" (click)="exportCsv()">
+      <mat-icon>download</mat-icon> CSV
+    </button>
+    <button mat-stroked-button type="button" [disabled]="exporting()" (click)="exportExcel()">
+      <mat-icon>table_chart</mat-icon> Excel
+    </button>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="progress-bar">
+    <div class="progress-inner"></div>
+  </div>
+}
+
+<div class="filters">
+  <div class="filter-field">
+    <label class="filter-label">Consent Status</label>
+    <mat-form-field appearance="outline" class="ff">
+      <mat-select [(ngModel)]="selectedStatuses" multiple placeholder="All statuses">
+        @for (s of allStatuses; track s) {
+          <mat-option [value]="s">{{ label(s) }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div class="filter-field">
+    <label class="filter-label">VIP</label>
+    <mat-form-field appearance="outline" class="ff ff-short">
+      <mat-select [(ngModel)]="vipFilter">
+        <mat-option value="">All</mat-option>
+        <mat-option value="true">VIP only</mat-option>
+        <mat-option value="false">Non-VIP</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div class="filter-field">
+    <label class="filter-label">Valid From</label>
+    <input class="date-input" type="date" [(ngModel)]="validFrom" />
+  </div>
+
+  <div class="filter-field">
+    <label class="filter-label">Valid To</label>
+    <input class="date-input" type="date" [(ngModel)]="validTo" />
+  </div>
+
+  <div class="filter-field filter-grow">
+    <label class="filter-label">Search</label>
+    <input class="text-input" type="text" [(ngModel)]="search" placeholder="Customer ID or mobile…" />
+  </div>
+
+  <button class="btn-apply" type="button" (click)="apply()">Apply filters</button>
+</div>
+
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Customer ID</th>
+        <th>Name</th>
+        <th>Mobile</th>
+        <th>Email</th>
+        <th>Status</th>
+        <th>Valid until</th>
+        <th>Last invite</th>
+        <th>Last response</th>
+        <th>VIP</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (r of rows(); track r.customerId) {
+        <tr>
+          <td class="td-id">{{ r.customerId }}</td>
+          <td class="td-name">{{ r.customerName }}</td>
+          <td class="td-muted">{{ r.mobileNumber }}</td>
+          <td class="td-muted">{{ r.email || '—' }}</td>
+          <td>
+            <span [class]="'badge ' + badgeClass(r.consentStatus)">
+              {{ label(r.consentStatus) }}
+            </span>
+          </td>
+          <td class="td-muted">{{ r.consentValidUntil || '—' }}</td>
+          <td class="td-muted">{{ r.lastConsentInviteSentAt ? (r.lastConsentInviteSentAt | date: 'medium') : '—' }}</td>
+          <td class="td-muted">{{ r.lastConsentResponseAt ? (r.lastConsentResponseAt | date: 'medium') : '—' }}</td>
+          <td>
+            @if (r.vipFlag) {
+              <span class="vip-yes">
+                <mat-icon class="vip-icon">star</mat-icon> VIP
+              </span>
+            } @else {
+              <span class="vip-no">No</span>
+            }
+          </td>
+        </tr>
+      } @empty {
+        <tr class="empty-row">
+          <td colspan="10">{{ loading() ? 'Loading…' : 'No rows match your filters.' }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<div class="pager">
+  <span class="pager-info">
+    Page <strong>{{ currentPage() + 1 }}</strong> of <strong>{{ totalPages() || 1 }}</strong>
+    &nbsp;·&nbsp;
+    <strong>{{ totalElements() }}</strong> total rows
+  </span>
+  <div class="pager-btns">
+    <button
+      class="btn-page"
+      type="button"
+      [disabled]="currentPage() <= 0 || loading()"
+      (click)="prev()"
+    >
+      <mat-icon>chevron_left</mat-icon> Previous
+    </button>
+    <button
+      class="btn-page"
+      type="button"
+      [disabled]="currentPage() >= totalPages() - 1 || loading()"
+      (click)="next()"
+    >
+      Next <mat-icon>chevron_right</mat-icon>
+    </button>
+  </div>
+</div>
