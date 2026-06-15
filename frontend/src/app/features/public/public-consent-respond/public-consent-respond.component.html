@@ -215,17 +215,15 @@
           }
         </button>
 
-        <div class="actions-row">
-          <button mat-stroked-button type="button" class="btn-action btn-decline" [disabled]="submitting()"
-            (click)="submit('DECLINE')">
-            ✕ Decline
-          </button>
+        <button mat-stroked-button type="button" class="btn-action btn-decline" [disabled]="submitting()"
+          (click)="submit('DECLINE')">
+          ✕ Decline
+        </button>
 
-          <!-- <button mat-button type="button" class="btn-action btn-withdraw" [disabled]="submitting()"
-            (click)="submit('WITHDRAW')">
-            ↩ Withdraw
-          </button> -->
-        </div>
+        <!-- <button mat-button type="button" class="btn-action btn-withdraw" [disabled]="submitting()"
+          (click)="submit('WITHDRAW')">
+          ↩ Withdraw
+        </button> -->
       </div>
 
       <p class="fine-print">
