@@ -5,7 +5,6 @@ INDEX VERSION 1.134+D:\CMS\CMS-DROP-V1.2\.metadata\.plugins\org.eclipse.jdt.core
 1022508107.index
 2384675658.index
 790299044.index
-1965174767.index
 3387242444.index
 1551097624.index
 1761462515.index
