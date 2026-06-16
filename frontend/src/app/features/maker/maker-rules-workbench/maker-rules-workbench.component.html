@@ -18,63 +18,62 @@
     </a>
   </div>
 
+  <!-- Keep toolbar always visible -->
+  <div class="toolbar">
+    <input
+      type="search"
+      class="field"
+      placeholder="Filter by name (this page)"
+      [(ngModel)]="searchQuery"
+      name="ruleSearch"
+    />
+
+    <select
+      class="field select"
+      [(ngModel)]="statusFilter"
+      name="ruleStatus"
+      (ngModelChange)="onStatusChange()"
+    >
+      <option [ngValue]="''">All statuses</option>
+      @for (st of ruleStatuses; track st) {
+        <option [ngValue]="st">{{ formatStatusLabel(st) }}</option>
+      }
+    </select>
+
+    <div class="pager">
+      <button
+        mat-stroked-button
+        type="button"
+        [disabled]="page() === 0 || loading()"
+        (click)="prevPage()"
+      >
+        Previous
+      </button>
+
+      <span class="page-label">Page {{ page() + 1 }}</span>
+
+      <button
+        mat-stroked-button
+        type="button"
+        [disabled]="!hasNext() || loading()"
+        (click)="nextPage()"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+
   @if (loading()) {
     <div class="state-card">Loading rules…</div>
   } @else if (!rows().length) {
     <div class="state-card empty">
-      <div class="state-title">No rules yet</div>
+      <div class="state-title">No rules found</div>
       <p>
-        Create your first scenario rule to align consent journeys with customer
-        segments.
+        No rules match the selected status filter. Try changing the status or
+        create a new rule.
       </p>
     </div>
   } @else {
-    <!-- Top toolbar -->
-    <div class="toolbar">
-      <input
-        type="search"
-        class="field"
-        placeholder="Filter by name (this page)"
-        [(ngModel)]="searchQuery"
-        name="ruleSearch"
-      />
-
-      <select
-        class="field select"
-        [(ngModel)]="statusFilter"
-        name="ruleStatus"
-        (ngModelChange)="onStatusChange()"
-      >
-        <option [ngValue]="''">All statuses</option>
-        @for (st of ruleStatuses; track st) {
-          <option [ngValue]="st">{{ formatStatusLabel(st) }}</option>
-        }
-      </select>
-
-      <div class="pager">
-        <button
-          mat-stroked-button
-          type="button"
-          [disabled]="page() === 0"
-          (click)="prevPage()"
-        >
-          Previous
-        </button>
-
-        <span class="page-label">Page {{ page() + 1 }}</span>
-
-        <button
-          mat-stroked-button
-          type="button"
-          [disabled]="!hasNext()"
-          (click)="nextPage()"
-        >
-          Next
-        </button>
-      </div>
-    </div>
-
-    <!-- Rule cards grid -->
     <div class="grid">
       @for (r of displayedRows(); track r.id) {
         <a class="rule-card" [routerLink]="['/maker/rules', r.id]">
@@ -106,7 +105,6 @@
       }
     </div>
 
-    <!-- No matches message -->
     @if (rows().length && !displayedRows().length) {
       <div class="no-matches">
         No rules on this page match your name filter.
@@ -114,4 +112,3 @@
     }
   }
 </div>
-

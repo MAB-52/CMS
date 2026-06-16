@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit, ViewChild, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { debounceTime, Subscription } from 'rxjs';
@@ -14,7 +14,72 @@ import { ConsentDetailsCardComponent } from './consent-details-card/consent-deta
 import { ConsentMessageCardComponent } from './consent-message-card/consent-message-card.component';
 import { DeliveryChannelsCardComponent } from './delivery-channels-card/delivery-channels-card.component';
 import { AuditActivityCardComponent } from './audit-activity-card/audit-activity-card.component';
-import { AiContentGeneratorComponent, AiInsertEvent } from './consent-message-card/ai-content-generator/ai-content-generator.component'; 
+import { AiContentGeneratorComponent, AiInsertEvent } from './consent-message-card/ai-content-generator/ai-content-generator.component';
+
+function stripTime(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function notPastDateValidator(): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const value = control.value;
+    if (!value) {
+      return null;
+    }
+
+    const selected = stripTime(new Date(value));
+    const today = stripTime(new Date());
+
+    return selected < today ? { pastDate: true } : null;
+  };
+}
+
+function customDateRangeValidator(): ValidatorFn {
+  return (group: AbstractControl): ValidationErrors | null => {
+    const preset = group.get('validityPreset')?.value;
+    const startValue = group.get('validityStartDate')?.value;
+    const endValue = group.get('validityEndDate')?.value;
+
+    if (preset !== 'custom') {
+      return null;
+    }
+
+    if (!startValue || !endValue) {
+      return null;
+    }
+
+    const start = stripTime(new Date(startValue));
+    const end = stripTime(new Date(endValue));
+
+    if (end < start) {
+      return { dateRange: true };
+    }
+
+    return null;
+  };
+}
+
+function toDateOrEmpty(value: unknown): Date | '' {
+  if (!value) {
+    return '';
+  }
+  const d = new Date(String(value).slice(0, 10));
+  return Number.isNaN(d.getTime()) ? '' : d;
+}
+
+function toYmd(value: unknown): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const d = value instanceof Date ? value : new Date(String(value));
+  if (Number.isNaN(d.getTime())) {
+    return undefined;
+  }
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 @Component({
   selector: 'app-create-consent',
@@ -26,7 +91,7 @@ import { AiContentGeneratorComponent, AiInsertEvent } from './consent-message-ca
     ConsentMessageCardComponent,
     DeliveryChannelsCardComponent,
     AuditActivityCardComponent,
-    AiContentGeneratorComponent, // ← NEW
+    AiContentGeneratorComponent,
   ],
   templateUrl: './create-consent.component.html',
   styleUrl: './create-consent.component.scss',
@@ -40,24 +105,28 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
   private readonly notify = inject(NotificationService);
   private readonly logger = inject(LoggerService);
 
-  // ← NEW
   @ViewChild('msgCard') msgCard!: ConsentMessageCardComponent;
 
-  readonly form = this.fb.nonNullable.group({
-    consentName: ['', [Validators.required, Validators.maxLength(200)]],
-    description: ['', [Validators.required, Validators.maxLength(1000)]],
-    category: this.fb.nonNullable.control<ConsentCategory>('MARKETING', Validators.required),
-    validityPreset: this.fb.nonNullable.control('365'),
-    validityStartDate: [''],
-    validityEndDate: [''],
-    consentMessage: [''],
-    channelEmail: this.fb.nonNullable.control(false),
-    channelSms: this.fb.nonNullable.control(false),
-    channelPush: this.fb.nonNullable.control(false),
-    channelWhatsapp: this.fb.nonNullable.control(false),
-    channelRcs: this.fb.nonNullable.control(false),
-    tagsUsed: this.fb.nonNullable.control<string[]>([]),
-  });
+  readonly form = this.fb.nonNullable.group(
+    {
+      consentName: ['', [Validators.required, Validators.maxLength(200)]],
+      description: ['', [Validators.required, Validators.maxLength(1000)]],
+      category: this.fb.nonNullable.control<ConsentCategory>('MARKETING', Validators.required),
+      validityPreset: this.fb.nonNullable.control('365'),
+      validityStartDate: this.fb.control<Date | ''>('', [Validators.required, notPastDateValidator()]),
+      validityEndDate: this.fb.control<Date | ''>('', [Validators.required, notPastDateValidator()]),
+      consentMessage: [''],
+      channelEmail: this.fb.nonNullable.control(false),
+      channelSms: this.fb.nonNullable.control(false),
+      channelPush: this.fb.nonNullable.control(false),
+      channelWhatsapp: this.fb.nonNullable.control(false),
+      channelRcs: this.fb.nonNullable.control(false),
+      tagsUsed: this.fb.nonNullable.control<string[]>([]),
+    },
+    {
+      validators: [customDateRangeValidator()],
+    }
+  );
 
   mergeTags: MergeTag[] = [];
   grouped: Record<string, MergeTag[]> = {};
@@ -92,6 +161,31 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
     this.subs.add(
       this.form.controls.consentMessage.valueChanges.pipe(debounceTime(300)).subscribe((v) => {
         this.previewHtml.set(v || '');
+      }),
+    );
+
+    this.subs.add(
+      this.form.controls.validityStartDate.valueChanges.subscribe(() => {
+        this.form.controls.validityEndDate.updateValueAndValidity({ emitEvent: false });
+        this.form.updateValueAndValidity({ emitEvent: false });
+      }),
+    );
+
+    this.subs.add(
+      this.form.controls.validityPreset.valueChanges.subscribe((preset) => {
+        if (preset !== 'custom') {
+          this.form.controls.validityStartDate.setValue('', { emitEvent: false });
+          this.form.controls.validityEndDate.setValue('', { emitEvent: false });
+
+          this.form.controls.validityStartDate.markAsPristine();
+          this.form.controls.validityStartDate.markAsUntouched();
+          this.form.controls.validityEndDate.markAsPristine();
+          this.form.controls.validityEndDate.markAsUntouched();
+
+          this.form.controls.validityStartDate.updateValueAndValidity({ emitEvent: false });
+          this.form.controls.validityEndDate.updateValueAndValidity({ emitEvent: false });
+          this.form.updateValueAndValidity({ emitEvent: false });
+        }
       }),
     );
 
@@ -135,8 +229,8 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
       description: c.description || '',
       category: c.category,
       validityPreset: preset,
-      validityStartDate: c.validityStartDate ? String(c.validityStartDate).slice(0, 10) : '',
-      validityEndDate: c.validityEndDate ? String(c.validityEndDate).slice(0, 10) : '',
+      validityStartDate: c.validityStartDate ? toDateOrEmpty(c.validityStartDate) : '',
+      validityEndDate: c.validityEndDate ? toDateOrEmpty(c.validityEndDate) : '',
       consentMessage: c.consentMessage || '',
       channelEmail: c.channelEmail ?? false,
       channelSms: c.channelSms ?? false,
@@ -193,8 +287,8 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
       description: c.description || '',
       category: c.category,
       validityPreset: preset,
-      validityStartDate: c.validityStartDate ? String(c.validityStartDate).slice(0, 10) : '',
-      validityEndDate: c.validityEndDate ? String(c.validityEndDate).slice(0, 10) : '',
+      validityStartDate: c.validityStartDate ? toDateOrEmpty(c.validityStartDate) : '',
+      validityEndDate: c.validityEndDate ? toDateOrEmpty(c.validityEndDate) : '',
       consentMessage: c.consentMessage || '',
       channelEmail: c.channelEmail ?? false,
       channelSms: c.channelSms ?? false,
@@ -214,7 +308,7 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
       return 'custom';
     }
     const d = c.validityPeriodDays;
-    const presets = [30, 60, 90, 180, 365, 730];
+    const presets = [15, 30, 60, 90, 180, 365, 730];
     if (d != null && presets.includes(d)) {
       return String(d);
     }
@@ -241,7 +335,7 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
     const v = this.form.getRawValue();
     const anyChannel = v.channelEmail || v.channelSms || v.channelPush || v.channelWhatsapp || v.channelRcs;
     const msg = (this.form.controls.consentMessage.value || '').replace(/<[^>]+>/g, '').trim();
-    return this.nameOk() && anyChannel && !!msg && !!this.consentDbId();
+    return this.nameOk() && anyChannel && !!msg && !!this.consentDbId() && this.form.valid;
   }
 
   onTagsFromMessage(keys: string[]): void {
@@ -257,20 +351,24 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
     let days = Number.parseInt(v.validityPreset, 10);
     let start: string | undefined;
     let end: string | undefined;
+
     if (v.validityPreset === 'custom') {
-      start = v.validityStartDate || undefined;
-      end = v.validityEndDate || undefined;
+      start = toYmd(v.validityStartDate);
+      end = toYmd(v.validityEndDate);
+
       if (start && end) {
-        const d0 = new Date(start);
-        const d1 = new Date(end);
+        const d0 = new Date(start + 'T00:00:00');
+        const d1 = new Date(end + 'T00:00:00');
         days = Math.max(1, Math.ceil((d1.getTime() - d0.getTime()) / 86400000));
       } else {
         days = 365;
       }
     }
+
     if (!Number.isFinite(days) || days < 1) {
       days = 365;
     }
+
     return {
       consentName: v.consentName.trim(),
       description: v.description,
@@ -293,14 +391,32 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
     if (!this.editable()) {
       return;
     }
+
     this.formSubmitted.set(true);
+
+    if (this.form.controls.validityPreset.value === 'custom') {
+      this.form.controls.validityStartDate.markAsTouched();
+      this.form.controls.validityEndDate.markAsTouched();
+
+      if (
+        this.form.controls.validityStartDate.invalid ||
+        this.form.controls.validityEndDate.invalid ||
+        this.form.hasError('dateRange')
+      ) {
+        this.notify.warning('Validation', 'Please select a valid custom date range.');
+        return;
+      }
+    }
+
     if (this.form.controls.consentName.invalid) {
       this.notify.warning('Validation', 'Please enter a consent name before saving.');
       return;
     }
+
     this.form.controls.consentName.markAsTouched();
     const payload = this.buildPayload();
     const id = this.consentDbId();
+
     if (!id) {
       this.subs.add(
         this.api.createConsent(payload).subscribe({
@@ -318,6 +434,7 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
       );
       return;
     }
+
     this.autosaveBusy.set(true);
     this.subs.add(
       this.api.saveDraft(id, payload).subscribe({
@@ -360,14 +477,20 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
   submitForApproval(): void {
     this.formSubmitted.set(true);
     this.form.markAllAsTouched();
+
     if (!this.canSubmit()) {
-      this.notify.warning('Almost there', 'Add a message, pick at least one channel, and ensure the name is set.');
+      this.notify.warning(
+        'Almost there',
+        'Add a message, pick at least one channel, ensure the name is set, and fix any custom date range errors.'
+      );
       return;
     }
+
     const id = this.consentDbId();
     if (!id) {
       return;
     }
+
     this.subs.add(
       this.api.saveDraft(id, this.buildPayload()).subscribe({
         next: () => {
@@ -413,7 +536,6 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
     );
   }
 
-  // ← NEW: receives AI insert event and forwards to the message card
   onAiInsert(event: AiInsertEvent): void {
     this.msgCard.handleAiInsert(event);
   }
