@@ -1,134 +1,6 @@
-// @use '../../../../../styles/variables' as *;
-
-// .tab-toolbar {
-//   display: flex;
-//   justify-content: flex-end;
-//   margin-bottom: var(--space-3);
-// }
-
-// .exports {
-//   display: flex;
-//   gap: var(--space-2);
-// }
-
-// .filters {
-//   display: flex;
-//   flex-wrap: wrap;
-//   gap: var(--space-3);
-//   align-items: flex-end;
-//   margin-bottom: var(--space-4);
-// }
-
-// .ff {
-//   min-width: 200px;
-// }
-
-// .ff-date {
-//   display: flex;
-//   flex-direction: column;
-//   gap: var(--space-1);
-//   font-size: var(--text-12);
-//   color: var(--sidebar-text-muted);
-// }
-
-// .ff-date input {
-//   border: 1px solid var(--input-border-color);
-//   border-radius: var(--input-radius);
-//   padding: 8px 10px;
-//   font-size: var(--text-14);
-// }
-
-// .ff-grow {
-//   flex: 1;
-//   min-width: 200px;
-// }
-
-// .table-wrap {
-//   overflow-x: auto;
-//   border: 1px solid var(--input-border-color);
-//   border-radius: var(--input-radius);
-//   max-height: 60vh;
-// }
-
-// .data-table {
-//   width: 100%;
-//   border-collapse: collapse;
-//   font-size: var(--text-13);
-// }
-
-// .data-table thead th {
-//   position: sticky;
-//   top: 0;
-//   z-index: 1;
-//   background: var(--input-bg-disabled);
-// }
-
-// .data-table th,
-// .data-table td {
-//   padding: 10px 12px;
-//   border-bottom: 1px solid var(--input-border-color);
-//   text-align: left;
-//   white-space: nowrap;
-// }
-
-// .empty {
-//   text-align: center;
-//   color: var(--sidebar-text-muted);
-//   padding: var(--space-8);
-// }
-
-// .pager {
-//   display: flex;
-//   justify-content: space-between;
-//   align-items: center;
-//   margin-top: var(--space-4);
-//   font-size: var(--text-13);
-//   color: var(--sidebar-text-muted);
-//   flex-wrap: wrap;
-//   gap: var(--space-2);
-// }
-
-// .badge {
-//   display: inline-block;
-//   padding: 2px 8px;
-//   border-radius: 999px;
-//   font-size: var(--text-12);
-//   font-weight: 700;
-// }
-
-// .badge--active {
-//   background: var(--color-success-light);
-//   color: var(--color-success);
-// }
-// .badge--pending {
-//   background: var(--color-warning-light);
-//   color: var(--color-warning);
-// }
-// .badge--invited {
-//   background: var(--color-info-light);
-//   color: var(--color-info);
-// }
-// .badge--expiring {
-//   background: var(--color-amber-light);
-//   color: var(--color-amber);
-// }
-// .badge--expired,
-// .badge--declined {
-//   background: var(--color-error-light);
-//   color: var(--color-error);
-// }
-// .badge--withdrawn {
-//   background: #f1f5f9;
-//   color: #64748b;
-// }
-
 @use '../../../../../styles/variables' as *;
 
 // ─── Typography ───────────────────────────────────────────────────────────────
-// Import in your global styles.scss if not already present:
-// @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
-
-// ─── Local tokens ─────────────────────────────────────────────────────────────
 $font-body:    'DM Sans', sans-serif;
 $font-mono:    'DM Mono', monospace;
 $radius-sm:    6px;
@@ -249,7 +121,6 @@ $transition:   0.15s ease;
 .ff {
   min-width: 180px;
 
-  // Tighten Angular Material outline field height to match native inputs
   ::ng-deep .mat-mdc-form-field-infix {
     padding-top: 7px !important;
     padding-bottom: 7px !important;
@@ -283,7 +154,6 @@ $transition:   0.15s ease;
   }
 }
 
-// Native date / text inputs (replacing mat-form-field for simple inputs)
 .date-input,
 .text-input {
   font-family: $font-body;
@@ -308,7 +178,6 @@ $transition:   0.15s ease;
   }
 }
 
-// Apply filters button
 .btn-apply {
   font-family: $font-body;
   font-size: 13px;
@@ -334,9 +203,9 @@ $transition:   0.15s ease;
 .table-wrap {
   border: $border-em;
   border-radius: $radius-lg;
-  overflow: hidden;
   overflow-x: auto;
-  max-height: 60vh;
+  overflow-y: visible;
+  max-height: none;
 }
 
 .data-table {
@@ -345,7 +214,6 @@ $transition:   0.15s ease;
   font-family: $font-body;
   font-size: 13px;
 
-  // ── Head ──
   thead tr {
     background: var(--input-bg-disabled);
     border-bottom: $border-em;
@@ -367,7 +235,6 @@ $transition:   0.15s ease;
     border-bottom: $border-em;
   }
 
-  // ── Body ──
   td {
     padding: 10px 12px;
     border-bottom: $border-base;
@@ -386,7 +253,6 @@ $transition:   0.15s ease;
   }
 }
 
-// ── Cell variants ──
 .td-id {
   font-family: $font-mono;
   font-size: 12px;
@@ -401,7 +267,6 @@ $transition:   0.15s ease;
   color: var(--sidebar-text-muted);
 }
 
-// ── Empty state ──
 .empty-row td {
   text-align: center;
   padding: 48px 12px;
@@ -422,7 +287,6 @@ $transition:   0.15s ease;
   letter-spacing: 0.01em;
   white-space: nowrap;
 
-  // Dot indicator
   &::before {
     content: '';
     display: inline-block;
@@ -433,34 +297,34 @@ $transition:   0.15s ease;
   }
 
   &--active {
-    background: var(--color-success-light);
-    color: var(--color-success);
-    &::before { background: var(--color-success); }
+    background: var(--color-success-light, #d1fae5);
+    color: var(--color-success, #047857);
+    &::before { background: var(--color-success, #047857); }
   }
 
   &--pending {
-    background: var(--color-warning-light);
-    color: var(--color-warning);
-    &::before { background: var(--color-warning); }
+    background: var(--color-warning-light, #fef3c7);
+    color: var(--color-warning, #b45309);
+    &::before { background: var(--color-warning, #b45309); }
   }
 
   &--invited {
-    background: var(--color-info-light);
-    color: var(--color-info);
-    &::before { background: var(--color-info); }
+    background: var(--color-info-light, #e0f2fe);
+    color: var(--color-info, #0369a1);
+    &::before { background: var(--color-info, #0369a1); }
   }
 
   &--expiring {
-    background: var(--color-amber-light);
-    color: var(--color-amber);
-    &::before { background: var(--color-amber); }
+    background: var(--color-amber-light, #ffedd5);
+    color: var(--color-amber, #c2410c);
+    &::before { background: var(--color-amber, #c2410c); }
   }
 
   &--expired,
   &--declined {
-    background: var(--color-error-light);
-    color: var(--color-error);
-    &::before { background: var(--color-error); }
+    background: var(--color-error-light, #fee2e2);
+    color: var(--color-error, #b91c1c);
+    &::before { background: var(--color-error, #b91c1c); }
   }
 
   &--withdrawn {
@@ -470,7 +334,6 @@ $transition:   0.15s ease;
   }
 }
 
-// ─── VIP indicator ────────────────────────────────────────────────────────────
 .vip-yes {
   display: inline-flex;
   align-items: center;
@@ -545,6 +408,193 @@ $transition:   0.15s ease;
   }
 
   &[disabled] {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+}
+
+.btn-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  background: var(--surface-bg, #fff);
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: var(--hover-bg, #f1f5f9);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.view-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+// ── Expanded history row ────────────────────────────────────────────────
+.history-row {
+  background: var(--row-expand-bg, #f8fafc);
+
+  td {
+    padding: 0;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+  }
+}
+
+.history-panel {
+  padding: 16px 24px;
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  &__title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted, #6b7280);
+  }
+}
+
+.cc-record-count {
+  font-size: 12px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--chip-bg, #f1f5f9);
+  color: var(--text-muted, #6b7280);
+  white-space: nowrap;
+}
+
+.cc-loading-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 0;
+  color: var(--text-muted, #6b7280);
+  font-size: 13px;
+}
+
+.cc-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 0;
+  color: var(--text-muted, #6b7280);
+  font-size: 13px;
+}
+
+.cc-table-wrap {
+  overflow-x: auto;
+}
+
+.cc-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th {
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted, #6b7280);
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+  }
+
+  td {
+    padding: 8px 12px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border-color-light, #f1f5f9);
+  }
+
+  &__name {
+    font-weight: 500;
+  }
+
+  &__muted {
+    color: var(--text-muted, #6b7280);
+  }
+}
+
+.cc-status {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+
+  &--pending       { background: #fef3c7; color: #b45309; }
+  &--accepted      { background: #d1fae5; color: #047857; }
+  &--rejected      { background: #fee2e2; color: #b91c1c; }
+  &--withdrawn     { background: #e5e7eb; color: #4b5563; }
+  &--expiring_soon { background: #fed7aa; color: #c2410c; }
+  &--expired       { background: #f3f4f6; color: #6b7280; }
+}
+
+// ─── ADDED: Inner History Pagination Layout ─────────────────────────────
+.cc-history-pager {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  font-family: $font-body;
+}
+
+.cc-pager-info {
+  font-size: 12px;
+  color: var(--text-muted, #6b7280);
+  
+  strong {
+    color: var(--text-primary, #111);
+  }
+}
+
+.cc-pager-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-cc-page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 4px;
+  background: var(--surface-bg, #fff);
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--hover-bg, #f1f5f9);
+  }
+
+  &:disabled {
     opacity: 0.35;
     cursor: not-allowed;
   }

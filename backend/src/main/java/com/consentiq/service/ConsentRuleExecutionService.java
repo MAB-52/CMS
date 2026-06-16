@@ -48,6 +48,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.data.domain.Sort;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -64,6 +66,9 @@ import java.util.stream.Collectors;
 public class ConsentRuleExecutionService {
 
 	private static final Logger log = LoggerFactory.getLogger(ConsentRuleExecutionService.class);
+
+	/** Zone used to resolve "today" consistently with the refresh job. */
+	private static final ZoneId SEGMENTATION_ZONE = ZoneId.of("Asia/Kolkata");
 
 	private static String currentUser() {
 		return SecurityContextHolder.getContext().getAuthentication() != null
@@ -188,8 +193,12 @@ public class ConsentRuleExecutionService {
 			int grossAudienceCount = gross.size();
 			List<Customer> eligible = new ArrayList<>(gross);
 			if (rule.getConsentTemplate() != null) {
+				// CHANGED: exclude only customers who are accepted AND still within
+				// validity (date-aware), so the preview matches the live execution
+				// audience and doesn't suppress date-lapsed customers between 4 AM runs.
+				LocalDate today = LocalDate.now(SEGMENTATION_ZONE);
 				Set<String> acceptedIds = customerConsentRecordService
-						.getAcceptedCustomerIdsForTemplate(rule.getConsentTemplate().getId());
+						.getActivelyAcceptedCustomerIdsForTemplate(rule.getConsentTemplate().getId(), today);
 				if (!acceptedIds.isEmpty()) {
 					eligible = gross.stream().filter(c -> !acceptedIds.contains(c.getCustomerId())).toList();
 				}
@@ -688,8 +697,15 @@ public class ConsentRuleExecutionService {
 		}
 		List<Customer> recipients = segmentationService.getDistinctRecipients(codes);
 		if (rule.getConsentTemplate() != null) {
+			// CHANGED: exclude only accepted-AND-still-valid customers (date-aware).
+			// Previously this used status=ACCEPTED, which kept date-lapsed customers
+			// suppressed until the 4 AM job flipped them to EXPIRED — meaning a
+			// recurring/scheduled re-invite to expiring customers could be silently
+			// dropped for up to a day. Resolving by date keeps the exclusion in step
+			// with the now-live EXPIRING/EXPIRED segments.
+			LocalDate today = LocalDate.now(SEGMENTATION_ZONE);
 			Set<String> acceptedIds = customerConsentRecordService
-					.getAcceptedCustomerIdsForTemplate(rule.getConsentTemplate().getId());
+					.getActivelyAcceptedCustomerIdsForTemplate(rule.getConsentTemplate().getId(), today);
 			if (!acceptedIds.isEmpty()) {
 				recipients = recipients.stream().filter(c -> !acceptedIds.contains(c.getCustomerId())).toList();
 			}

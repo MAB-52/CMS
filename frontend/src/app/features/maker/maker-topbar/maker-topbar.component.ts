@@ -19,13 +19,7 @@ import { LogoutFlowService } from '../../../core/services/logout-flow.service';
       <!-- Right: bell + profile card + logout -->
       <div class="right">
 
-        <!-- Notification bell -->
-        <button type="button" class="bell" routerLink="/maker/consents" title="Revision requests">
-          🔔
-          @if (revisionCount > 0) {
-            <span class="badge">{{ revisionCount > 9 ? '9+' : revisionCount }}</span>
-          }
-        </button>
+      
 
         <!-- Profile card -->
         <div class="profile-card">

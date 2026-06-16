@@ -9,7 +9,6 @@
     }
   </div>
 
-  <!-- ADD floatLabel="always" to EVERY mat-form-field -->
   <mat-form-field appearance="outline" floatLabel="always" class="full mono id-field">
     <mat-label>Consent ID</mat-label>
     <span matPrefix class="pfx">🔒&nbsp;</span>
@@ -31,8 +30,11 @@
 
     <mat-form-field appearance="outline" floatLabel="always" class="full">
       <mat-label>Consent Name *</mat-label>
-      <input matInput formControlName="consentName" maxlength="200"
-             placeholder="e.g. Marketing Communications v2.0" />
+      <input
+        matInput
+        formControlName="consentName"
+        maxlength="200"
+        placeholder="e.g. Marketing Communications v2.0" />
       <mat-hint align="end">
         {{ form.controls['consentName'].value?.length || 0 }} / 200
       </mat-hint>
@@ -44,11 +46,19 @@
 
     <mat-form-field appearance="outline" floatLabel="always" class="full">
       <mat-label>Remarks *</mat-label>
-      <textarea matInput rows="4" formControlName="description"
-                maxlength="1000" placeholder="Add Remarks…"></textarea>
+      <textarea
+        matInput
+        rows="4"
+        formControlName="description"
+        maxlength="1000"
+        placeholder="Add Remarks…"></textarea>
       <mat-hint align="end">
         {{ form.controls['description'].value?.length || 0 }} / 1000
       </mat-hint>
+      @if (form.controls['description'].touched &&
+           form.controls['description'].hasError('required')) {
+        <mat-error>Required</mat-error>
+      }
     </mat-form-field>
 
     <mat-form-field appearance="outline" floatLabel="always" class="full">
@@ -72,24 +82,65 @@
     @if (form.controls['validityPreset'].value === 'custom') {
       <div class="row-dates">
         <mat-form-field appearance="outline" floatLabel="always" class="half">
-          <mat-label>Start Date</mat-label>
-          <input matInput type="date" formControlName="validityStartDate" />
+          <mat-label>Start Date *</mat-label>
+          <input
+            matInput
+            [matDatepicker]="startPicker"
+            formControlName="validityStartDate"
+            [min]="today"
+            placeholder="DD/MM/YYYY"
+            readonly />
+          <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
+          <mat-datepicker #startPicker></mat-datepicker>
+
+          @if (form.controls['validityStartDate'].touched || submitted) {
+            @if (form.controls['validityStartDate'].hasError('required')) {
+              <mat-error>Start date is required</mat-error>
+            } @else if (
+              form.controls['validityStartDate'].hasError('matDatepickerMin') ||
+              form.controls['validityStartDate'].hasError('pastDate')
+            ) {
+              <mat-error>Start date cannot be in the past</mat-error>
+            }
+          }
         </mat-form-field>
+
         <mat-form-field appearance="outline" floatLabel="always" class="half">
-          <mat-label>End Date</mat-label>
-          <input matInput type="date" formControlName="validityEndDate" />
+          <mat-label>End Date *</mat-label>
+          <input
+            matInput
+            [matDatepicker]="endPicker"
+            formControlName="validityEndDate"
+            [min]="minEndDate"
+            placeholder="DD/MM/YYYY"
+            readonly />
+          <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
+          <mat-datepicker #endPicker></mat-datepicker>
+
+          @if (form.controls['validityEndDate'].touched || submitted) {
+            @if (form.controls['validityEndDate'].hasError('required')) {
+              <mat-error>End date is required</mat-error>
+            } @else if (
+              form.controls['validityEndDate'].hasError('matDatepickerMin') ||
+              form.controls['validityEndDate'].hasError('pastDate')
+            ) {
+              <mat-error>End date cannot be in the past</mat-error>
+            } @else if (form.hasError('dateRange')) {
+              <mat-error>End date cannot be before start date</mat-error>
+            }
+          }
         </mat-form-field>
       </div>
     }
 
-      <!-- <div class="chips">
-        @for (t of form.controls['tagsUsed'].value || []; track t) {
-          <span class="chip">
-            {{ t }}
-            <button type="button" class="chip-x" (click)="removeTag(t)"
-                    aria-label="Remove">×</button>
-          </span>
-        }
-      </div> -->
-    </div>
+    <!-- <div class="chips">
+      @for (t of form.controls['tagsUsed'].value || []; track t) {
+        <span class="chip">
+          {{ t }}
+          <button type="button" class="chip-x" (click)="removeTag(t)"
+                  aria-label="Remove">×</button>
+        </span>
+      }
+    </div> -->
   </div>
+</div>
