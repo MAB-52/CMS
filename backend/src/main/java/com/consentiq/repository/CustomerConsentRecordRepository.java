@@ -135,7 +135,6 @@
 //     // the Customer entity (see CustomerSegmentationService).  No record-level
 //     // query is needed here for that segment.
 //}
-
 package com.consentiq.repository;
 
 import com.consentiq.enums.CustomerConsentRecordStatus;
@@ -200,7 +199,7 @@ public interface CustomerConsentRecordRepository extends JpaRepository<CustomerC
 
 	// ── SEGMENTATION COUNTS (distinct customer-level) ─────────────────────────
 
-	// EXPIRED_CONSENT
+	// EXPIRED_CONSENT — already live (date-driven)
 	@Query("SELECT COUNT(DISTINCT r.customerId) FROM CustomerConsentRecord r "
 			+ "WHERE r.consentValidUntil IS NOT NULL AND r.consentValidUntil < :today")
 	long countDistinctCustomersWithExpiredConsent(@Param("today") LocalDate today);
@@ -222,29 +221,56 @@ public interface CustomerConsentRecordRepository extends JpaRepository<CustomerC
 			+ "AND r.lastInviteSentAt < :noResponseSince")
 	List<String> findCustomerIdsNonResponders(@Param("noResponseSince") Instant noResponseSince);
 
-	// PENDING_CONSENT / ACCEPTED_CONSENT — single status
+	// PENDING_CONSENT / ACCEPTED_CONSENT — single status (PENDING is written
+	// promptly on invite/response, so it remains live)
 	@Query("SELECT COUNT(DISTINCT r.customerId) FROM CustomerConsentRecord r WHERE r.status = :status")
 	long countDistinctCustomersByStatus(@Param("status") CustomerConsentRecordStatus status);
 
 	@Query("SELECT DISTINCT r.customerId FROM CustomerConsentRecord r WHERE r.status = :status")
 	List<String> findCustomerIdsByStatus(@Param("status") CustomerConsentRecordStatus status);
 
-	// EXPIRING_CONSENT
-	@Query("""
-		    SELECT COUNT(DISTINCT r.customerId)
-		    FROM CustomerConsentRecord r
-		    WHERE r.status =
-		          com.consentiq.enums.CustomerConsentRecordStatus.EXPIRING_SOON
-		""")
-		long countDistinctCustomersExpiringSoon();
+	// ──────────────────────────────────────────────────────────────────────────
+	// LIVE (date-driven) EXPIRING — replaces the status=EXPIRING_SOON resolution
+	// so the segment tracks consentValidUntil continuously instead of jumping
+	// once a day when the 4 AM refresh job runs.
+	// ──────────────────────────────────────────────────────────────────────────
+	@Query("SELECT COUNT(DISTINCT r.customerId) FROM CustomerConsentRecord r "
+			+ "WHERE r.consentValidUntil IS NOT NULL "
+			+ "AND r.consentValidUntil >= :today AND r.consentValidUntil <= :until")
+	long countDistinctCustomersConsentExpiringBetween(@Param("today") LocalDate today,
+			@Param("until") LocalDate until);
 
-	@Query("""
-		    SELECT DISTINCT r.customerId
-		    FROM CustomerConsentRecord r
-		    WHERE r.status =
-		          com.consentiq.enums.CustomerConsentRecordStatus.EXPIRING_SOON
-		""")
-		List<String> findCustomerIdsExpiringSoon();
+	@Query("SELECT DISTINCT r.customerId FROM CustomerConsentRecord r "
+			+ "WHERE r.consentValidUntil IS NOT NULL "
+			+ "AND r.consentValidUntil >= :today AND r.consentValidUntil <= :until")
+	List<String> findCustomerIdsConsentExpiringBetween(@Param("today") LocalDate today,
+			@Param("until") LocalDate until);
+
+	// ──────────────────────────────────────────────────────────────────────────
+	// LIVE (date-aware) ACCEPTED — accepted AND still within validity. A consent
+	// that has lapsed by date is excluded immediately, without waiting for the
+	// 4 AM job to flip its status to EXPIRED. consentValidUntil == NULL is treated
+	// as "no expiry" (perpetually valid).
+	// ──────────────────────────────────────────────────────────────────────────
+	@Query("SELECT COUNT(DISTINCT r.customerId) FROM CustomerConsentRecord r "
+			+ "WHERE r.status = com.consentiq.enums.CustomerConsentRecordStatus.ACCEPTED "
+			+ "AND (r.consentValidUntil IS NULL OR r.consentValidUntil >= :today)")
+	long countDistinctCustomersActivelyAccepted(@Param("today") LocalDate today);
+
+	@Query("SELECT DISTINCT r.customerId FROM CustomerConsentRecord r "
+			+ "WHERE r.status = com.consentiq.enums.CustomerConsentRecordStatus.ACCEPTED "
+			+ "AND (r.consentValidUntil IS NULL OR r.consentValidUntil >= :today)")
+	List<String> findCustomerIdsActivelyAccepted(@Param("today") LocalDate today);
+
+	// Per-template accepted-and-still-valid IDs, used by the execution exclusion
+	// filter so expiring/expired customers are not wrongly suppressed as
+	// "already accepted" between 4 AM refreshes.
+	@Query("SELECT r.customerId FROM CustomerConsentRecord r "
+			+ "WHERE r.consentDbId = :consentDbId "
+			+ "AND r.status = com.consentiq.enums.CustomerConsentRecordStatus.ACCEPTED "
+			+ "AND (r.consentValidUntil IS NULL OR r.consentValidUntil >= :today)")
+	List<String> findActivelyAcceptedCustomerIdsForTemplate(@Param("consentDbId") Long consentDbId,
+			@Param("today") LocalDate today);
 
 	// DECLINED / RE-ENGAGEMENT — reEngagementEligibleAfter lives on Customer;
 	// but to identify REJECTED/WITHDRAWN customers from records:
@@ -254,20 +280,6 @@ public interface CustomerConsentRecordRepository extends JpaRepository<CustomerC
 	@Query("SELECT DISTINCT r.customerId FROM CustomerConsentRecord r WHERE r.status IN :statuses")
 	List<String> findCustomerIdsByStatusIn(@Param("statuses") Collection<CustomerConsentRecordStatus> statuses);
 
-//	@Query("""
-//			SELECT COUNT(DISTINCT r.customerId)
-//			FROM CustomerConsentRecord r
-//			WHERE r.status = com.consentiq.enums.CustomerConsentRecordStatus.REJECTED
-//			""")
-//	long countDistinctRejectedCustomers();
-//
-//	@Query("""
-//			SELECT DISTINCT r.customerId
-//			FROM CustomerConsentRecord r
-//			WHERE r.status = com.consentiq.enums.CustomerConsentRecordStatus.REJECTED
-//			""")
-//	List<String> findRejectedCustomerIds();
-	
 	@Query("""
 		       SELECT COUNT(DISTINCT r.customerId)
 		       FROM CustomerConsentRecord r
@@ -276,8 +288,8 @@ public interface CustomerConsentRecordRepository extends JpaRepository<CustomerC
 		           com.consentiq.enums.CustomerConsentRecordStatus.WITHDRAWN
 		       )
 		       """)
-		long countDistinctDeclinedCustomers();
-	
+	long countDistinctDeclinedCustomers();
+
 	@Query("""
 		       SELECT DISTINCT r.customerId
 		       FROM CustomerConsentRecord r
@@ -286,8 +298,8 @@ public interface CustomerConsentRecordRepository extends JpaRepository<CustomerC
 		           com.consentiq.enums.CustomerConsentRecordStatus.WITHDRAWN
 		       )
 		       """)
-		List<String> findDeclinedCustomerIds();
-	
+	List<String> findDeclinedCustomerIds();
+
 	@Query("""
 		    SELECT COUNT(DISTINCT r.customerId)
 		    FROM CustomerConsentRecord r
@@ -300,9 +312,8 @@ public interface CustomerConsentRecordRepository extends JpaRepository<CustomerC
 		    AND r.lastInviteSentAt IS NOT NULL
 		    AND r.respondedAt IS NULL
 		""")
-		long countLatestNeverRespondedCustomers(
-		        @Param("customerIds") Collection<String> customerIds);
-	
+	long countLatestNeverRespondedCustomers(@Param("customerIds") Collection<String> customerIds);
+
 	@Query("""
 		    SELECT DISTINCT r.customerId
 		    FROM CustomerConsentRecord r
@@ -315,6 +326,5 @@ public interface CustomerConsentRecordRepository extends JpaRepository<CustomerC
 		    AND r.lastInviteSentAt IS NOT NULL
 		    AND r.respondedAt IS NULL
 		""")
-		List<String> findLatestNeverRespondedCustomerIds(
-		        @Param("customerIds") Collection<String> customerIds);
+	List<String> findLatestNeverRespondedCustomerIds(@Param("customerIds") Collection<String> customerIds);
 }

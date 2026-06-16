@@ -248,7 +248,6 @@
 //                .build();
 //    }
 //}
-
 package com.consentiq.service;
 
 import com.consentiq.enums.AudienceSegmentCode;
@@ -345,13 +344,18 @@ public class CustomerSegmentationService {
 			long cPending = recordRepository.countDistinctCustomersByStatus(CustomerConsentRecordStatus.PENDING);
 			log.info("DB query completed | method=countDistinctCustomersByStatus | result={}", cPending);
 
-			log.info("Executing DB query | method=countDistinctCustomersExpiringSoon | param=n/a");
-			long cExpiringSoon = recordRepository.countDistinctCustomersExpiringSoon();
-			log.info("DB query completed | method=countDistinctCustomersExpiringSoon | result={}", cExpiringSoon);
+			// CHANGED: EXPIRING is now resolved live by date window instead of the
+			// status=EXPIRING_SOON column (which only the 4 AM job writes).
+			log.info("Executing DB query | method=countDistinctCustomersConsentExpiringBetween | param=today,until");
+			long cExpiringSoon = recordRepository.countDistinctCustomersConsentExpiringBetween(today, expiringUntil);
+			log.info("DB query completed | method=countDistinctCustomersConsentExpiringBetween | result={}",
+					cExpiringSoon);
 
-			log.info("Executing DB query | method=countDistinctCustomersByStatus | param=ACCEPTED");
-			long cAccepted = recordRepository.countDistinctCustomersByStatus(CustomerConsentRecordStatus.ACCEPTED);
-			log.info("DB query completed | method=countDistinctCustomersByStatus | result={}", cAccepted);
+			// CHANGED: ACCEPTED now means "accepted AND still within validity",
+			// computed live so date-lapsed consents drop out without waiting for 4 AM.
+			log.info("Executing DB query | method=countDistinctCustomersActivelyAccepted | param=today");
+			long cAccepted = recordRepository.countDistinctCustomersActivelyAccepted(today);
+			log.info("DB query completed | method=countDistinctCustomersActivelyAccepted | result={}", cAccepted);
 
 			log.info("Executing DB query | method=countDistinctDeclinedCustomers | param=n/a");
 			long cReEng = recordRepository.countDistinctDeclinedCustomers();
@@ -526,6 +530,7 @@ public class CustomerSegmentationService {
 		Instant now = Instant.now();
 		ZoneId zone = ZoneId.of("Asia/Kolkata");
 		LocalDate today = LocalDate.now(zone);
+		LocalDate expiringUntil = today.plusDays(consentExpiringWindowDays);
 		Instant newSince = now.minus(newCustomerDays, ChronoUnit.DAYS);
 		Instant noResponseSince = now.minus(nonResponderMinHours, ChronoUnit.HOURS);
 
@@ -600,16 +605,19 @@ public class CustomerSegmentationService {
 				log.info("DB query completed | method=findCustomerIdsByStatus | size={}", cids.size());
 				union.addAll(resolveCustomerPks(cids));
 			}
+			// CHANGED: EXPIRING resolved live by consentValidUntil window so the
+			// audience tracks the data continuously, not once per day at 4 AM.
 			case CONSENT_EXPIRING, EXPIRING_CONSENT -> {
-				log.info("Executing DB query | method=findCustomerIdsExpiringSoon | param=n/a");
-				List<String> cids = recordRepository.findCustomerIdsExpiringSoon();
-				log.info("DB query completed | method=findCustomerIdsExpiringSoon | size={}", cids.size());
+				log.info("Executing DB query | method=findCustomerIdsConsentExpiringBetween | param=today,until");
+				List<String> cids = recordRepository.findCustomerIdsConsentExpiringBetween(today, expiringUntil);
+				log.info("DB query completed | method=findCustomerIdsConsentExpiringBetween | size={}", cids.size());
 				union.addAll(resolveCustomerPks(cids));
 			}
+			// CHANGED: ACCEPTED resolved live — accepted AND still within validity.
 			case ACCEPTED_CONSENT -> {
-				log.info("Executing DB query | method=findCustomerIdsByStatus | param=ACCEPTED");
-				List<String> cids = recordRepository.findCustomerIdsByStatus(CustomerConsentRecordStatus.ACCEPTED);
-				log.info("DB query completed | method=findCustomerIdsByStatus | size={}", cids.size());
+				log.info("Executing DB query | method=findCustomerIdsActivelyAccepted | param=today");
+				List<String> cids = recordRepository.findCustomerIdsActivelyAccepted(today);
+				log.info("DB query completed | method=findCustomerIdsActivelyAccepted | size={}", cids.size());
 				union.addAll(resolveCustomerPks(cids));
 			}
 			}
