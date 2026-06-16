@@ -1,0 +1,41 @@
+package com.consentiq.repository;
+
+import com.consentiq.enums.ReminderRecipientRole;
+import com.consentiq.enums.ReminderTargetType;
+import com.consentiq.model.entity.ReminderEmailJob;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+/**
+ * Repository for {@link ReminderEmailJob}.
+ *
+ * The single query method is used by the batch processor to check whether a
+ * reminder has already been sent for a given (entityType, entityId,
+ * reminderType) combination before dispatching another one, ensuring
+ * idempotency across scheduler runs.
+ */
+@Repository
+public interface ReminderEmailJobRepository extends JpaRepository<ReminderEmailJob, Long> {
+
+//    /**
+//     * Returns {@code true} if a reminder of the given type has already been
+//     * sent for the specified entity.  Used to skip already-notified records
+//     * in the batch job.
+//     *
+//     * @param entityType   CONSENT or CONSENT_RULE
+//     * @param entityId     DB primary key of the entity
+//     * @param reminderType CHECKER_PENDING or MAKER_REVISION
+//     */
+//    boolean existsByEntityTypeAndEntityIdAndReminderType(
+//            ReminderTargetType entityType,
+//            Long entityId,
+//            ReminderRecipientRole reminderType
+//    );
+//    
+//    boolean existsByEntityTypeAndEntityIdAndReminderTypeAndSentToEmail(
+//            ReminderTargetType entityType,
+//            Long entityId,
+//            ReminderRecipientRole reminderType,
+//            String sentToEmail
+//    );
+}

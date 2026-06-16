@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -86,4 +87,42 @@ public interface ConsentRuleRepository extends JpaRepository<ConsentRule, Long> 
             ORDER BY r.nextExecutionAt ASC NULLS FIRST
             """)
     List<ConsentRule> findDueForExecution();
+    
+    @Query("""
+            SELECT r FROM ConsentRule r
+            JOIN FETCH r.createdBy maker
+            WHERE r.status = :status
+              AND r.submittedAt IS NOT NULL
+              AND r.submittedAt <= :threshold
+            """)
+    List<ConsentRule> findPendingApprovalOlderThan(
+            @Param("status") ConsentRuleStatus status,
+            @Param("threshold") Instant threshold
+    );
+ 
+    /**
+     * Finds rules where the checker has requested a revision but the maker
+     * has not re-submitted within the SLA window.
+     *
+     * Logic: status = REVISION_REQUESTED  AND  reviewedAt <= :threshold
+     *
+     * Note: in ConsentRule the revision reason is stored in {@code revisionReason}
+     * (not revisionMessage as in Consent) — the query itself does not need this
+     * field, but the batch processor reads it from the entity to include it in
+     * the reminder email body.
+     *
+     * @param status    ConsentRuleStatus.REVISION_REQUESTED
+     * @param threshold Instant representing (now - 5 days)
+     */
+    @Query("""
+            SELECT r FROM ConsentRule r
+            JOIN FETCH r.createdBy maker
+            WHERE r.status = :status
+              AND r.reviewedAt IS NOT NULL
+              AND r.reviewedAt <= :threshold
+            """)
+    List<ConsentRule> findRevisionRequestedOlderThan(
+            @Param("status") ConsentRuleStatus status,
+            @Param("threshold") Instant threshold
+    );
 }

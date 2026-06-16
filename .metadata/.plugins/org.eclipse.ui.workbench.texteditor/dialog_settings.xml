@@ -1,19 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
-		<item key="selection" value="create"/>
+		<item key="selection" value="handleApprove"/>
 		<item key="wrap" value="true"/>
 		<item key="casesensitive" value="false"/>
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
 		<list key="findhistory">
+			<item value="handleapprove"/>
+			<item value="reviewConsent"/>
 			<item value="CREATE"/>
 			<item value="admin"/>
 			<item value="getLanguagePreferenceForAdmin"/>
 			<item value="record"/>
 			<item value="handleApprove"/>
-			<item value="handleapprove"/>
 			<item value="recordon"/>
 			<item value="search"/>
 			<item value="toDetail"/>
@@ -22,7 +23,6 @@
 			<item value="String channelsSummary = DeliveryChannelCatalog.formatForCustomer("/>
 			<item value="catalog"/>
 			<item value="buildemailhtml"/>
-			<item value="listall"/>
 		</list>
 		<list key="replacehistory">
 		</list>

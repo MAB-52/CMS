@@ -1,0 +1,5 @@
+package com.consentiq.repository;
+
+public class ReminderEmailJobRepository {
+
+}

@@ -1,4 +1,18 @@
 import {
+  DateAdapter,
+  MAT_DATE_FORMATS,
+  MAT_DATE_LOCALE,
+  MAT_DATE_LOCALE_FACTORY
+} from "./chunk-R25CBD4A.js";
+import {
+  ErrorStateMatcher,
+  ShowOnDirtyErrorStateMatcher,
+  _ErrorStateTracker
+} from "./chunk-AOLWQF35.js";
+import {
+  MatRippleLoader
+} from "./chunk-H3SKSC57.js";
+import {
   MAT_OPTGROUP,
   MAT_OPTION_PARENT_COMPONENT,
   MatOptgroup,
@@ -8,6 +22,7 @@ import {
   MatPseudoCheckboxModule,
   _countGroupLabelsBeforeOption,
   _getOptionScrollPosition
+<<<<<<< HEAD
 } from "./chunk-TVXQDVFD.js";
 import {
   MatPseudoCheckbox
@@ -17,6 +32,15 @@ import {
   ShowOnDirtyErrorStateMatcher,
   _ErrorStateTracker
 } from "./chunk-52YDHQBR.js";
+=======
+} from "./chunk-JQA5YXI6.js";
+import {
+  MatPseudoCheckbox
+} from "./chunk-7RX35FCP.js";
+import {
+  MatRippleModule
+} from "./chunk-I6ZMKXPT.js";
+>>>>>>> bf5f2918d40803c543ddca3bb1be17ba1d20a78c
 import {
   _MatInternalFormField
 } from "./chunk-OWWUZXCF.js";
@@ -33,16 +57,25 @@ import {
   RippleRenderer,
   RippleState,
   defaultRippleAnimationConfig
+<<<<<<< HEAD
 } from "./chunk-J6A26B5H.js";
 import "./chunk-HTJKV3XU.js";
+=======
+} from "./chunk-DLAWE6MQ.js";
+import {
+  _StructuralStylesLoader
+} from "./chunk-LQTHSVMV.js";
+import "./chunk-QTJMHJ2E.js";
+>>>>>>> bf5f2918d40803c543ddca3bb1be17ba1d20a78c
 import "./chunk-42FJBLFI.js";
-import "./chunk-IBYU652R.js";
+import "./chunk-JXBCBRYI.js";
 import {
   _StructuralStylesLoader
 } from "./chunk-F3BZ7M5V.js";
 import {
   MATERIAL_SANITY_CHECKS,
   MatCommonModule
+<<<<<<< HEAD
 } from "./chunk-Y7ADLOWK.js";
 import "./chunk-2O4WY5GE.js";
 import "./chunk-RJ7C5JMP.js";
@@ -50,11 +83,18 @@ import "./chunk-VNG2RVJ7.js";
 import "./chunk-XP4YJZYP.js";
 import "./chunk-OSOH3Y53.js";
 import "./chunk-CMRG7ZRC.js";
+=======
+} from "./chunk-6V2BKLZO.js";
+import "./chunk-2O4WY5GE.js";
+import "./chunk-JQOUQGC6.js";
+import "./chunk-ZZLLA7OC.js";
+import "./chunk-FGPW22PQ.js";
+import "./chunk-UY5XLYMF.js";
+import "./chunk-RAET7PWN.js";
+>>>>>>> bf5f2918d40803c543ddca3bb1be17ba1d20a78c
 import {
   Directive,
   Injectable,
-  InjectionToken,
-  LOCALE_ID,
   NgModule,
   Version,
   inject,
@@ -67,7 +107,6 @@ import {
 import "./chunk-VMI3K6GE.js";
 import "./chunk-5KXDAEEK.js";
 import {
-  Subject,
   startWith
 } from "./chunk-WD6C567C.js";
 import "./chunk-HM5YLMWO.js";
@@ -75,180 +114,6 @@ import {
   __spreadProps,
   __spreadValues
 } from "./chunk-WDMUDEB6.js";
-
-// node_modules/@angular/material/fesm2022/date-formats-K6TQue-Y.mjs
-var MAT_DATE_LOCALE = new InjectionToken("MAT_DATE_LOCALE", {
-  providedIn: "root",
-  factory: MAT_DATE_LOCALE_FACTORY
-});
-function MAT_DATE_LOCALE_FACTORY() {
-  return inject(LOCALE_ID);
-}
-var NOT_IMPLEMENTED = "Method not implemented";
-var DateAdapter = class {
-  /** The locale to use for all dates. */
-  locale;
-  _localeChanges = new Subject();
-  /** A stream that emits when the locale changes. */
-  localeChanges = this._localeChanges;
-  /**
-   * Sets the time of one date to the time of another.
-   * @param target Date whose time will be set.
-   * @param hours New hours to set on the date object.
-   * @param minutes New minutes to set on the date object.
-   * @param seconds New seconds to set on the date object.
-   */
-  setTime(target, hours, minutes, seconds) {
-    throw new Error(NOT_IMPLEMENTED);
-  }
-  /**
-   * Gets the hours component of the given date.
-   * @param date The date to extract the hours from.
-   */
-  getHours(date) {
-    throw new Error(NOT_IMPLEMENTED);
-  }
-  /**
-   * Gets the minutes component of the given date.
-   * @param date The date to extract the minutes from.
-   */
-  getMinutes(date) {
-    throw new Error(NOT_IMPLEMENTED);
-  }
-  /**
-   * Gets the seconds component of the given date.
-   * @param date The date to extract the seconds from.
-   */
-  getSeconds(date) {
-    throw new Error(NOT_IMPLEMENTED);
-  }
-  /**
-   * Parses a date with a specific time from a user-provided value.
-   * @param value The value to parse.
-   * @param parseFormat The expected format of the value being parsed
-   *     (type is implementation-dependent).
-   */
-  parseTime(value, parseFormat) {
-    throw new Error(NOT_IMPLEMENTED);
-  }
-  /**
-   * Adds an amount of seconds to the specified date.
-   * @param date Date to which to add the seconds.
-   * @param amount Amount of seconds to add to the date.
-   */
-  addSeconds(date, amount) {
-    throw new Error(NOT_IMPLEMENTED);
-  }
-  /**
-   * Given a potential date object, returns that same date object if it is
-   * a valid date, or `null` if it's not a valid date.
-   * @param obj The object to check.
-   * @returns A date or `null`.
-   */
-  getValidDateOrNull(obj) {
-    return this.isDateInstance(obj) && this.isValid(obj) ? obj : null;
-  }
-  /**
-   * Attempts to deserialize a value to a valid date object. This is different from parsing in that
-   * deserialize should only accept non-ambiguous, locale-independent formats (e.g. a ISO 8601
-   * string). The default implementation does not allow any deserialization, it simply checks that
-   * the given value is already a valid date object or null. The `<mat-datepicker>` will call this
-   * method on all of its `@Input()` properties that accept dates. It is therefore possible to
-   * support passing values from your backend directly to these properties by overriding this method
-   * to also deserialize the format used by your backend.
-   * @param value The value to be deserialized into a date object.
-   * @returns The deserialized date object, either a valid date, null if the value can be
-   *     deserialized into a null date (e.g. the empty string), or an invalid date.
-   */
-  deserialize(value) {
-    if (value == null || this.isDateInstance(value) && this.isValid(value)) {
-      return value;
-    }
-    return this.invalid();
-  }
-  /**
-   * Sets the locale used for all dates.
-   * @param locale The new locale.
-   */
-  setLocale(locale) {
-    this.locale = locale;
-    this._localeChanges.next();
-  }
-  /**
-   * Compares two dates.
-   * @param first The first date to compare.
-   * @param second The second date to compare.
-   * @returns 0 if the dates are equal, a number less than 0 if the first date is earlier,
-   *     a number greater than 0 if the first date is later.
-   */
-  compareDate(first, second) {
-    return this.getYear(first) - this.getYear(second) || this.getMonth(first) - this.getMonth(second) || this.getDate(first) - this.getDate(second);
-  }
-  /**
-   * Compares the time values of two dates.
-   * @param first First date to compare.
-   * @param second Second date to compare.
-   * @returns 0 if the times are equal, a number less than 0 if the first time is earlier,
-   *     a number greater than 0 if the first time is later.
-   */
-  compareTime(first, second) {
-    return this.getHours(first) - this.getHours(second) || this.getMinutes(first) - this.getMinutes(second) || this.getSeconds(first) - this.getSeconds(second);
-  }
-  /**
-   * Checks if two dates are equal.
-   * @param first The first date to check.
-   * @param second The second date to check.
-   * @returns Whether the two dates are equal.
-   *     Null dates are considered equal to other null dates.
-   */
-  sameDate(first, second) {
-    if (first && second) {
-      let firstValid = this.isValid(first);
-      let secondValid = this.isValid(second);
-      if (firstValid && secondValid) {
-        return !this.compareDate(first, second);
-      }
-      return firstValid == secondValid;
-    }
-    return first == second;
-  }
-  /**
-   * Checks if the times of two dates are equal.
-   * @param first The first date to check.
-   * @param second The second date to check.
-   * @returns Whether the times of the two dates are equal.
-   *     Null dates are considered equal to other null dates.
-   */
-  sameTime(first, second) {
-    if (first && second) {
-      const firstValid = this.isValid(first);
-      const secondValid = this.isValid(second);
-      if (firstValid && secondValid) {
-        return !this.compareTime(first, second);
-      }
-      return firstValid == secondValid;
-    }
-    return first == second;
-  }
-  /**
-   * Clamp the given date between min and max dates.
-   * @param date The date to clamp.
-   * @param min The minimum value to allow. If null or omitted no min is enforced.
-   * @param max The maximum value to allow. If null or omitted no max is enforced.
-   * @returns `min` if `date` is less than `min`, `max` if date is greater than `max`,
-   *     otherwise `date`.
-   */
-  clampDate(date, min, max) {
-    if (min && this.compareDate(date, min) < 0) {
-      return min;
-    }
-    if (max && this.compareDate(date, max) > 0) {
-      return max;
-    }
-    return date;
-  }
-};
-var MAT_DATE_FORMATS = new InjectionToken("mat-date-formats");
 
 // node_modules/@angular/material/fesm2022/line-Bm3zUbBF.mjs
 var MatLine = class _MatLine {

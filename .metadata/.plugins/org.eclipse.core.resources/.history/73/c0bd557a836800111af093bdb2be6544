@@ -1,0 +1,869 @@
+package com.consentiq.service;
+
+import com.consentiq.enums.*;
+import com.consentiq.exception.InvalidWorkflowStateException;
+import com.consentiq.exception.UnauthorizedActionException;
+import com.consentiq.model.dto.request.ConsentRuleUpsertRequest;
+import com.consentiq.model.dto.request.WorkflowReviewRequest;
+import com.consentiq.model.dto.response.ConsentRuleResponse;
+import com.consentiq.model.dto.response.PagedResponse;
+import com.consentiq.model.entity.Consent;
+import com.consentiq.model.entity.ConsentRule;
+import com.consentiq.model.entity.User;
+import com.consentiq.repository.ConsentRepository;
+import com.consentiq.repository.ConsentRuleRepository;
+import com.consentiq.repository.UserRepository;
+import com.consentiq.util.RuleNextRunUtil;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Locale;
+
+
+@Service
+@RequiredArgsConstructor
+public class ConsentRuleService {
+
+    private static final Logger log = LoggerFactory.getLogger(ConsentRuleService.class);
+
+    private static String currentUser() {
+        return SecurityContextHolder.getContext().getAuthentication() != null
+                ? SecurityContextHolder.getContext().getAuthentication().getName()
+                : "anonymous";
+    }
+
+    private static final int MAX_PAGE_SIZE = 50;
+
+    /** Statuses that the admin rule engine cares about. */
+    private static final List<ConsentRuleStatus> ADMIN_ENGINE_STATUSES =
+            List.of(ConsentRuleStatus.APPROVED, ConsentRuleStatus.LIVE);
+
+    /** Statuses in which a maker is allowed to edit a rule. */
+    private static final EnumSet<ConsentRuleStatus> EDITABLE_STATUSES =
+            EnumSet.of(ConsentRuleStatus.DRAFT, ConsentRuleStatus.REVISION_REQUESTED);
+
+    private final ConsentRuleRepository consentRuleRepository;
+    private final UserRepository userRepository;
+    private final ConsentRepository consentRepository;
+    private final AuditService auditService;
+    private final CustomerSegmentationService segmentationService;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // MAKER OPERATIONS
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Creates a new rule as DRAFT.
+     * Runs full field validation including consent template lookup.
+     */
+    @Transactional
+    public ConsentRuleResponse createRule(
+            ConsentRuleUpsertRequest req, Long userId, HttpServletRequest http) {
+        String cu = currentUser();
+        log.debug("Entering createRule | params: userId={}", userId);
+        log.info("User={} | action=createRule | entity=ConsentRule | id=n/a", cu);
+        log.debug("Transaction started | method=createRule | id=n/a");
+        try {
+            log.info("[RULE] createRule — userId={}", userId);
+            User user = loadUser(userId);
+            assertMakerOrAdmin(user);
+
+            validateDraft(req);
+
+            ConsentRule entity = new ConsentRule();
+            entity.setStatus(ConsentRuleStatus.DRAFT);
+            applyFields(entity, req, user);
+
+            log.info("Executing DB query | method=save | param=ConsentRule");
+            ConsentRule saved = consentRuleRepository.save(entity);
+            log.info("DB query completed | method=save | result=completed");
+            log.info("[RULE] Created rule id={} name='{}' by userId={}", saved.getId(), saved.getRuleName(), userId);
+
+            auditService.log(userId, "RULE_CREATED", "CONSENT_RULE", saved.getId(),
+                    saved.getRuleName(), "Rule draft created", http);
+
+            ConsentRuleResponse res = toResponse(saved);
+            log.debug("Transaction completing | method=createRule | id=n/a");
+            log.debug("Exiting createRule | result=id={}", saved.getId());
+            return res;
+        } catch (Exception e) {
+            log.error("Exception in createRule | user={} | message={}", cu, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * Full update of a rule — replaces all fields.
+     * Only allowed on DRAFT or REVISION_REQUESTED rules owned by the caller.
+     */
+    @Transactional
+    public ConsentRuleResponse updateRule(
+            Long id, ConsentRuleUpsertRequest req, Long userId, HttpServletRequest http) {
+        String cu = currentUser();
+        log.debug("Entering updateRule | params: ruleId={},userId={}", id, userId);
+        log.info("User={} | action=updateRule | entity=ConsentRule | id={}", cu, id);
+        log.debug("Transaction started | method=updateRule | id={}", id);
+        try {
+        log.info("[RULE] updateRule — ruleId={} userId={}", id, userId);
+        ConsentRule rule = findRule(id);
+        assertOwnerOrAdmin(rule, userId);
+        assertEditable(rule.getStatus());
+        validateDraft(req);
+
+        applyFields(rule, req, rule.getCreatedBy());
+
+        log.info("Executing DB query | method=save | param=ConsentRule");
+        ConsentRule saved = consentRuleRepository.save(rule);
+        log.info("DB query completed | method=save | result=completed");
+        log.info("[RULE] Updated rule id={} status={}", saved.getId(), saved.getStatus());
+
+        auditService.log(userId, "RULE_UPDATED", "CONSENT_RULE", saved.getId(),
+                saved.getRuleName(), "Rule updated", http);
+
+        ConsentRuleResponse res = toResponse(saved);
+        log.debug("Transaction completing | method=updateRule | id={}", id);
+        log.debug("Exiting updateRule | result=id={}", saved.getId());
+        return res;
+        } catch (Exception e) {
+            log.error("Exception in updateRule | user={} | message={}", cu, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * Saves a draft without changing status — semantically a partial/autosave.
+     * Runs the same validation as updateRule so data is always consistent,
+     * but is a distinct audit event.
+     */
+    @Transactional
+    public ConsentRuleResponse saveDraft(
+            Long id, ConsentRuleUpsertRequest req, Long userId, HttpServletRequest http) {
+        String cu = currentUser();
+        log.debug("Entering saveDraft | params: ruleId={},userId={}", id, userId);
+        log.info("User={} | action=saveDraft | entity=ConsentRule | id={}", cu, id);
+        log.debug("Transaction started | method=saveDraft | id={}", id);
+        try {
+        log.info("[RULE] saveDraft — ruleId={} userId={}", id, userId);
+        ConsentRule rule = findRule(id);
+        assertOwnerOrAdmin(rule, userId);
+        assertEditable(rule.getStatus());
+        validateDraft(req);
+
+        applyFields(rule, req, rule.getCreatedBy());
+
+        log.info("Executing DB query | method=save | param=ConsentRule");
+        ConsentRule saved = consentRuleRepository.save(rule);
+        log.info("DB query completed | method=save | result=completed");
+        log.info("[RULE] Draft saved ruleId={}", saved.getId());
+
+        auditService.log(userId, "RULE_DRAFT_SAVED", "CONSENT_RULE", saved.getId(),
+                saved.getRuleName(), "Draft saved", http);
+
+        ConsentRuleResponse res = toResponse(saved);
+        log.debug("Transaction completing | method=saveDraft | id={}", id);
+        log.debug("Exiting saveDraft | result=id={}", saved.getId());
+        return res;
+        } catch (Exception e) {
+            log.error("Exception in saveDraft | user={} | message={}", cu, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * Submits a rule for checker approval.
+     * Runs full submission-level validation (stricter than draft validation).
+     * Only DRAFT or REVISION_REQUESTED rules may be submitted.
+     */
+    @Transactional
+    public ConsentRuleResponse submitForApproval(Long id, Long userId, HttpServletRequest http) {
+        String cu = currentUser();
+        log.debug("Entering submitForApproval | params: ruleId={},userId={}", id, userId);
+        log.info("User={} | action=submitForApproval | entity=ConsentRule | id={}", cu, id);
+        log.debug("Transaction started | method=submitForApproval | id={}", id);
+        try {
+        log.info("[RULE] submitForApproval — ruleId={} userId={}", id, userId);
+        ConsentRule rule = findRule(id);
+        assertOwnerOrAdmin(rule, userId);
+
+        if (!EDITABLE_STATUSES.contains(rule.getStatus())) {
+            log.warn("[RULE] Submit rejected — ruleId={} currentStatus={}", id, rule.getStatus());
+            throw new InvalidWorkflowStateException(rule.getStatus().name(), "SUBMIT");
+        }
+
+        // Reconstruct request from entity and run submission-level validation
+        ConsentRuleUpsertRequest snapshot = toUpsertSnapshot(rule);
+        validateForSubmit(snapshot, rule);
+
+        rule.setStatus(ConsentRuleStatus.PENDING_CHECKER_APPROVAL);
+        rule.setSubmittedAt(Instant.now());
+        rule.setRejectionReason(null);
+        rule.setRevisionReason(null);
+
+        log.info("Executing DB query | method=save | param=ConsentRule");
+        ConsentRule saved = consentRuleRepository.save(rule);
+        log.info("DB query completed | method=save | result=completed");
+        log.info("[RULE] Submitted ruleId={} for checker approval", saved.getId());
+
+        auditService.log(userId, "RULE_SUBMITTED", "CONSENT_RULE", saved.getId(),
+                saved.getRuleName(), "Submitted for checker approval", http);
+
+        ConsentRuleResponse res = toResponse(saved);
+        log.debug("Transaction completing | method=submitForApproval | id={}", id);
+        log.debug("Exiting submitForApproval | result=id={}", saved.getId());
+        return res;
+        } catch (Exception e) {
+            log.error("Exception in submitForApproval | user={} | message={}", cu, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CHECKER OPERATIONS
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Checker reviews a pending rule: APPROVE, REJECT, or REQUEST_REVISION.
+     * A checker cannot review their own rule.
+     */
+    @Transactional
+    public ConsentRuleResponse reviewRule(
+            Long id, WorkflowReviewRequest request, Long checkerId, HttpServletRequest http) {
+        String cu = currentUser();
+        log.debug("Entering reviewRule | params: ruleId={},checkerId={}", id, checkerId);
+        log.info("User={} | action=reviewRule | entity=ConsentRule | id={}", cu, id);
+        log.debug("Transaction started | method=reviewRule | id={}", id);
+        try {
+        log.info("[RULE] reviewRule — ruleId={} checkerId={} action={}",
+                id, checkerId, request.getAction());
+
+        User checker = loadUser(checkerId);
+        if (checker.getRole() != UserRole.CHECKER && checker.getRole() != UserRole.ADMIN) {
+            throw new UnauthorizedActionException("REVIEW_RULE");
+        }
+
+        ConsentRule rule = findRule(id);
+
+        if (rule.getStatus() != ConsentRuleStatus.PENDING_CHECKER_APPROVAL) {
+            log.warn("[RULE] Review rejected — ruleId={} status={} is not PENDING_CHECKER_APPROVAL",
+                    id, rule.getStatus());
+            throw new InvalidWorkflowStateException(rule.getStatus().name(), request.getAction());
+        }
+
+        if (rule.getCreatedBy().getId().equals(checkerId)) {
+            log.warn("[RULE] Self-review attempt — ruleId={} checkerId={}", id, checkerId);
+            throw new UnauthorizedActionException("You cannot review a rule that you created.");
+        }
+
+        String action = request.getAction().trim().toUpperCase(Locale.ROOT);
+
+        switch (action) {
+            case "APPROVE" -> handleApprove(rule, checker, request, checkerId, http);
+            case "REJECT" -> handleReject(rule, checker, request, checkerId, http);
+            case "REQUEST_REVISION" -> handleRequestRevision(rule, checker, request, checkerId, http);
+            default -> {
+                log.error("[RULE] Unknown review action='{}' for ruleId={}", action, id);
+                throw new IllegalArgumentException("Unsupported review action: " + action);
+            }
+        }
+
+        log.info("Executing DB query | method=save | param=ConsentRule");
+        ConsentRule saved = consentRuleRepository.save(rule);
+        log.info("DB query completed | method=save | result=completed");
+        log.info("[RULE] Review complete — ruleId={} newStatus={}", saved.getId(), saved.getStatus());
+        ConsentRuleResponse res = toResponse(saved);
+        log.debug("Transaction completing | method=reviewRule | id={}", id);
+        log.debug("Exiting reviewRule | result=id={}", saved.getId());
+        return res;
+        } catch (Exception e) {
+            log.error("Exception in reviewRule | user={} | message={}", cu, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ADMIN / PUBLISH OPERATIONS
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Publishes an APPROVED rule to LIVE, enabling execution.
+     * Only the rule owner or an ADMIN may do this.
+     */
+    @Transactional
+    public ConsentRuleResponse publishLive(Long id, Long userId, HttpServletRequest http) {
+        String cu = currentUser();
+        log.debug("Entering publishLive | params: ruleId={},userId={}", id, userId);
+        log.info("User={} | action=publishLive | entity=ConsentRule | id={}", cu, id);
+        log.debug("Transaction started | method=publishLive | id={}", id);
+        try {
+        log.info("[RULE] publishLive — ruleId={} userId={}", id, userId);
+        ConsentRule rule = findRule(id);
+        assertOwnerOrAdmin(rule, userId);
+        assertMakerOrAdmin(loadUser(userId));
+
+        if (rule.getStatus() != ConsentRuleStatus.APPROVED) {
+            log.warn("[RULE] Publish rejected — ruleId={} status={}", id, rule.getStatus());
+            throw new InvalidWorkflowStateException(rule.getStatus().name(), "PUBLISH_LIVE");
+        }
+
+        rule.setStatus(ConsentRuleStatus.LIVE);
+        rule.setPublishedAt(Instant.now());
+        rule.setExecutionActive(true);
+        RuleNextRunUtil.applyNextExecutionOnActivation(rule);
+
+        log.info("Executing DB query | method=save | param=ConsentRule");
+        ConsentRule saved = consentRuleRepository.save(rule);
+        log.info("DB query completed | method=save | result=completed");
+        log.info("[RULE] Rule is now LIVE — ruleId={} nextExecution={}", saved.getId(), saved.getNextExecutionAt());
+
+        auditService.log(userId, "RULE_LIVE", "CONSENT_RULE", saved.getId(),
+                saved.getRuleName(), "Rule published / live", http);
+
+        ConsentRuleResponse res = toResponse(saved);
+        log.debug("Transaction completing | method=publishLive | id={}", id);
+        log.debug("Exiting publishLive | result=id={}", saved.getId());
+        return res;
+        } catch (Exception e) {
+            log.error("Exception in publishLive | user={} | message={}", cu, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // READ OPERATIONS
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public ConsentRuleResponse getById(Long id, Long userId, UserRole role) {
+        String cu = currentUser();
+        log.debug("Entering getById | params: ruleId={},userId={},role={}", id, userId, role);
+        log.info("User={} | action=getById | entity=ConsentRule | id={}", cu, id);
+        log.debug("Transaction started | method=getById | id={}", id);
+        try {
+        ConsentRule rule = findRule(id);
+        authorizeRead(rule, userId, role);
+        ConsentRuleResponse res = toResponse(rule);
+        log.debug("Transaction completing | method=getById | id={}", id);
+        log.debug("Exiting getById | result=id={}", res.getId());
+        return res;
+        } catch (Exception e) {
+            log.error("Exception in getById | user={} | message={}", cu, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    /** Returns the calling maker's own rules, optionally filtered by status. */
+    @Transactional(readOnly = true)
+    public PagedResponse<ConsentRuleResponse> listForMaker(
+            Long userId, ConsentRuleStatus status, int page, int size) {
+        String cu = currentUser();
+        log.debug("Entering listForMaker | params: userId={},status={},page={},size={}", userId, status, page, size);
+        log.info("User={} | action=listForMaker | entity=ConsentRule | id=n/a", cu);
+        log.debug("Transaction started | method=listForMaker | id=n/a");
+        try {
+        Pageable pageable = PageRequest.of(page, clampSize(size));
+        log.info("Executing DB query | method=findByCreatedById* | param=userId,status");
+        Page<ConsentRule> p = status == null
+                ? consentRuleRepository.findByCreatedByIdOrderByUpdatedAtDesc(userId, pageable)
+                : consentRuleRepository.findByCreatedByIdAndStatusOrderByUpdatedAtDesc(userId, status, pageable);
+        log.info("DB query completed | method=findByCreatedById* | size={}", p.getContent().size());
+
+        PagedResponse<ConsentRuleResponse> res = mapPage(p);
+        log.debug("Transaction completing | method=listForMaker | id=n/a");
+        log.debug("Exiting listForMaker | result=totalElements={}", res.getTotalElements());
+        return res;
+        } catch (Exception e) {
+            log.error("Exception in listForMaker | user={} | message={}", cu, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    /** Returns all rules currently awaiting checker review (oldest first). */
+    @Transactional(readOnly = true)
+    public List<ConsentRuleResponse> listPendingForChecker() {
+        String cu = currentUser();
+        log.debug("Entering listPendingForChecker | params: none");
+        log.info("User={} | action=listPendingForChecker | entity=ConsentRule | id=n/a", cu);
+        log.debug("Transaction started | method=listPendingForChecker | id=n/a");
+        try {
+        log.info("Executing DB query | method=findByStatusOrderBySubmittedAtAsc | param=PENDING_CHECKER_APPROVAL");
+        List<ConsentRuleResponse> res = consentRuleRepository
+                .findByStatusOrderBySubmittedAtAsc(ConsentRuleStatus.PENDING_CHECKER_APPROVAL)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+        log.info("DB query completed | method=findByStatusOrderBySubmittedAtAsc | size={}", res.size());
+        log.debug("Transaction completing | method=listPendingForChecker | id=n/a");
+        log.debug("Exiting listPendingForChecker | result=size={}", res.size());
+        return res;
+        } catch (Exception e) {
+            log.error("Exception in listPendingForChecker | user={} | message={}", cu, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    /** Returns paginated APPROVED + LIVE rules for the admin rule engine. */
+    @Transactional(readOnly = true)
+    public PagedResponse<ConsentRuleResponse> listApprovedForAdminRuleEngine(int page, int size) {
+        String cu = currentUser();
+        log.debug("Entering listApprovedForAdminRuleEngine | params: page={},size={}", page, size);
+        log.info("User={} | action=listApprovedForAdminRuleEngine | entity=ConsentRule | id=n/a", cu);
+        log.debug("Transaction started | method=listApprovedForAdminRuleEngine | id=n/a");
+        try {
+        Pageable pageable = PageRequest.of(page, clampSize(size));
+        log.info("Executing DB query | method=findByStatusInOrderByApprovedAtDesc | param=ADMIN_ENGINE_STATUSES");
+        Page<ConsentRule> result = consentRuleRepository
+                .findByStatusInOrderByApprovedAtDesc(ADMIN_ENGINE_STATUSES, pageable);
+        log.info("DB query completed | method=findByStatusInOrderByApprovedAtDesc | size={}", result.getContent().size());
+        PagedResponse<ConsentRuleResponse> res = mapPage(result);
+        log.debug("Transaction completing | method=listApprovedForAdminRuleEngine | id=n/a");
+        log.debug("Exiting listApprovedForAdminRuleEngine | result=totalElements={}", res.getTotalElements());
+        return res;
+        } catch (Exception e) {
+            log.error("Exception in listApprovedForAdminRuleEngine | user={} | message={}", cu, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PRIVATE — REVIEW HANDLERS
+    // ─────────────────────────────────────────────────────────────────────────
+
+//    private void handleApprove(
+//            ConsentRule rule, User checker, WorkflowReviewRequest req,
+//            Long checkerId, HttpServletRequest http) {
+//
+//        rule.setStatus(ConsentRuleStatus.APPROVED);
+//        rule.setReviewedBy(checker);
+//        rule.setReviewedAt(Instant.now());
+//        rule.setApprovedAt(Instant.now());
+//        rule.setRejectionReason(null);
+//        rule.setRevisionReason(null);
+//        rule.setReviewerRemarks(req.getRemarks());
+//        // Reset execution state — admin must explicitly activate
+//        rule.setExecutionActive(false);
+//        rule.setExecutionRunning(false);
+//        rule.setLastExecutedAt(null);
+//        rule.setLastExecutionOutcome(null);
+//        rule.setLastExecutionSummary(null);
+//        rule.setNextExecutionAt(null);
+//
+//        log.info("[RULE] APPROVED ruleId={} by checkerId={}", rule.getId(), checkerId);
+//        auditService.log(checkerId, "RULE_APPROVED", "CONSENT_RULE", rule.getId(),
+//                rule.getRuleName(),
+//                StringUtils.hasText(req.getRemarks()) ? req.getRemarks() : "Approved",
+//                http);
+//    }
+    
+//    private void handleApprove(
+//            ConsentRule rule, User checker, WorkflowReviewRequest req,
+//            Long checkerId, HttpServletRequest http) {
+//
+//        rule.setStatus(ConsentRuleStatus.APPROVED);
+//        rule.setReviewedBy(checker);
+//        rule.setReviewedAt(Instant.now());
+//        rule.setApprovedAt(Instant.now());
+//        rule.setRejectionReason(null);
+//        rule.setRevisionReason(null);
+//        rule.setReviewerRemarks(req.getRemarks());
+//
+//        // ── Execution state ──────────────────────────────────────────────────────
+//        // IMMEDIATE rules: auto-activate on approval so the scheduler picks them up
+//        // without requiring admin to manually activate.
+//        // All other schedule types (SCHEDULED, RECURRING) remain inactive —
+//        // admin must explicitly activate them as before.
+//        if (rule.getScheduleType() == WorkflowScheduleType.IMMEDIATE) {
+//            rule.setExecutionActive(true);
+//            RuleNextRunUtil.applyNextExecutionOnActivation(rule);
+//            log.info("[RULE] IMMEDIATE rule auto-activated on approval — ruleId={}", rule.getId());
+//        } else {
+//            // Non-immediate rules: admin must explicitly activate (existing behaviour)
+//            rule.setExecutionActive(false);
+//            rule.setNextExecutionAt(null);
+//        }
+//
+//        rule.setExecutionRunning(false);
+//        rule.setLastExecutedAt(null);
+//        rule.setLastExecutionOutcome(null);
+//        rule.setLastExecutionSummary(null);
+//
+//        log.info("[RULE] APPROVED ruleId={} by checkerId={}", rule.getId(), checkerId);
+//        auditService.log(checkerId, "RULE_APPROVED", "CONSENT_RULE", rule.getId(),
+//                rule.getRuleName(),
+//                StringUtils.hasText(req.getRemarks()) ? req.getRemarks() : "Approved",
+//                http);
+//    }
+    
+    private void handleApprove(
+            ConsentRule rule, User checker, WorkflowReviewRequest req,
+            Long checkerId, HttpServletRequest http) {
+
+        rule.setStatus(ConsentRuleStatus.APPROVED);
+        rule.setReviewedBy(checker);
+        rule.setReviewedAt(Instant.now());
+        rule.setApprovedAt(Instant.now());
+        rule.setRejectionReason(null);
+        rule.setRevisionReason(null);
+        rule.setReviewerRemarks(req.getRemarks());
+
+        // Auto-activate on approval for all schedule types (IMMEDIATE / SCHEDULED / RECURRING).
+        // The admin toggle remains available to deactivate/reactivate later if needed.
+        rule.setExecutionActive(true);
+        rule.setExecutionRunning(false);
+        rule.setLastExecutedAt(null);
+        rule.setLastExecutionOutcome(null);
+        rule.setLastExecutionSummary(null);
+        RuleNextRunUtil.applyNextExecutionOnActivation(rule);
+
+        log.info("[RULE] APPROVED + auto-activated ruleId={} scheduleType={} by checkerId={}",
+                rule.getId(), rule.getScheduleType(), checkerId);
+        auditService.log(checkerId, "RULE_APPROVED", "CONSENT_RULE", rule.getId(),
+                rule.getRuleName(),
+                StringUtils.hasText(req.getRemarks()) ? req.getRemarks() : "Approved",
+                http);
+    }
+
+    private void handleReject(
+            ConsentRule rule, User checker, WorkflowReviewRequest req,
+            Long checkerId, HttpServletRequest http) {
+
+        if (!StringUtils.hasText(req.getReason())) {
+            throw new IllegalArgumentException("Rejection reason is required.");
+        }
+        rule.setStatus(ConsentRuleStatus.REJECTED);
+        rule.setRejectionReason(req.getReason().trim());
+        rule.setReviewedBy(checker);
+        rule.setReviewedAt(Instant.now());
+        rule.setReviewerRemarks(req.getRemarks());
+
+        log.info("[RULE] REJECTED ruleId={} by checkerId={} reason='{}'",
+                rule.getId(), checkerId, req.getReason());
+        auditService.log(checkerId, "RULE_REJECTED", "CONSENT_RULE", rule.getId(),
+                rule.getRuleName(), req.getReason().trim(), http);
+    }
+
+    private void handleRequestRevision(
+            ConsentRule rule, User checker, WorkflowReviewRequest req,
+            Long checkerId, HttpServletRequest http) {
+
+        if (!StringUtils.hasText(req.getRevisionMessage())) {
+            throw new IllegalArgumentException("Revision message is required.");
+        }
+        rule.setStatus(ConsentRuleStatus.REVISION_REQUESTED);
+        rule.setRevisionReason(req.getRevisionMessage().trim());
+        rule.setReviewedBy(checker);
+        rule.setReviewedAt(Instant.now());
+        rule.setReviewerRemarks(req.getRemarks());
+
+        log.info("[RULE] REVISION_REQUESTED ruleId={} by checkerId={}", rule.getId(), checkerId);
+        auditService.log(checkerId, "RULE_REVISION_REQUESTED", "CONSENT_RULE", rule.getId(),
+                rule.getRuleName(), req.getRevisionMessage().trim(), http);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PRIVATE — VALIDATION
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Validates fields that must be consistent on every save (draft or full).
+     * Does NOT enforce submission-only rules (VIP segment check etc.).
+     */
+    private void validateDraft(ConsentRuleUpsertRequest req) {
+
+        // ruleType + scenario coupling
+        if (req.getRuleType() == ConsentRuleType.PREDEFINED_SCENARIO
+                && req.getPredefinedScenario() == null) {
+            throw new IllegalArgumentException(
+                    "Predefined scenario is required for scenario-based rules.");
+        }
+
+        // Segment validation via segmentation service
+        segmentationService.validateSelectableSegments(List.of(req.getPrimarySegment().name()));
+        if (req.getAdditionalSegmentCodes() != null && !req.getAdditionalSegmentCodes().isEmpty()) {
+            segmentationService.validateSelectableSegments(req.getAdditionalSegmentCodes());
+        }
+
+        // Schedule-type coupling
+        if (req.getScheduleType() == WorkflowScheduleType.SCHEDULED
+                && req.getScheduledAt() == null) {
+            throw new IllegalArgumentException(
+                    "Scheduled date/time is required for scheduled rules.");
+        }
+        if (req.getScheduleType() == WorkflowScheduleType.RECURRING
+                && !StringUtils.hasText(req.getRecurringCron())) {
+            throw new IllegalArgumentException(
+                    "Recurring schedule requires a cron expression.");
+        }
+
+        // consentTemplateId is @NotNull at the DTO level, but double-check here
+        // so the service cannot be called programmatically without it.
+        if (req.getConsentTemplateId() == null) {
+            throw new IllegalArgumentException("Consent template is required.");
+        }
+    }
+
+    /**
+     * Additional validation run only on submit (not on save-draft / update).
+     * Validates business invariants that depend on live system state.
+     */
+    private void validateForSubmit(ConsentRuleUpsertRequest snapshot, ConsentRule rule) {
+
+        validateDraft(snapshot);
+
+        // VIP fast-track — cannot submit if no VIP customers exist
+        if (rule.getRuleType() == ConsentRuleType.PREDEFINED_SCENARIO
+                && rule.getPredefinedScenario() == PredefinedRuleScenario.VIP_PRIORITY_FAST_TRACK) {
+
+            boolean noVipCustomers = segmentationService.listAudienceSegments().stream()
+                    .filter(s -> AudienceSegmentCode.VIP.name().equals(s.getCode()))
+                    .findFirst()
+                    .map(s -> s.getCustomerCount() <= 0)
+                    .orElse(true);
+
+            if (noVipCustomers) {
+                throw new IllegalArgumentException(
+                        "VIP fast-track scenario cannot be submitted while no VIP customers exist.");
+            }
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PRIVATE — FIELD MAPPING
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Applies all fields from the request onto the target entity.
+     *
+     * FIX: consent template is now fetched and set unconditionally whenever
+     * consentTemplateId is present. The old code only entered the block if
+     * consentTemplateId != null, but the else branch then set the template to
+     * null — wiping a previously saved value on unrelated saves.
+     * Now null is rejected upstream by @NotNull on the DTO.
+     */
+    private void applyFields(ConsentRule target, ConsentRuleUpsertRequest req, User createdBy) {
+
+        target.setRuleName(req.getRuleName().trim());
+        target.setRuleDescription(req.getRuleDescription());
+        target.setRuleType(req.getRuleType());
+        target.setPredefinedScenario(req.getPredefinedScenario());
+        target.setTriggerEvent(StringUtils.hasText(req.getTriggerEvent())
+                ? req.getTriggerEvent().trim() : null);
+        target.setPrimarySegment(req.getPrimarySegment());
+        target.setAdditionalSegmentCodes(
+                req.getAdditionalSegmentCodes() == null
+                        ? new ArrayList<>()
+                        : new ArrayList<>(req.getAdditionalSegmentCodes()));
+        target.setScheduleType(req.getScheduleType());
+        target.setScheduledAt(req.getScheduledAt());
+        target.setRecurringCron(StringUtils.hasText(req.getRecurringCron())
+                ? req.getRecurringCron().trim() : null);
+        target.setBroadcastChannels(new ArrayList<>(req.getBroadcastChannels()));
+
+        // ── Consent template (mandatory) ──────────────────────────────────────
+        // Fetch from DB to validate existence and status.
+        // Throws clearly if the template is missing or not yet approved/published.
+        log.info("Executing DB query | method=findById | param=consentTemplateId");
+        Consent template = consentRepository.findById(req.getConsentTemplateId())
+                .orElseThrow(() -> {
+                    log.error("[RULE] Consent template not found — id={}", req.getConsentTemplateId());
+                    return new IllegalArgumentException(
+                            "Consent template not found: id=" + req.getConsentTemplateId());
+                });
+        log.info("DB query completed | method=findById | present=true");
+
+        if (template.getStatus() != ConsentStatus.PUBLISHED
+                && template.getStatus() != ConsentStatus.APPROVED) {
+            log.warn("[RULE] Consent template id={} has invalid status={}",
+                    template.getId(), template.getStatus());
+            throw new IllegalArgumentException(
+                    "Consent template must be in APPROVED or PUBLISHED status, "
+                    + "but found: " + template.getStatus());
+        }
+
+        target.setConsentTemplate(template);
+        log.debug("[RULE] Consent template applied — templateId={} name='{}'",
+                template.getId(), template.getConsentName());
+
+        // Set createdBy only on new entities
+        if (target.getId() == null) {
+            target.setCreatedBy(createdBy);
+        }
+    }
+
+    /**
+     * Reconstructs a lightweight request snapshot from a saved entity.
+     * Used by submitForApproval to run validation against the persisted state.
+     *
+     * NOTE: This reads consentTemplate.getId() inside the same transaction,
+     * so lazy loading is safe here. This replaces the old toUpsertFromEntity
+     * which could silently return null for lazy-loaded associations.
+     */
+    private ConsentRuleUpsertRequest toUpsertSnapshot(ConsentRule r) {
+        Long templateId = (r.getConsentTemplate() != null) ? r.getConsentTemplate().getId() : null;
+        return ConsentRuleUpsertRequest.builder()
+                .ruleName(r.getRuleName())
+                .ruleDescription(r.getRuleDescription())
+                .ruleType(r.getRuleType())
+                .predefinedScenario(r.getPredefinedScenario())
+                .triggerEvent(r.getTriggerEvent())
+                .primarySegment(r.getPrimarySegment())
+                .additionalSegmentCodes(r.getAdditionalSegmentCodes())
+                .scheduleType(r.getScheduleType())
+                .scheduledAt(r.getScheduledAt())
+                .recurringCron(r.getRecurringCron())
+                .broadcastChannels(r.getBroadcastChannels())
+                .consentTemplateId(templateId)
+                .build();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PRIVATE — AUTHORIZATION
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void assertMakerOrAdmin(User user) {
+        if (user.getRole() != UserRole.MAKER && user.getRole() != UserRole.ADMIN) {
+            throw new UnauthorizedActionException("MANAGE_RULES");
+        }
+    }
+
+    /**
+     * Asserts that the calling user is either the rule owner or an ADMIN.
+     *
+     * FIX: renamed from validateOwner to assertOwnerOrAdmin to match the
+     * assertX naming convention used elsewhere. Logic is the same.
+     */
+    private void assertOwnerOrAdmin(ConsentRule rule, Long userId) {
+        User user = loadUser(userId);
+        if (user.getRole() == UserRole.ADMIN) {
+            return;
+        }
+        if (!rule.getCreatedBy().getId().equals(userId)) {
+            throw new UnauthorizedActionException("You can only modify your own rules.");
+        }
+    }
+
+    /**
+     * Asserts that the rule is in a state that allows maker edits.
+     *
+     * FIX: REJECTED is removed from editable statuses. A rejected rule cannot
+     * be directly edited — the checker must issue REQUEST_REVISION to move it
+     * back to REVISION_REQUESTED before the maker can touch it again.
+     */
+    private void assertEditable(ConsentRuleStatus status) {
+        if (!EDITABLE_STATUSES.contains(status)) {
+            log.warn("[RULE] Edit blocked — status={} is not editable", status);
+            throw new InvalidWorkflowStateException(status.name(), "EDIT");
+        }
+    }
+
+    private void authorizeRead(ConsentRule rule, Long userId, UserRole role) {
+        if (role == UserRole.ADMIN || role == UserRole.CHECKER) {
+            return;
+        }
+        if (role == UserRole.MAKER && rule.getCreatedBy().getId().equals(userId)) {
+            return;
+        }
+        throw new UnauthorizedActionException("VIEW_RULE");
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PRIVATE — LOADERS & MAPPERS
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private ConsentRule findRule(Long id) {
+        log.info("Executing DB query | method=findById | param=ruleId");
+        ConsentRule rule = consentRuleRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.error("[RULE] Rule not found — id={}", id);
+                    return new IllegalArgumentException("Rule not found: id=" + id);
+                });
+        log.info("DB query completed | method=findById | present=true");
+        return rule;
+    }
+
+    private User loadUser(Long id) {
+        log.info("Executing DB query | method=findById | param=userId");
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.error("[RULE] User not found — id={}", id);
+                    return new IllegalArgumentException("User not found: id=" + id);
+                });
+        log.info("DB query completed | method=findById | present=true");
+        return user;
+    }
+
+    private int clampSize(int size) {
+        return Math.min(MAX_PAGE_SIZE, Math.max(1, size));
+    }
+
+    private ConsentRuleResponse toResponse(ConsentRule r) {
+        return ConsentRuleResponse.builder()
+                .id(r.getId())
+                .ruleName(r.getRuleName())
+                .ruleDescription(r.getRuleDescription())
+                .ruleType(r.getRuleType())
+                .predefinedScenario(r.getPredefinedScenario())
+                .triggerEvent(r.getTriggerEvent())
+                .primarySegment(r.getPrimarySegment())
+                .additionalSegmentCodes(r.getAdditionalSegmentCodes())
+                .scheduleType(r.getScheduleType())
+                .scheduledAt(r.getScheduledAt())
+                .recurringCron(r.getRecurringCron())
+                .broadcastChannels(r.getBroadcastChannels())
+                // Template fields — null-safe
+                .consentTemplateId(r.getConsentTemplate() != null ? r.getConsentTemplate().getId() : null)
+                .consentTemplateName(r.getConsentTemplate() != null ? r.getConsentTemplate().getConsentName() : null)
+                .status(r.getStatus())
+                // Creator
+                .createdById(r.getCreatedBy().getId())
+                .createdByName(r.getCreatedBy().getFullName())
+                .createdAt(r.getCreatedAt())
+                .updatedAt(r.getUpdatedAt())
+                // Submission
+                .submittedAt(r.getSubmittedAt())
+                // Review
+                .reviewedById(r.getReviewedBy() != null ? r.getReviewedBy().getId() : null)
+                .reviewedByName(r.getReviewedBy() != null ? r.getReviewedBy().getFullName() : null)
+                .reviewedAt(r.getReviewedAt())
+                .reviewerRemarks(r.getReviewerRemarks())
+                .rejectionReason(r.getRejectionReason())
+                .revisionReason(r.getRevisionReason())
+                // Approval / publish
+                .approvedAt(r.getApprovedAt())
+                .publishedAt(r.getPublishedAt())
+                // Execution
+                .executionActive(r.isExecutionActive())
+                .executionRunning(r.isExecutionRunning())
+                .lastExecutedAt(r.getLastExecutedAt())
+                .nextExecutionAt(r.getNextExecutionAt())
+                .lastExecutionOutcome(r.getLastExecutionOutcome())
+                .lastExecutionSummary(r.getLastExecutionSummary())
+                .build();
+    }
+
+    private PagedResponse<ConsentRuleResponse> mapPage(Page<ConsentRule> p) {
+        return PagedResponse.<ConsentRuleResponse>builder()
+                .content(p.getContent().stream().map(this::toResponse).toList())
+                .totalElements(p.getTotalElements())
+                .totalPages(p.getTotalPages())
+                .currentPage(p.getNumber())
+                .pageSize(p.getSize())
+                .hasNext(p.hasNext())
+                .hasPrevious(p.hasPrevious())
+                .build();
+    }
+
+
+}

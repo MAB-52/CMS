@@ -1,0 +1,91 @@
+package com.consentiq.model.entity;
+
+import com.consentiq.enums.ReminderTargetType;
+import com.consentiq.enums.ReminderRecipientRole;
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.Instant;
+
+/**
+ * Tracks every reminder email dispatched by the batch job.
+ *
+ * Design rationale
+ * ─────────────────
+ * We persist one row per (entityType, entityId, reminderType) combination.
+ * Before the batch job sends a mail it checks whether a row already exists
+ * for that combination; if one does, the mail is skipped.  This gives us:
+ *
+ *  • Idempotency — re-running the scheduler never double-sends.
+ *  • Auditability — we can tell exactly when each reminder was dispatched.
+ *  • Reset on action — when the consent/rule moves to a new status the old
+ *    row is no longer relevant (the batch query only looks at records that
+ *    are still in the "waiting" status), so no cleanup is needed.
+ */
+@Entity
+@Table(
+    name = "reminder_email_jobs",
+    uniqueConstraints = @UniqueConstraint(
+        name = "uq_reminder_entity_type",
+        columnNames = {"entity_type", "entity_id", "reminder_type"}
+    )
+)
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ReminderEmailJob {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    /**
+     * Either "CONSENT" or "CONSENT_RULE" — mirrors the audit-log convention
+     * already used in AuditService calls throughout the codebase.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "entity_type", nullable = false, length = 20)
+    private ReminderTargetType entityType;
+
+    /** DB primary-key of the Consent or ConsentRule row. */
+    @Column(name = "entity_id", nullable = false)
+    private Long entityId;
+
+    /**
+     * Differentiates the two reminder scenarios:
+     *   CHECKER_PENDING  — checker has not acted on a submitted item
+     *   MAKER_REVISION   — maker has not re-submitted after revision was requested
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "reminder_type", nullable = false, length = 30)
+    private ReminderRecipientRole reminderType;
+
+    /** Email address the reminder was sent to. */
+    @Column(name = "sent_to_email", nullable = false, length = 255)
+    private String sentToEmail;
+
+    /** Human-readable name of the recipient (for logging). */
+    @Column(name = "sent_to_name", length = 200)
+    private String sentToName;
+
+    /** Wall-clock time the batch job actually dispatched the mail. */
+    @Column(name = "sent_at", nullable = false)
+    private Instant sentAt;
+
+    /** Snapshot of the status that triggered the reminder (for audit). */
+    @Column(name = "trigger_status", length = 40)
+    private String triggerStatus;
+
+    /**
+     * Number of days elapsed since the triggering timestamp
+     * (submittedAt for checker reminders, reviewedAt for maker reminders).
+     */
+    @Column(name = "days_elapsed")
+    private Long daysElapsed;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private Instant createdAt;
+}

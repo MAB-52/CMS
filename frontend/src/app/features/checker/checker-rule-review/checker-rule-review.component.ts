@@ -49,27 +49,66 @@ export class CheckerRuleReviewComponent implements OnInit {
     return this.rule()?.status === 'PENDING_CHECKER_APPROVAL';
   }
 
+  // approve(): void {
+  //   const r = this.rule();
+  //   if (!r) {
+  //     return;
+  //   }
+  //   const data: ConfirmDialogData = {
+  //     icon: '✅',
+  //     iconColor: 'rgba(22,163,74,0.15)',
+  //     title: 'Approve this rule?',
+  //     body: `'${r.ruleName}' will be marked approved. The maker can publish it live when ready.`,
+  //     cancelLabel: 'Cancel',
+  //     confirmLabel: 'Approve',
+  //     confirmColor: 'success',
+  //   };
+  //   const ref = this.dialog.open(ConfirmDialogComponent, { width: '460px', disableClose: true, data });
+  //   ref.afterClosed().subscribe((ok) => {
+  //     if (!ok) {
+  //       return;
+  //     }
+  //     this.busy.set(true);
+  //     this.api.review(r.id, { action: 'APPROVE' }).subscribe({
+  //       next: (res) => {
+  //         this.busy.set(false);
+  //         if (res.success) {
+  //           this.notify.success('Approved', res.message || '');
+  //           setTimeout(() => void this.router.navigateByUrl('/checker/rules/pending'), 1200);
+  //         }
+  //       },
+  //       error: () => this.busy.set(false),
+  //     });
+  //   });
+  // }
+
   approve(): void {
     const r = this.rule();
-    if (!r) {
-      return;
-    }
-    const data: ConfirmDialogData = {
+    if (!r) return;
+
+    // Collect mandatory approval reason via the same dialog used for reject/revision
+    const data: ReviewActionDialogData = {
+      title: 'Approve this rule',
       icon: '✅',
       iconColor: 'rgba(22,163,74,0.15)',
-      title: 'Approve this rule?',
-      body: `'${r.ruleName}' will be marked approved. The maker can publish it live when ready.`,
-      cancelLabel: 'Cancel',
-      confirmLabel: 'Approve',
+      textareaLabel: 'Reason for approval',
+      placeholder: 'Describe why this rule meets the required criteria…',
+      confirmLabel: 'Confirm Approval',
       confirmColor: 'success',
+      minLength: 10,
     };
-    const ref = this.dialog.open(ConfirmDialogComponent, { width: '460px', disableClose: true, data });
-    ref.afterClosed().subscribe((ok) => {
-      if (!ok) {
-        return;
-      }
+
+    const ref = this.dialog.open(ReviewActionDialogComponent, {
+      width: '520px',
+      disableClose: true,
+      data,
+    });
+
+    ref.afterClosed().subscribe((approveReason: string | undefined) => {
+      if (!approveReason) return;   // user cancelled
+
       this.busy.set(true);
-      this.api.review(r.id, { action: 'APPROVE' }).subscribe({
+      this.api.review(r.id, { action: 'APPROVE', approveReason }).subscribe({
         next: (res) => {
           this.busy.set(false);
           if (res.success) {

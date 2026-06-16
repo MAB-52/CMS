@@ -138,4 +138,42 @@ public interface ConsentRepository extends JpaRepository<Consent, Long>, JpaSpec
                             + "AND COALESCE(published_at, reviewed_at) <= :t",
             nativeQuery = true)
     long countLiveConsentTemplatesAsOf(@Param("t") java.time.Instant t);
+    
+    @Query("""
+            SELECT c FROM Consent c
+            JOIN FETCH c.createdBy maker
+            WHERE c.status = :status
+              AND c.submittedAt IS NOT NULL
+              AND c.submittedAt <= :threshold
+            """)
+    List<Consent> findPendingApprovalOlderThan(
+            @Param("status") ConsentStatus status,
+            @Param("threshold") Instant threshold
+    );
+ 
+    /**
+     * Finds consents where the checker has requested a revision but the maker
+     * has not re-submitted within the SLA window.
+     *
+     * Logic: status = REVISION_REQUESTED  AND  reviewedAt <= :threshold
+     *
+     * reviewedAt is set when the checker acts (APPROVE / REJECT / REQUEST_REVISION).
+     * When it is REQUEST_REVISION the status moves to REVISION_REQUESTED and
+     * reviewedAt captures that moment.  If the maker re-submits, status becomes
+     * PENDING_APPROVAL again, so this query will no longer match the record.
+     *
+     * @param status    ConsentStatus.REVISION_REQUESTED
+     * @param threshold Instant representing (now - 5 days)
+     */
+    @Query("""
+            SELECT c FROM Consent c
+            JOIN FETCH c.createdBy maker
+            WHERE c.status = :status
+              AND c.reviewedAt IS NOT NULL
+              AND c.reviewedAt <= :threshold
+            """)
+    List<Consent> findRevisionRequestedOlderThan(
+            @Param("status") ConsentStatus status,
+            @Param("threshold") Instant threshold
+    );
 }
