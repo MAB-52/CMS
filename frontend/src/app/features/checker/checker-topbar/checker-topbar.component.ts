@@ -34,20 +34,7 @@ import { LogoutFlowService } from '../../../core/services/logout-flow.service';
         </h1>
       </div>
       <div class="topbar__right">
-        <a
-          class="icon-btn"
-          matRipple
-          matTooltip="Pending Queue"
-        >
-          <mat-icon>
-            notifications
-          </mat-icon>
-          @if (pendingCount > 0) {
-            <span class="badge">
-              {{ pendingCount > 9 ? '9+' : pendingCount }}
-            </span>
-          }
-        </a>
+        
         <div class="profile-chip">
 
           <div class="avatar-sm">

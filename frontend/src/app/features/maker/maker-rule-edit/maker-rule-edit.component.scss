@@ -160,6 +160,81 @@
 }
 
 /* ──────────────────────────────────────────────────────────
+   DATETIME PICKER CARD
+────────────────────────────────────────────────────────── */
+.datetime-picker-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  padding: 18px 20px;
+  border-radius: 18px;
+  border: 1px solid #bfdbfe;
+  background: linear-gradient(160deg, rgba(239, 246, 255, 0.7), rgba(255, 255, 255, 0.95));
+  box-shadow:
+    0 4px 14px rgba(37, 99, 235, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.datetime-picker-label {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #2563eb;
+}
+
+.datetime-picker-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.date-field {
+  width: 90%;
+}
+
+.time-field {
+  width: 150px;
+}
+
+.datetime-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(37, 99, 235, 0.15);
+  background: rgba(219, 234, 254, 0.4);
+
+  font-size: 13px;
+  color: #1e40af;
+
+  .preview-icon {
+    font-size: 16px;
+  }
+
+  strong {
+    font-weight: 700;
+    color: #1d4ed8;
+  }
+}
+
+.datetime-hint {
+  font-size: 12px;
+  color: #94a3b8;
+  padding: 0 4px;
+}
+
+.time-icon {
+  color: #2563eb;
+  font-size: 20px;
+  opacity: 0.7;
+}
+
+/* ──────────────────────────────────────────────────────────
    MATERIAL FIELD POLISH
 ────────────────────────────────────────────────────────── */
 
@@ -249,6 +324,12 @@
 
 ::ng-deep .mdc-notched-outline__notch {
   border-right: none !important;
+}
+
+/* Datepicker toggle icon colour */
+::ng-deep .mat-datepicker-toggle .mat-icon-button,
+::ng-deep .mat-datepicker-toggle button {
+  color: #2563eb;
 }
 
 /* ──────────────────────────────────────────────────────────
@@ -531,6 +612,14 @@ button[mat-flat-button] {
   }
 
   .actions button {
+    width: 100%;
+  }
+
+  .datetime-picker-row {
+    grid-template-columns: 1fr;
+  }
+
+  .time-field {
     width: 100%;
   }
 }

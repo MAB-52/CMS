@@ -97,6 +97,9 @@ public class ConsentRule {
 
     @Column(name = "approved_at")
     private Instant approvedAt;
+    
+    @Column(name = "approve_reason", columnDefinition = "TEXT")
+    private String approveReason;
 
     @Column(name = "published_at")
     private Instant publishedAt;

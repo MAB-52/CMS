@@ -25,4 +25,7 @@ public class WorkflowReviewRequest {
     /** Optional remarks from checker on approve / reject / revision. */
     @Size(max = 2000)
     private String remarks;
+    
+    @Size(max = 2000)
+    private String approveReason; 
 }

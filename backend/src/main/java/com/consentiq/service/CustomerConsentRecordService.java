@@ -437,4 +437,30 @@ public class CustomerConsentRecordService {
                 .updatedAt(r.getUpdatedAt())
                 .build();
     }
+    
+    /**
+     * Accepted-and-still-valid customer IDs for a template, computed live by date.
+     * A record whose consentValidUntil has lapsed is NOT returned, so it won't be
+     * suppressed as "already accepted" between two 4 AM refresh runs. A NULL
+     * consentValidUntil is treated as perpetually valid and remains excluded.
+     */
+    @Transactional(readOnly = true)
+    public Set<String> getActivelyAcceptedCustomerIdsForTemplate(Long consentDbId, LocalDate today) {
+        String cu = currentUser();
+        log.debug("Entering getActivelyAcceptedCustomerIdsForTemplate | params: consentDbId={},today={}",
+                consentDbId, today);
+        log.info("User={} | action=getActivelyAcceptedCustomerIdsForTemplate | entity=CustomerConsentRecord | id={}",
+                cu, consentDbId != null ? String.valueOf(consentDbId) : "n/a");
+        try {
+            Set<String> res = new LinkedHashSet<>(
+                    recordRepository.findActivelyAcceptedCustomerIdsForTemplate(consentDbId, today));
+            log.info("DB query completed | method=findActivelyAcceptedCustomerIdsForTemplate | size={}", res.size());
+            log.debug("Exiting getActivelyAcceptedCustomerIdsForTemplate | result=size={}", res.size());
+            return res;
+        } catch (Exception e) {
+            log.error("Exception in getActivelyAcceptedCustomerIdsForTemplate | user={} | message={}",
+                    cu, e.getMessage(), e);
+            throw e;
+        }
+    }
 }

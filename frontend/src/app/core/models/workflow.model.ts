@@ -179,4 +179,5 @@ export interface WorkflowReviewPayload {
   reason?: string;
   revisionMessage?: string;
   remarks?: string;
+  approveReason?: string;
 }

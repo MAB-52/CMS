@@ -16,9 +16,12 @@ public class ConsentReviewRequest {
     @NotBlank
     private String action;
 
-    @Size(max = 1000)
+    @Size(max = 2000)
     private String reason;
 
-    @Size(max = 1000)
+    @Size(max = 2000)
     private String revisionMessage;
+    
+    @Size(max = 2000)
+    private String approveReason; 
 }

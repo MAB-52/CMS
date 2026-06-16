@@ -69,12 +69,16 @@ public class PublicConsentSessionController {
             log.debug("Exiting exchange | result={}", bad.getStatusCode());
             return bad;
         }
+        boolean isSecure = httpRequest.isSecure(); // true in prod HTTPS, false in localhost HTTP
+
         ResponseCookie cookie = ResponseCookie.from(COOKIE_CONSENT_SESSION, jwtOpt.get())
                 .httpOnly(true)
                 .path("/")
                 .maxAge(Duration.ofSeconds(30 * 60))
-                .sameSite("Lax")
+                .sameSite(isSecure ? "None" : "Lax")  // None+Secure for HTTPS prod, Lax for localhost
+                .secure(isSecure)
                 .build();
+
         ResponseEntity<Map<String, String>> ok =
                 ResponseEntity.ok()
                         .header(HttpHeaders.SET_COOKIE, cookie.toString())
