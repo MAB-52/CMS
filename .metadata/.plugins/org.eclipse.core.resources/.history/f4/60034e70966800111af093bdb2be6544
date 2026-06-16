@@ -1,0 +1,5 @@
+package com.consentiq.enums;
+
+public class ReminderRecepientRole {
+
+}

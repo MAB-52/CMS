@@ -67,8 +67,7 @@
           }
         </mat-select>
         <mat-hint>
-          Select one or more segments. The first selected becomes the primary.
-          Large audiences are processed in batches.
+          Select one or more segments.Large audiences are processed in batches.
         </mat-hint>
         @if ((form.selectedSegments?.length ?? 0) === 0) {
         <mat-error>At least one segment is required</mat-error>
@@ -95,12 +94,68 @@
         <mat-radio-button value="SCHEDULED">Scheduled</mat-radio-button>
         <mat-radio-button value="RECURRING">Recurring</mat-radio-button>
       </mat-radio-group>
+
       @if (form.scheduleType === 'SCHEDULED') {
-      <mat-form-field appearance="outline" class="full">
-        <mat-label>Scheduled date &amp; time</mat-label>
-        <input matInput type="datetime-local" name="sat" [(ngModel)]="form.scheduledAt" [disabled]="!canEdit()" />
-      </mat-form-field>
+      <div class="datetime-picker-card">
+        <div class="datetime-picker-label">Scheduled date &amp; time</div>
+        <div class="datetime-picker-row">
+          <!-- Date picker -->
+          <mat-form-field appearance="outline" class="date-field">
+            <mat-label>Date</mat-label>
+            <input
+              matInput
+              [matDatepicker]="schedulePicker"
+              [min]="minDate"
+              [disabled]="!canEdit()"
+              [ngModel]="scheduledDate()"
+              (ngModelChange)="onDateChange($event)"
+              name="sat_date"
+              placeholder="DD/MM/YYYY"
+              readonly />
+            <mat-datepicker-toggle matIconSuffix [for]="schedulePicker" [disabled]="!canEdit()"></mat-datepicker-toggle>
+            <mat-datepicker #schedulePicker></mat-datepicker>
+          </mat-form-field>
+
+          <!-- Time picker: type freely or pick from suggestions -->
+          <mat-form-field appearance="outline" class="time-field">
+            <mat-label>Time</mat-label>
+            <input
+              matInput
+              name="sat_time"
+              [ngModel]="scheduledTimeInput()"
+              (ngModelChange)="onTimeInputChange($event)"
+              (blur)="onTimeInputBlur()"
+              [matAutocomplete]="timePicker"
+              [disabled]="!canEdit()"
+              placeholder="HH:MM"
+              maxlength="5"
+              autocomplete="off" />
+            <mat-icon matSuffix class="time-icon">schedule</mat-icon>
+            <mat-autocomplete
+              #timePicker="matAutocomplete"
+              (optionSelected)="onTimeOptionSelected($event.option.value)">
+              @for (t of filteredTimeOptions(); track t) {
+              <mat-option [value]="t">{{ t }}</mat-option>
+              }
+            </mat-autocomplete>
+            @if (timeInputError()) {
+            <mat-error>{{ timeInputError() }}</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        @if (scheduledDateTimePreview()) {
+        <div class="datetime-preview">
+          <span class="preview-icon">🗓</span>
+          Scheduled for <strong>{{ scheduledDateTimePreview() }}</strong>
+        </div>
+        }
+        @if (!scheduledDateTimePreview() && scheduledDate()) {
+        <div class="datetime-hint">Enter a valid time (e.g. 09:30) to complete the schedule.</div>
+        }
+      </div>
       }
+
       @if (form.scheduleType === 'RECURRING') {
       @if (!recurringScheduleOk()) {
       <div class="alert warn">Complete the recurring schedule before saving or submitting.</div>
@@ -125,10 +180,6 @@
           [disabled]="busy() || !canSubmit() || !recurringScheduleOk()">
           Submit for approval
         </button>
-        <!-- @if (canPublish()) {
-        <button mat-flat-button class="live" type="button" (click)="publishLive()" [disabled]="busy()">Publish
-          live</button>
-        } -->
       </div>
     </div>
 

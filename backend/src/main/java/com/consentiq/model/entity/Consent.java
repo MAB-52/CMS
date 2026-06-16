@@ -102,6 +102,9 @@ public class Consent {
 
     @Column(name = "revision_message", columnDefinition = "TEXT")
     private String revisionMessage;
+    
+    @Column(name = "approve_reason", columnDefinition = "TEXT")
+    private String approveReason;
 
     @Column(name = "published_at")
     private Instant publishedAt;

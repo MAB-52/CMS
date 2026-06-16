@@ -1,0 +1,5 @@
+package com.consentiq.scheduler;
+
+public class ReminderScheduler {
+
+}

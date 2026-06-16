@@ -1,0 +1,402 @@
+package com.consentiq.service;
+
+import com.consentiq.model.entity.Consent;
+import com.consentiq.model.entity.ConsentRule;
+import com.consentiq.model.entity.User;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.stereotype.Service;
+
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+
+/**
+ * Builds and dispatches HTML reminder emails for the two reminder scenarios:
+ *
+ *  1. CHECKER_PENDING  — sent to all CHECKER users when a consent / rule has
+ *                        been in PENDING_*_APPROVAL for ≥ 5 days.
+ *
+ *  2. MAKER_REVISION   — sent to the maker when a consent / rule has been in
+ *                        REVISION_REQUESTED for ≥ 5 days (includes the revision
+ *                        reason so the maker knows exactly what to fix).
+ *
+ * This service is intentionally dumb about scheduling logic — it only knows how
+ * to send an email.  All scheduling and idempotency decisions are made by
+ * {@link ReminderBatchProcessor}.
+ */
+@Service
+@RequiredArgsConstructor
+public class ReminderEmailService {
+
+    private static final Logger log = LoggerFactory.getLogger(ReminderEmailService.class);
+
+    private static final ZoneId IST = ZoneId.of("Asia/Kolkata");
+    private static final DateTimeFormatter DATE_FMT =
+            DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a").withZone(IST);
+
+    private final JavaMailSender mailSender;
+
+    /** From-address configured in application.properties / application.yml */
+    @Value("${spring.mail.username}")
+    private String fromAddress;
+
+    /** Display name shown in the From header. */
+    @Value("${consentiq.mail.from-name:ConsentIQ System}")
+    private String fromName;
+
+    /** Base URL for deep-links inside the email (e.g. https://app.consentiq.com). */
+    @Value("${consentiq.mail.app-base-url:http://localhost:3000}")
+    private String appBaseUrl;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PUBLIC API
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Sends a "please review this consent" reminder to a checker.
+     *
+     * @param consent     the consent that is still awaiting review
+     * @param checker     the checker user who should receive the mail
+     * @param daysElapsed how many days the consent has been pending
+     */
+    public void sendCheckerReminderForConsent(Consent consent, User checker, long daysElapsed) {
+        String subject = String.format(
+                "[Reminder] Consent \"%s\" has been awaiting your review for %d day(s)",
+                consent.getConsentName(), daysElapsed);
+
+        String deepLink = appBaseUrl + "/consents/" + consent.getId() + "/review";
+
+        String body = buildCheckerConsentBody(checker, consent, daysElapsed, deepLink);
+
+        sendHtmlEmail(checker.getEmail(), checker.getFullName(), subject, body);
+        log.info("[REMINDER] Checker reminder sent | to={} | consentId={} | consentName='{}' | daysElapsed={}",
+                checker.getEmail(), consent.getId(), consent.getConsentName(), daysElapsed);
+    }
+
+    /**
+     * Sends a "please review this rule" reminder to a checker.
+     *
+     * @param rule        the rule that is still awaiting review
+     * @param checker     the checker user who should receive the mail
+     * @param daysElapsed how many days the rule has been pending
+     */
+    public void sendCheckerReminderForRule(ConsentRule rule, User checker, long daysElapsed) {
+        String subject = String.format(
+                "[Reminder] Consent Rule \"%s\" has been awaiting your review for %d day(s)",
+                rule.getRuleName(), daysElapsed);
+
+        String deepLink = appBaseUrl + "/consent-rules/" + rule.getId() + "/review";
+
+        String body = buildCheckerRuleBody(checker, rule, daysElapsed, deepLink);
+
+        sendHtmlEmail(checker.getEmail(), checker.getFullName(), subject, body);
+        log.info("[REMINDER] Checker reminder sent | to={} | ruleId={} | ruleName='{}' | daysElapsed={}",
+                checker.getEmail(), rule.getId(), rule.getRuleName(), daysElapsed);
+    }
+
+    /**
+     * Sends a "please act on the revision request" reminder to a maker.
+     * Includes the checker's revision reason so the maker knows what to fix.
+     *
+     * @param consent        the consent stuck in REVISION_REQUESTED
+     * @param maker          the maker who created the consent
+     * @param revisionReason the checker's revision message (consent.revisionMessage)
+     * @param daysElapsed    how many days since the revision was requested
+     */
+    public void sendMakerRevisionReminderForConsent(
+            Consent consent, User maker, String revisionReason, long daysElapsed) {
+
+        String subject = String.format(
+                "[Action Required] Consent \"%s\" has a pending revision request for %d day(s)",
+                consent.getConsentName(), daysElapsed);
+
+        String deepLink = appBaseUrl + "/consents/" + consent.getId() + "/edit";
+
+        String body = buildMakerConsentRevisionBody(maker, consent, revisionReason, daysElapsed, deepLink);
+
+        sendHtmlEmail(maker.getEmail(), maker.getFullName(), subject, body);
+        log.info("[REMINDER] Maker revision reminder sent | to={} | consentId={} | consentName='{}' | daysElapsed={}",
+                maker.getEmail(), consent.getId(), consent.getConsentName(), daysElapsed);
+    }
+
+    /**
+     * Sends a "please act on the revision request" reminder to a maker.
+     * Includes the checker's revision reason so the maker knows what to fix.
+     *
+     * @param rule           the rule stuck in REVISION_REQUESTED
+     * @param maker          the maker who created the rule
+     * @param revisionReason the checker's revision message (rule.revisionReason)
+     * @param daysElapsed    how many days since the revision was requested
+     */
+    public void sendMakerRevisionReminderForRule(
+            ConsentRule rule, User maker, String revisionReason, long daysElapsed) {
+
+        String subject = String.format(
+                "[Action Required] Consent Rule \"%s\" has a pending revision request for %d day(s)",
+                rule.getRuleName(), daysElapsed);
+
+        String deepLink = appBaseUrl + "/consent-rules/" + rule.getId() + "/edit";
+
+        String body = buildMakerRuleRevisionBody(maker, rule, revisionReason, daysElapsed, deepLink);
+
+        sendHtmlEmail(maker.getEmail(), maker.getFullName(), subject, body);
+        log.info("[REMINDER] Maker revision reminder sent | to={} | ruleId={} | ruleName='{}' | daysElapsed={}",
+                maker.getEmail(), rule.getId(), rule.getRuleName(), daysElapsed);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PRIVATE — EMAIL DISPATCH
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void sendHtmlEmail(String toEmail, String toName, String subject, String htmlBody) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(fromAddress, fromName);
+            helper.setTo(toEmail);
+            helper.setSubject(subject);
+            helper.setText(htmlBody, true); // true = isHtml
+            mailSender.send(message);
+        } catch (MessagingException | java.io.UnsupportedEncodingException e) {
+            // Log and swallow — a failed reminder email must never roll back the batch transaction.
+            log.error("[REMINDER] Failed to send email | to={} | subject='{}' | error={}",
+                    toEmail, subject, e.getMessage(), e);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PRIVATE — HTML BODY BUILDERS
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private String buildCheckerConsentBody(
+            User checker, Consent consent, long daysElapsed, String deepLink) {
+
+        return wrapInTemplate(
+                checker.getFullName(),
+                "Pending Consent Review Reminder",
+                String.format("""
+                        <p>This is a friendly reminder that the following consent has been waiting
+                        for your review for <strong>%d day(s)</strong> and requires your attention.</p>
+
+                        <table class="details-table">
+                            <tr><th>Consent ID</th><td>%s</td></tr>
+                            <tr><th>Consent Name</th><td>%s</td></tr>
+                            <tr><th>Category</th><td>%s</td></tr>
+                            <tr><th>Submitted By</th><td>%s</td></tr>
+                            <tr><th>Submitted At</th><td>%s</td></tr>
+                            <tr><th>Current Status</th><td><span class="badge badge-pending">PENDING APPROVAL</span></td></tr>
+                        </table>
+
+                        <p>Please log in to ConsentIQ and take one of the following actions:
+                        <strong>Approve</strong>, <strong>Reject</strong>, or
+                        <strong>Request Revision</strong>.</p>
+                        """,
+                        daysElapsed,
+                        consent.getConsentId(),
+                        consent.getConsentName(),
+                        consent.getCategory() != null ? consent.getCategory().name() : "—",
+                        consent.getCreatedBy().getFullName(),
+                        consent.getSubmittedAt() != null ? DATE_FMT.format(consent.getSubmittedAt()) : "—"
+                ),
+                deepLink,
+                "Review Consent Now"
+        );
+    }
+
+    private String buildCheckerRuleBody(
+            User checker, ConsentRule rule, long daysElapsed, String deepLink) {
+
+        return wrapInTemplate(
+                checker.getFullName(),
+                "Pending Consent Rule Review Reminder",
+                String.format("""
+                        <p>This is a friendly reminder that the following consent rule has been
+                        waiting for your review for <strong>%d day(s)</strong> and requires your attention.</p>
+
+                        <table class="details-table">
+                            <tr><th>Rule Name</th><td>%s</td></tr>
+                            <tr><th>Rule Type</th><td>%s</td></tr>
+                            <tr><th>Schedule Type</th><td>%s</td></tr>
+                            <tr><th>Created By</th><td>%s</td></tr>
+                            <tr><th>Submitted At</th><td>%s</td></tr>
+                            <tr><th>Current Status</th><td><span class="badge badge-pending">PENDING CHECKER APPROVAL</span></td></tr>
+                        </table>
+
+                        <p>Please log in to ConsentIQ and take one of the following actions:
+                        <strong>Approve</strong>, <strong>Reject</strong>, or
+                        <strong>Request Revision</strong>.</p>
+                        """,
+                        daysElapsed,
+                        rule.getRuleName(),
+                        rule.getRuleType() != null ? rule.getRuleType().name() : "—",
+                        rule.getScheduleType() != null ? rule.getScheduleType().name() : "—",
+                        rule.getCreatedBy().getFullName(),
+                        rule.getSubmittedAt() != null ? DATE_FMT.format(rule.getSubmittedAt()) : "—"
+                ),
+                deepLink,
+                "Review Rule Now"
+        );
+    }
+
+    private String buildMakerConsentRevisionBody(
+            User maker, Consent consent, String revisionReason, long daysElapsed, String deepLink) {
+
+        return wrapInTemplate(
+                maker.getFullName(),
+                "Action Required: Consent Revision Pending",
+                String.format("""
+                        <p>A checker has requested revisions to your consent <strong>%d day(s)</strong> ago.
+                        Please update and resubmit the consent at your earliest convenience.</p>
+
+                        <table class="details-table">
+                            <tr><th>Consent ID</th><td>%s</td></tr>
+                            <tr><th>Consent Name</th><td>%s</td></tr>
+                            <tr><th>Category</th><td>%s</td></tr>
+                            <tr><th>Revision Requested At</th><td>%s</td></tr>
+                            <tr><th>Current Status</th><td><span class="badge badge-revision">REVISION REQUESTED</span></td></tr>
+                        </table>
+
+                        <div class="revision-box">
+                            <strong>Checker's Revision Comments:</strong>
+                            <p>%s</p>
+                        </div>
+
+                        <p>Please address the comments above, update the consent, and resubmit for approval.</p>
+                        """,
+                        daysElapsed,
+                        consent.getConsentId(),
+                        consent.getConsentName(),
+                        consent.getCategory() != null ? consent.getCategory().name() : "—",
+                        consent.getReviewedAt() != null ? DATE_FMT.format(consent.getReviewedAt()) : "—",
+                        escapeHtml(revisionReason)
+                ),
+                deepLink,
+                "Update Consent Now"
+        );
+    }
+
+    private String buildMakerRuleRevisionBody(
+            User maker, ConsentRule rule, String revisionReason, long daysElapsed, String deepLink) {
+
+        return wrapInTemplate(
+                maker.getFullName(),
+                "Action Required: Consent Rule Revision Pending",
+                String.format("""
+                        <p>A checker has requested revisions to your consent rule <strong>%d day(s)</strong> ago.
+                        Please update and resubmit the rule at your earliest convenience.</p>
+
+                        <table class="details-table">
+                            <tr><th>Rule Name</th><td>%s</td></tr>
+                            <tr><th>Rule Type</th><td>%s</td></tr>
+                            <tr><th>Revision Requested At</th><td>%s</td></tr>
+                            <tr><th>Current Status</th><td><span class="badge badge-revision">REVISION REQUESTED</span></td></tr>
+                        </table>
+
+                        <div class="revision-box">
+                            <strong>Checker's Revision Comments:</strong>
+                            <p>%s</p>
+                        </div>
+
+                        <p>Please address the comments above, update the rule, and resubmit for approval.</p>
+                        """,
+                        daysElapsed,
+                        rule.getRuleName(),
+                        rule.getRuleType() != null ? rule.getRuleType().name() : "—",
+                        rule.getReviewedAt() != null ? DATE_FMT.format(rule.getReviewedAt()) : "—",
+                        escapeHtml(revisionReason)
+                ),
+                deepLink,
+                "Update Rule Now"
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PRIVATE — HTML TEMPLATE WRAPPER
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Wraps a content block in a consistent HTML email shell with inline CSS.
+     * Keeping styles inline maximises compatibility across email clients.
+     */
+    private String wrapInTemplate(
+            String recipientName,
+            String heading,
+            String contentHtml,
+            String ctaUrl,
+            String ctaLabel) {
+
+        return """
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                  <meta charset="UTF-8"/>
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+                  <title>%s</title>
+                  <style>
+                    body { margin:0; padding:0; background:#f4f6f9; font-family:Arial,Helvetica,sans-serif; color:#333; }
+                    .wrapper { max-width:620px; margin:30px auto; background:#ffffff;
+                               border-radius:8px; overflow:hidden;
+                               box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+                    .header  { background:#1a3c6e; padding:24px 32px; }
+                    .header h1 { margin:0; color:#ffffff; font-size:20px; }
+                    .header p  { margin:4px 0 0; color:#a8c0e0; font-size:13px; }
+                    .body    { padding:32px; }
+                    .body p  { line-height:1.7; margin:0 0 16px; }
+                    .details-table { width:100%%; border-collapse:collapse; margin:16px 0 24px; font-size:14px; }
+                    .details-table th { text-align:left; padding:8px 12px; background:#f0f4fa;
+                                        color:#555; font-weight:600; width:40%%; border:1px solid #dde3ef; }
+                    .details-table td { padding:8px 12px; border:1px solid #dde3ef; }
+                    .revision-box { background:#fff8e1; border-left:4px solid #f5a623;
+                                    padding:16px; border-radius:4px; margin:20px 0; font-size:14px; }
+                    .revision-box p { margin:8px 0 0; white-space:pre-wrap; }
+                    .badge { display:inline-block; padding:3px 10px; border-radius:12px;
+                             font-size:12px; font-weight:600; }
+                    .badge-pending  { background:#fff3cd; color:#856404; }
+                    .badge-revision { background:#fde8d8; color:#7d3c00; }
+                    .cta-btn { display:inline-block; margin-top:8px; padding:12px 28px;
+                               background:#1a3c6e; color:#ffffff !important; text-decoration:none;
+                               border-radius:6px; font-size:15px; font-weight:600; }
+                    .footer  { background:#f0f4fa; padding:20px 32px; font-size:12px; color:#888;
+                               text-align:center; border-top:1px solid #dde3ef; }
+                  </style>
+                </head>
+                <body>
+                  <div class="wrapper">
+                    <div class="header">
+                      <h1>ConsentIQ</h1>
+                      <p>Consent Management Platform</p>
+                    </div>
+                    <div class="body">
+                      <p>Dear <strong>%s</strong>,</p>
+                      %s
+                      <p style="margin-top:24px;">
+                        <a href="%s" class="cta-btn">%s</a>
+                      </p>
+                    </div>
+                    <div class="footer">
+                      This is an automated reminder from ConsentIQ. Please do not reply to this email.<br/>
+                      &copy; ConsentIQ — All rights reserved.
+                    </div>
+                  </div>
+                </body>
+                </html>
+                """.formatted(heading, recipientName, contentHtml, ctaUrl, ctaLabel);
+    }
+
+    /** Minimal HTML escaping to prevent XSS in user-supplied revision comments. */
+    private String escapeHtml(String input) {
+        if (input == null) return "";
+        return input
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#x27;");
+    }
+}

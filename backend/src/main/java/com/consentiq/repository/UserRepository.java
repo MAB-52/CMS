@@ -1,5 +1,6 @@
 package com.consentiq.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -38,4 +39,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
             Pageable pageable);
 
     Page<User> findByRoleOrderByFullNameAsc(UserRole role, Pageable pageable);
+    
+    List<User> findByRole(UserRole role);
 }

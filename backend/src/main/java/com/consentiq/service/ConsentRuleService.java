@@ -32,29 +32,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Service handling the full lifecycle of a ConsentRule:
- *
- *  DRAFT  →  [saveDraft*]  →  DRAFT
- *  DRAFT / REVISION_REQUESTED  →  [submitForApproval]  →  PENDING_CHECKER_APPROVAL
- *  PENDING_CHECKER_APPROVAL    →  [reviewRule APPROVE]  →  APPROVED
- *  PENDING_CHECKER_APPROVAL    →  [reviewRule REJECT]   →  REJECTED
- *  PENDING_CHECKER_APPROVAL    →  [reviewRule REQUEST_REVISION] → REVISION_REQUESTED
- *  APPROVED                    →  [publishLive]         →  LIVE
- *
- * Key fixes applied vs. previous version:
- *  1. Consent template always persisted — null no longer silently accepted;
- *     applyFields() fetches and validates the template unconditionally.
- *  2. saveDraft vs updateRule are now semantically distinct.
- *  3. validateForSubmit() is separate from validateDraft() so drafts are lenient
- *     and submissions are strict.
- *  4. REJECTED rules require an explicit reopen (revisionRequest cycle) before
- *     further edits — they are no longer directly editable by the maker.
- *  5. Duplicate repository method overload removed (List vs Page ambiguity fixed
- *     in ConsentRuleRepository).
- *  6. Size clamping applied consistently to all paginated endpoints.
- *  7. All state transitions and errors are logged at appropriate levels.
- */
+
 @Service
 @RequiredArgsConstructor
 public class ConsentRuleService {
@@ -462,71 +440,6 @@ public class ConsentRuleService {
     // ─────────────────────────────────────────────────────────────────────────
     // PRIVATE — REVIEW HANDLERS
     // ─────────────────────────────────────────────────────────────────────────
-
-//    private void handleApprove(
-//            ConsentRule rule, User checker, WorkflowReviewRequest req,
-//            Long checkerId, HttpServletRequest http) {
-//
-//        rule.setStatus(ConsentRuleStatus.APPROVED);
-//        rule.setReviewedBy(checker);
-//        rule.setReviewedAt(Instant.now());
-//        rule.setApprovedAt(Instant.now());
-//        rule.setRejectionReason(null);
-//        rule.setRevisionReason(null);
-//        rule.setReviewerRemarks(req.getRemarks());
-//        // Reset execution state — admin must explicitly activate
-//        rule.setExecutionActive(false);
-//        rule.setExecutionRunning(false);
-//        rule.setLastExecutedAt(null);
-//        rule.setLastExecutionOutcome(null);
-//        rule.setLastExecutionSummary(null);
-//        rule.setNextExecutionAt(null);
-//
-//        log.info("[RULE] APPROVED ruleId={} by checkerId={}", rule.getId(), checkerId);
-//        auditService.log(checkerId, "RULE_APPROVED", "CONSENT_RULE", rule.getId(),
-//                rule.getRuleName(),
-//                StringUtils.hasText(req.getRemarks()) ? req.getRemarks() : "Approved",
-//                http);
-//    }
-    
-//    private void handleApprove(
-//            ConsentRule rule, User checker, WorkflowReviewRequest req,
-//            Long checkerId, HttpServletRequest http) {
-//
-//        rule.setStatus(ConsentRuleStatus.APPROVED);
-//        rule.setReviewedBy(checker);
-//        rule.setReviewedAt(Instant.now());
-//        rule.setApprovedAt(Instant.now());
-//        rule.setRejectionReason(null);
-//        rule.setRevisionReason(null);
-//        rule.setReviewerRemarks(req.getRemarks());
-//
-//        // ── Execution state ──────────────────────────────────────────────────────
-//        // IMMEDIATE rules: auto-activate on approval so the scheduler picks them up
-//        // without requiring admin to manually activate.
-//        // All other schedule types (SCHEDULED, RECURRING) remain inactive —
-//        // admin must explicitly activate them as before.
-//        if (rule.getScheduleType() == WorkflowScheduleType.IMMEDIATE) {
-//            rule.setExecutionActive(true);
-//            RuleNextRunUtil.applyNextExecutionOnActivation(rule);
-//            log.info("[RULE] IMMEDIATE rule auto-activated on approval — ruleId={}", rule.getId());
-//        } else {
-//            // Non-immediate rules: admin must explicitly activate (existing behaviour)
-//            rule.setExecutionActive(false);
-//            rule.setNextExecutionAt(null);
-//        }
-//
-//        rule.setExecutionRunning(false);
-//        rule.setLastExecutedAt(null);
-//        rule.setLastExecutionOutcome(null);
-//        rule.setLastExecutionSummary(null);
-//
-//        log.info("[RULE] APPROVED ruleId={} by checkerId={}", rule.getId(), checkerId);
-//        auditService.log(checkerId, "RULE_APPROVED", "CONSENT_RULE", rule.getId(),
-//                rule.getRuleName(),
-//                StringUtils.hasText(req.getRemarks()) ? req.getRemarks() : "Approved",
-//                http);
-//    }
     
     private void handleApprove(
             ConsentRule rule, User checker, WorkflowReviewRequest req,
@@ -539,6 +452,11 @@ public class ConsentRuleService {
         rule.setRejectionReason(null);
         rule.setRevisionReason(null);
         rule.setReviewerRemarks(req.getRemarks());
+        
+        if (!StringUtils.hasText(req.getApproveReason())) {
+            throw new IllegalArgumentException("Approval reason is required.");
+        }
+        rule.setApproveReason(req.getApproveReason().trim());
 
         // Auto-activate on approval for all schedule types (IMMEDIATE / SCHEDULED / RECURRING).
         // The admin toggle remains available to deactivate/reactivate later if needed.

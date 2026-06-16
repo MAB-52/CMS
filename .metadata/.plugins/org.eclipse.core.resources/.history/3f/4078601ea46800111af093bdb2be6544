@@ -1,0 +1,420 @@
+package com.consentiq.service;
+
+import com.consentiq.enums.ConsentRuleStatus;
+import com.consentiq.enums.ConsentStatus;
+import com.consentiq.enums.ReminderRecipientRole;
+import com.consentiq.enums.ReminderTargetType;
+import com.consentiq.enums.UserRole;
+import com.consentiq.model.entity.Consent;
+import com.consentiq.model.entity.ConsentRule;
+import com.consentiq.model.entity.ReminderEmailJob;
+import com.consentiq.model.entity.User;
+import com.consentiq.repository.ConsentRepository;
+import com.consentiq.repository.ConsentRuleRepository;
+import com.consentiq.repository.ReminderEmailJobRepository;
+import com.consentiq.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+
+/**
+ * Core batch-processing service that drives all reminder emails.
+ *
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │  SCENARIO 1 — Checker has not reviewed a submitted CONSENT               │
+ * │  Trigger : Consent.status == PENDING_APPROVAL                            │
+ * │            AND Consent.submittedAt <= (now - 5 days)                     │
+ * │  Recipients : ALL users with role = CHECKER                              │
+ * │  Idempotency key : (CONSENT, consentId, CHECKER_PENDING)                 │
+ * ├──────────────────────────────────────────────────────────────────────────┤
+ * │  SCENARIO 2 — Checker has not reviewed a submitted RULE                  │
+ * │  Trigger : ConsentRule.status == PENDING_CHECKER_APPROVAL                │
+ * │            AND ConsentRule.submittedAt <= (now - 5 days)                 │
+ * │  Recipients : ALL users with role = CHECKER                              │
+ * │  Idempotency key : (CONSENT_RULE, ruleId, CHECKER_PENDING)               │
+ * ├──────────────────────────────────────────────────────────────────────────┤
+ * │  SCENARIO 3 — Maker has not revised a CONSENT after revision request     │
+ * │  Trigger : Consent.status == REVISION_REQUESTED                          │
+ * │            AND Consent.reviewedAt <= (now - 5 days)                      │
+ * │  Recipients : Consent.createdBy (the maker)                              │
+ * │  Idempotency key : (CONSENT, consentId, MAKER_REVISION)                  │
+ * ├──────────────────────────────────────────────────────────────────────────┤
+ * │  SCENARIO 4 — Maker has not revised a RULE after revision request        │
+ * │  Trigger : ConsentRule.status == REVISION_REQUESTED                      │
+ * │            AND ConsentRule.reviewedAt <= (now - 5 days)                  │
+ * │  Recipients : ConsentRule.createdBy (the maker)                          │
+ * │  Idempotency key : (CONSENT_RULE, ruleId, MAKER_REVISION)                │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *
+ * Idempotency
+ * ───────────
+ * Before sending any mail the processor checks ReminderEmailJobRepository
+ * for an existing row matching (entityType, entityId, reminderType).  If a row
+ * exists the record is skipped entirely — no second email is dispatched even if
+ * the scheduler fires multiple times.
+ *
+ * If the item is acted upon (status changes) the old idempotency row becomes
+ * irrelevant because the batch queries filter by status; the record simply will
+ * not appear in future query results.
+ *
+ * The processor does NOT touch ConsentService or ConsentRuleService — it reads
+ * entities directly via the repositories to avoid any side-effects on the
+ * existing business logic.
+ */
+@Service
+@RequiredArgsConstructor
+public class ReminderBatchProcessor {
+
+    private static final Logger log = LoggerFactory.getLogger(ReminderBatchProcessor.class);
+
+    /** SLA window in days — reminders fire when this many days have passed with no action. */
+    @Value("${consentiq.reminder.sla-days:5}")
+    private int slaDays;
+
+    private final ConsentRepository          consentRepository;
+    private final ConsentRuleRepository      consentRuleRepository;
+    private final UserRepository             userRepository;
+    private final ReminderEmailJobRepository reminderEmailJobRepository;
+    private final ReminderEmailService       reminderEmailService;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ENTRY POINT — called by the scheduler
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Processes all four reminder scenarios in a single scheduler invocation.
+     * Each scenario runs in its own transaction so a failure in one does not
+     * roll back the others.
+     */
+    public void processAllReminders() {
+        log.info("[REMINDER-BATCH] Starting reminder batch | slaDays={}", slaDays);
+        Instant threshold = Instant.now().minus(slaDays, ChronoUnit.DAYS);
+
+        processCheckerPendingConsents(threshold);
+        processCheckerPendingRules(threshold);
+        processMakerRevisionConsents(threshold);
+        processMakerRevisionRules(threshold);
+
+        log.info("[REMINDER-BATCH] Reminder batch completed");
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SCENARIO 1 — Checker reminder for stale PENDING_APPROVAL consents
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Finds every consent that has been in PENDING_APPROVAL for >= slaDays and
+     * sends a reminder to every CHECKER in the system (if not already sent).
+     */
+    @Transactional
+    public void processCheckerPendingConsents(Instant threshold) {
+        log.info("[REMINDER-BATCH] Scenario 1 | Checking consents in PENDING_APPROVAL older than {}",
+                threshold);
+
+        List<Consent> staleConsents = consentRepository
+                .findPendingApprovalOlderThan(ConsentStatus.PENDING_APPROVAL, threshold);
+
+        log.info("[REMINDER-BATCH] Scenario 1 | Found {} stale consent(s)", staleConsents.size());
+
+        if (staleConsents.isEmpty()) {
+            return;
+        }
+
+        // Load all checkers once — avoids N+1 inside the loop.
+        List<User> allCheckers = userRepository.findByRole(UserRole.CHECKER);
+        if (allCheckers.isEmpty()) {
+            log.warn("[REMINDER-BATCH] Scenario 1 | No CHECKER users found in the system — skipping");
+            return;
+        }
+
+        for (Consent consent : staleConsents) {
+            // One idempotency key per consent (not per checker) keeps the
+            // unique-constraint simple. The first batch run sends to all
+            // checkers and records one job row; subsequent runs skip the whole
+            // consent until its status changes.
+            boolean alreadySent = reminderEmailJobRepository
+                    .existsByEntityTypeAndEntityIdAndReminderType(
+                            ReminderTargetType.CONSENT,
+                            consent.getId(),
+                            ReminderRecipientRole.CHECKER_PENDING);
+
+            if (alreadySent) {
+                log.debug("[REMINDER-BATCH] Scenario 1 | Skipping already-notified consentId={}",
+                        consent.getId());
+                continue;
+            }
+
+            long daysElapsed = computeDaysElapsed(consent.getSubmittedAt());
+
+            for (User checker : allCheckers) {
+                try {
+                    reminderEmailService.sendCheckerReminderForConsent(consent, checker, daysElapsed);
+                } catch (Exception e) {
+                    // Log and continue — one bad checker address must not stop others.
+                    log.error("[REMINDER-BATCH] Scenario 1 | Failed to send email | "
+                            + "consentId={} checkerEmail={} error={}",
+                            consent.getId(), checker.getEmail(), e.getMessage(), e);
+                }
+            }
+
+            // Persist idempotency record after all checkers have been notified.
+            saveReminderJob(
+                    ReminderTargetType.CONSENT,
+                    consent.getId(),
+                    ReminderRecipientRole.CHECKER_PENDING,
+                    allCheckers.get(0).getEmail(),
+                    "ALL_CHECKERS (" + allCheckers.size() + ")",
+                    ConsentStatus.PENDING_APPROVAL.name(),
+                    daysElapsed
+            );
+
+            log.info("[REMINDER-BATCH] Scenario 1 | Reminder dispatched | consentId={} | "
+                    + "consentName='{}' | checkers={} | daysElapsed={}",
+                    consent.getId(), consent.getConsentName(), allCheckers.size(), daysElapsed);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SCENARIO 2 — Checker reminder for stale PENDING_CHECKER_APPROVAL rules
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Transactional
+    public void processCheckerPendingRules(Instant threshold) {
+        log.info("[REMINDER-BATCH] Scenario 2 | Checking rules in PENDING_CHECKER_APPROVAL older than {}",
+                threshold);
+
+        List<ConsentRule> staleRules = consentRuleRepository
+                .findPendingApprovalOlderThan(ConsentRuleStatus.PENDING_CHECKER_APPROVAL, threshold);
+
+        log.info("[REMINDER-BATCH] Scenario 2 | Found {} stale rule(s)", staleRules.size());
+
+        if (staleRules.isEmpty()) {
+            return;
+        }
+
+        List<User> allCheckers = userRepository.findByRole(UserRole.CHECKER);
+        if (allCheckers.isEmpty()) {
+            log.warn("[REMINDER-BATCH] Scenario 2 | No CHECKER users found in the system — skipping");
+            return;
+        }
+
+        for (ConsentRule rule : staleRules) {
+            boolean alreadySent = reminderEmailJobRepository
+                    .existsByEntityTypeAndEntityIdAndReminderType(
+                            ReminderTargetType.CONSENT_RULE,
+                            rule.getId(),
+                            ReminderRecipientRole.CHECKER_PENDING);
+
+            if (alreadySent) {
+                log.debug("[REMINDER-BATCH] Scenario 2 | Skipping already-notified ruleId={}",
+                        rule.getId());
+                continue;
+            }
+
+            long daysElapsed = computeDaysElapsed(rule.getSubmittedAt());
+
+            for (User checker : allCheckers) {
+                try {
+                    reminderEmailService.sendCheckerReminderForRule(rule, checker, daysElapsed);
+                } catch (Exception e) {
+                    log.error("[REMINDER-BATCH] Scenario 2 | Failed to send email | "
+                            + "ruleId={} checkerEmail={} error={}",
+                            rule.getId(), checker.getEmail(), e.getMessage(), e);
+                }
+            }
+
+            saveReminderJob(
+                    ReminderTargetType.CONSENT_RULE,
+                    rule.getId(),
+                    ReminderRecipientRole.CHECKER_PENDING,
+                    allCheckers.get(0).getEmail(),
+                    "ALL_CHECKERS (" + allCheckers.size() + ")",
+                    ConsentRuleStatus.PENDING_CHECKER_APPROVAL.name(),
+                    daysElapsed
+            );
+
+            log.info("[REMINDER-BATCH] Scenario 2 | Reminder dispatched | ruleId={} | "
+                    + "ruleName='{}' | checkers={} | daysElapsed={}",
+                    rule.getId(), rule.getRuleName(), allCheckers.size(), daysElapsed);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SCENARIO 3 — Maker reminder for stale REVISION_REQUESTED consents
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Transactional
+    public void processMakerRevisionConsents(Instant threshold) {
+        log.info("[REMINDER-BATCH] Scenario 3 | Checking consents in REVISION_REQUESTED older than {}",
+                threshold);
+
+        List<Consent> staleConsents = consentRepository
+                .findRevisionRequestedOlderThan(ConsentStatus.REVISION_REQUESTED, threshold);
+
+        log.info("[REMINDER-BATCH] Scenario 3 | Found {} stale consent(s)", staleConsents.size());
+
+        for (Consent consent : staleConsents) {
+            boolean alreadySent = reminderEmailJobRepository
+                    .existsByEntityTypeAndEntityIdAndReminderType(
+                            ReminderTargetType.CONSENT,
+                            consent.getId(),
+                            ReminderRecipientRole.MAKER_REVISION);
+
+            if (alreadySent) {
+                log.debug("[REMINDER-BATCH] Scenario 3 | Skipping already-notified consentId={}",
+                        consent.getId());
+                continue;
+            }
+
+            User maker = consent.getCreatedBy();
+            // revisionMessage is set by ConsentService.reviewConsent() in the
+            // REQUEST_REVISION branch — it holds the checker's exact comments.
+            String revisionReason = StringUtils.hasText(consent.getRevisionMessage())
+                    ? consent.getRevisionMessage()
+                    : "Please review the checker's comments and resubmit.";
+
+            long daysElapsed = computeDaysElapsed(consent.getReviewedAt());
+
+            try {
+                reminderEmailService.sendMakerRevisionReminderForConsent(
+                        consent, maker, revisionReason, daysElapsed);
+            } catch (Exception e) {
+                log.error("[REMINDER-BATCH] Scenario 3 | Failed to send email | "
+                        + "consentId={} makerEmail={} error={}",
+                        consent.getId(), maker.getEmail(), e.getMessage(), e);
+                // Do not persist job row if send failed — it will be retried next run.
+                continue;
+            }
+
+            saveReminderJob(
+                    ReminderTargetType.CONSENT,
+                    consent.getId(),
+                    ReminderRecipientRole.MAKER_REVISION,
+                    maker.getEmail(),
+                    maker.getFullName(),
+                    ConsentStatus.REVISION_REQUESTED.name(),
+                    daysElapsed
+            );
+
+            log.info("[REMINDER-BATCH] Scenario 3 | Reminder dispatched | consentId={} | "
+                    + "consentName='{}' | makerEmail={} | daysElapsed={}",
+                    consent.getId(), consent.getConsentName(), maker.getEmail(), daysElapsed);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SCENARIO 4 — Maker reminder for stale REVISION_REQUESTED rules
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Transactional
+    public void processMakerRevisionRules(Instant threshold) {
+        log.info("[REMINDER-BATCH] Scenario 4 | Checking rules in REVISION_REQUESTED older than {}",
+                threshold);
+
+        List<ConsentRule> staleRules = consentRuleRepository
+                .findRevisionRequestedOlderThan(ConsentRuleStatus.REVISION_REQUESTED, threshold);
+
+        log.info("[REMINDER-BATCH] Scenario 4 | Found {} stale rule(s)", staleRules.size());
+
+        for (ConsentRule rule : staleRules) {
+            boolean alreadySent = reminderEmailJobRepository
+                    .existsByEntityTypeAndEntityIdAndReminderType(
+                            ReminderTargetType.CONSENT_RULE,
+                            rule.getId(),
+                            ReminderRecipientRole.MAKER_REVISION);
+
+            if (alreadySent) {
+                log.debug("[REMINDER-BATCH] Scenario 4 | Skipping already-notified ruleId={}",
+                        rule.getId());
+                continue;
+            }
+
+            User maker = rule.getCreatedBy();
+            // In ConsentRule the field is revisionReason (set in handleRequestRevision).
+            // This differs from Consent which uses revisionMessage — we read the correct field.
+            String revisionReason = StringUtils.hasText(rule.getRevisionReason())
+                    ? rule.getRevisionReason()
+                    : "Please review the checker's comments and resubmit.";
+
+            long daysElapsed = computeDaysElapsed(rule.getReviewedAt());
+
+            try {
+                reminderEmailService.sendMakerRevisionReminderForRule(
+                        rule, maker, revisionReason, daysElapsed);
+            } catch (Exception e) {
+                log.error("[REMINDER-BATCH] Scenario 4 | Failed to send email | "
+                        + "ruleId={} makerEmail={} error={}",
+                        rule.getId(), maker.getEmail(), e.getMessage(), e);
+                continue;
+            }
+
+            saveReminderJob(
+                    ReminderTargetType.CONSENT_RULE,
+                    rule.getId(),
+                    ReminderRecipientRole.MAKER_REVISION,
+                    maker.getEmail(),
+                    maker.getFullName(),
+                    ConsentRuleStatus.REVISION_REQUESTED.name(),
+                    daysElapsed
+            );
+
+            log.info("[REMINDER-BATCH] Scenario 4 | Reminder dispatched | ruleId={} | "
+                    + "ruleName='{}' | makerEmail={} | daysElapsed={}",
+                    rule.getId(), rule.getRuleName(), maker.getEmail(), daysElapsed);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PRIVATE HELPERS
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Computes how many whole days have elapsed since the given instant.
+     * Returns 0 if the instant is null (defensive — should never happen since
+     * the DB queries filter on IS NOT NULL).
+     */
+    private long computeDaysElapsed(Instant since) {
+        if (since == null) return 0L;
+        return ChronoUnit.DAYS.between(since, Instant.now());
+    }
+
+    /**
+     * Persists a ReminderEmailJob audit row.
+     * The unique constraint on (entityType, entityId, reminderType) guarantees
+     * that even if this method is called twice for the same combination
+     * (e.g. due to an unexpected retry), the second insert will fail and the
+     * calling transaction will roll back — preventing double-sends.
+     */
+    private void saveReminderJob(
+            ReminderTargetType entityType,
+            Long entityId,
+            ReminderRecipientRole reminderType,
+            String sentToEmail,
+            String sentToName,
+            String triggerStatus,
+            long daysElapsed) {
+
+        ReminderEmailJob job = ReminderEmailJob.builder()
+                .entityType(entityType)
+                .entityId(entityId)
+                .reminderType(reminderType)
+                .sentToEmail(sentToEmail)
+                .sentToName(sentToName)
+                .sentAt(Instant.now())
+                .triggerStatus(triggerStatus)
+                .daysElapsed(daysElapsed)
+                .build();
+
+        reminderEmailJobRepository.save(job);
+        log.debug("[REMINDER-BATCH] Job row persisted | entityType={} entityId={} reminderType={}",
+                entityType, entityId, reminderType);
+    }
+}

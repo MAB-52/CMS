@@ -1,0 +1,10 @@
+package com.consentiq.enums;
+
+/**
+ * Identifies which domain entity a reminder email relates to.
+ * Mirrors the entityType strings already used in AuditService calls.
+ */
+public enum ReminderTargetType {
+    CONSENT,
+    CONSENT_RULE
+}

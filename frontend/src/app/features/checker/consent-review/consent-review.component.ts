@@ -25,7 +25,7 @@ import { CheckerChannelPreviewComponent } from '../checker-channel-preview/check
 @Component({
   selector: 'app-consent-review',
   standalone: true,
-  imports: [RouterLink, MatButtonModule, MatExpansionModule, JsonPipe, DatePipe , CheckerChannelPreviewComponent],
+  imports: [RouterLink, MatButtonModule, MatExpansionModule, JsonPipe, DatePipe, CheckerChannelPreviewComponent],
   templateUrl: './consent-review.component.html',
   styleUrl: './consent-review.component.scss',
 })
@@ -100,27 +100,67 @@ export class ConsentReviewComponent implements OnInit {
     this.dialog.open(ConsentPreviewDialogComponent, { width: '760px', data });
   }
 
+  // approve(): void {
+  //   const c = this.consent();
+  //   if (!c) {
+  //     return;
+  //   }
+  //   const data: ConfirmDialogData = {
+  //     icon: '✅',
+  //     iconColor: 'rgba(22,163,74,0.15)',
+  //     title: 'Approve this Consent?',
+  //     body: `'${c.consentName}' will be marked as Approved and made ready to publish. This action will notify the maker.`,
+  //     cancelLabel: 'Cancel',
+  //     confirmLabel: 'Confirm Approval',
+  //     confirmColor: 'success',
+  //   };
+  //   const ref = this.dialog.open(ConfirmDialogComponent, { width: '460px', disableClose: true, data });
+  //   ref.afterClosed().subscribe((ok) => {
+  //     if (!ok) {
+  //       return;
+  //     }
+  //     this.busy.set(true);
+  //     this.api.reviewConsent(c.id, 'APPROVE').subscribe({
+  //       next: (res) => {
+  //         this.busy.set(false);
+  //         if (res.success) {
+  //           this.notify.success('✅ Consent approved successfully!', res.message);
+  //           setTimeout(() => void this.router.navigateByUrl('/checker/pending'), 1500);
+  //         }
+  //       },
+  //       error: () => {
+  //         this.busy.set(false);
+  //       },
+  //     });
+  //   });
+  // }
+
   approve(): void {
     const c = this.consent();
-    if (!c) {
-      return;
-    }
-    const data: ConfirmDialogData = {
+    if (!c) return;
+
+    const data: ReviewActionDialogData = {
+      title: 'Approve this consent',
       icon: '✅',
       iconColor: 'rgba(22,163,74,0.15)',
-      title: 'Approve this Consent?',
-      body: `'${c.consentName}' will be marked as Approved and made ready to publish. This action will notify the maker.`,
-      cancelLabel: 'Cancel',
+      textareaLabel: 'Reason for approval',
+      placeholder: 'Describe why this consent meets the required criteria…',
       confirmLabel: 'Confirm Approval',
       confirmColor: 'success',
+      minLength: 10,
     };
-    const ref = this.dialog.open(ConfirmDialogComponent, { width: '460px', disableClose: true, data });
-    ref.afterClosed().subscribe((ok) => {
-      if (!ok) {
-        return;
-      }
+
+    const ref = this.dialog.open(ReviewActionDialogComponent, {
+      width: '520px',
+      disableClose: true,
+      data,
+    });
+
+    ref.afterClosed().subscribe((approveReason: string | undefined) => {
+      if (!approveReason) return;   // user cancelled
+
       this.busy.set(true);
-      this.api.reviewConsent(c.id, 'APPROVE').subscribe({
+      this.api.reviewConsent(c.id, 'APPROVE', undefined, undefined, approveReason).subscribe({
         next: (res) => {
           this.busy.set(false);
           if (res.success) {
@@ -128,9 +168,7 @@ export class ConsentReviewComponent implements OnInit {
             setTimeout(() => void this.router.navigateByUrl('/checker/pending'), 1500);
           }
         },
-        error: () => {
-          this.busy.set(false);
-        },
+        error: () => this.busy.set(false),
       });
     });
   }
