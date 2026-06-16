@@ -5,6 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { Subject, takeUntil } from 'rxjs';
 import {
@@ -12,7 +13,9 @@ import {
   MisCustomerConsentReportRow,
   customerConsentRecordStatusLabel,
 } from '../../../../core/models/admin.model';
+import { CustomerConsentRecordRow } from '../../../../core/models/customer-consent-record.model';
 import { AdminService } from '../../../../core/services/admin.service';
+import { CustomerConsentRecordService } from '../../../../core/services/customer-consent-record.service';
 import { LoggerService } from '../../../../core/services/logger.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 
@@ -36,12 +39,14 @@ const ALL_STATUSES: CustomerConsentRecordStatus[] = [
     MatSelectModule,
     MatIconModule,
     MatProgressBarModule,
+    MatProgressSpinnerModule,
   ],
   templateUrl: './mis-report-customer-consent-tab.component.html',
   styleUrl: './mis-report-customer-consent-tab.component.scss',
 })
 export class MisReportCustomerConsentTabComponent implements OnInit, OnDestroy {
   private readonly adminApi = inject(AdminService);
+  private readonly consentRecordsApi = inject(CustomerConsentRecordService);
   private readonly notify = inject(NotificationService);
   private readonly logger = inject(LoggerService);
   private readonly destroy$ = new Subject<void>();
@@ -60,6 +65,15 @@ export class MisReportCustomerConsentTabComponent implements OnInit, OnDestroy {
   validFrom = '';
   validTo = '';
   search = '';
+
+  // ── Inline history expansion ────────────────────────────────────────────
+  readonly expandedCustomerIds = signal<Set<string>>(new Set());
+  readonly historyLoadingFor = signal<string | null>(null);
+  readonly historyByCustomer = signal<Record<string, CustomerConsentRecordRow[]>>({});
+  
+  // ── History Pagination (New State Added) ───────────────────────────────
+  readonly historyPageSize = 5;
+  readonly historyPageByCustomer = signal<Record<string, number>>({});
 
   ngOnInit(): void {
     this.load(0);
@@ -199,5 +213,80 @@ export class MisReportCustomerConsentTabComponent implements OnInit, OnDestroy {
           this.notify.error('Export', err?.error?.message || 'Export failed.');
         },
       });
+  }
+
+  // ── View consent history (Inline expand) ────────────────────────────────
+
+  toggleHistory(row: MisCustomerConsentReportRow): void {
+    const id = row.customerId;
+    const currentSet = new Set(this.expandedCustomerIds());
+
+    if (currentSet.has(id)) {
+      currentSet.delete(id);
+      this.expandedCustomerIds.set(currentSet);
+      return;
+    }
+
+    currentSet.add(id);
+    this.expandedCustomerIds.set(currentSet);
+
+    // Initialize history page to 0 if not set
+    if (this.historyPageByCustomer()[id] === undefined) {
+      this.historyPageByCustomer.set({ ...this.historyPageByCustomer(), [id]: 0 });
+    }
+
+    if (this.historyByCustomer()[id]) return;
+
+    this.historyLoadingFor.set(id);
+    this.consentRecordsApi.getRecordsByCustomer(id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (res) => {
+          this.historyLoadingFor.set(null);
+          const records: CustomerConsentRecordRow[] = res.success && res.data ? res.data : [];
+          this.historyByCustomer.set({ ...this.historyByCustomer(), [id]: records });
+        },
+        error: (err) => {
+          this.historyLoadingFor.set(null);
+          this.logger.error('MisCustomerConsent', 'history', err);
+          this.notify.error('Consent history', err?.error?.message || 'Could not load consent history.');
+        },
+      });
+  }
+
+  historyStatusClass(status: string | null | undefined): string {
+    return 'cc-status cc-status--' + (status?.toString()?.toLowerCase() ?? '');
+  }
+
+  // ── History Pagination Helpers (New Logic) ─────────────────────────────
+  
+  getPaginatedHistory(customerId: string): CustomerConsentRecordRow[] {
+    const allRecords = this.historyByCustomer()[customerId] ?? [];
+    const currentPage = this.historyPageByCustomer()[customerId] ?? 0;
+    const startIndex = currentPage * this.historyPageSize;
+    return allRecords.slice(startIndex, startIndex + this.historyPageSize);
+  }
+
+  getHistoryTotalPages(customerId: string): number {
+    const totalRecords = (this.historyByCustomer()[customerId] ?? []).length;
+    return Math.ceil(totalRecords / this.historyPageSize) || 1;
+  }
+
+  getHistoryCurrentPage(customerId: string): number {
+    return this.historyPageByCustomer()[customerId] ?? 0;
+  }
+
+  prevHistoryPage(customerId: string): void {
+    const cur = this.getHistoryCurrentPage(customerId);
+    if (cur > 0) {
+      this.historyPageByCustomer.set({ ...this.historyPageByCustomer(), [customerId]: cur - 1 });
+    }
+  }
+
+  nextHistoryPage(customerId: string): void {
+    const cur = this.getHistoryCurrentPage(customerId);
+    if (cur < this.getHistoryTotalPages(customerId) - 1) {
+      this.historyPageByCustomer.set({ ...this.historyPageByCustomer(), [customerId]: cur + 1 });
+    }
   }
 }

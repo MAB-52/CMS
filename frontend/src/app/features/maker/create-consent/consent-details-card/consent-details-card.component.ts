@@ -3,8 +3,36 @@ import { FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { DateAdapter, MAT_DATE_FORMATS, MatNativeDateModule, NativeDateAdapter } from '@angular/material/core';
 import { ConsentCategory, ConsentStatus } from '../../../../core/models/consent.model';
 import { StatusBadgeComponent } from '../../../../shared/components/status-badge/status-badge.component';
+
+export class AppDateAdapter extends NativeDateAdapter {
+  override format(date: Date, displayFormat: object): string {
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+      return '';
+    }
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+
+    return `${day}/${month}/${year}`;
+  }
+}
+
+export const APP_DATE_FORMATS = {
+  parse: {
+    dateInput: 'input',
+  },
+  display: {
+    dateInput: 'input',
+    monthYearLabel: 'MMM yyyy',
+    dateA11yLabel: 'dd/MM/yyyy',
+    monthYearA11yLabel: 'MMMM yyyy',
+  },
+};
 
 @Component({
   selector: 'app-consent-details-card',
@@ -14,7 +42,13 @@ import { StatusBadgeComponent } from '../../../../shared/components/status-badge
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
     StatusBadgeComponent,
+  ],
+  providers: [
+    { provide: DateAdapter, useClass: AppDateAdapter },
+    { provide: MAT_DATE_FORMATS, useValue: APP_DATE_FORMATS },
   ],
   templateUrl: './consent-details-card.component.html',
   styleUrl: './consent-details-card.component.scss',
@@ -26,12 +60,15 @@ export class ConsentDetailsCardComponent {
   @Input() idLoading = false;
   @Input() submitted = false;
 
+  readonly today = this.stripTime(new Date());
+
   readonly categories: { value: ConsentCategory; label: string; icon: string }[] = [
     { value: 'MARKETING', label: 'Marketing', icon: '🎯' },
     { value: 'TRANSACTIONAL', label: 'Transactional', icon: '💳' },
   ];
 
   readonly presets: { value: string; label: string }[] = [
+    { value: '15', label: '15 Days' },
     { value: '30', label: '30 Days' },
     { value: '60', label: '60 Days' },
     { value: '90', label: '90 Days' },
@@ -40,6 +77,15 @@ export class ConsentDetailsCardComponent {
     { value: '730', label: '2 Years' },
     { value: 'custom', label: 'Custom Range' },
   ];
+
+  get minEndDate(): Date {
+    const start = this.form?.get('validityStartDate')?.value;
+    return start ? this.stripTime(new Date(start)) : this.today;
+  }
+
+  private stripTime(date: Date): Date {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  }
 
   addTag(raw: string): void {
     const v = raw.replace(/,/g, '').trim();
@@ -60,6 +106,7 @@ export class ConsentDetailsCardComponent {
 
   validationErrors(): string[] {
     const errs: string[] = [];
+
     const n = this.form.controls['consentName'];
     if (n.touched || this.submitted) {
       if (n.hasError('required')) {
@@ -69,6 +116,7 @@ export class ConsentDetailsCardComponent {
         errs.push('Consent Name must be at most 200 characters');
       }
     }
+
     const d = this.form.controls['description'];
     if (d.touched || this.submitted) {
       if (d.hasError('required')) {
@@ -78,20 +126,36 @@ export class ConsentDetailsCardComponent {
         errs.push('Description must be at most 1000 characters');
       }
     }
+
     const c = this.form.controls['category'];
     if (c.touched || this.submitted) {
       if (c.hasError('required')) {
         errs.push('Category must be selected');
       }
     }
+
     const p = this.form.controls['validityPreset'];
     if (p.value === 'custom') {
-      const s = this.form.controls['validityStartDate'].value;
-      const e = this.form.controls['validityEndDate'].value;
-      if (this.submitted && (!s || !e)) {
+      const sCtrl = this.form.controls['validityStartDate'];
+      const eCtrl = this.form.controls['validityEndDate'];
+
+      if (this.submitted && (!sCtrl.value || !eCtrl.value)) {
         errs.push('Custom validity requires start and end dates');
       }
+
+      if (sCtrl.hasError('matDatepickerMin') || sCtrl.hasError('pastDate')) {
+        errs.push('Start date cannot be in the past');
+      }
+
+      if (eCtrl.hasError('matDatepickerMin') || eCtrl.hasError('pastDate')) {
+        errs.push('End date cannot be in the past');
+      }
+
+      if (this.form.hasError('dateRange')) {
+        errs.push('End date cannot be before start date');
+      }
     }
+
     return errs;
   }
 }

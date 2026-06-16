@@ -68,11 +68,11 @@
         <th>Name</th>
         <th>Mobile</th>
         <th>Email</th>
-        <th>Status</th>
         <th>Valid until</th>
         <th>Last invite</th>
         <th>Last response</th>
         <th>VIP</th>
+        <th>View</th>
       </tr>
     </thead>
     <tbody>
@@ -82,11 +82,6 @@
           <td class="td-name">{{ r.customerName }}</td>
           <td class="td-muted">{{ r.mobileNumber }}</td>
           <td class="td-muted">{{ r.email || '—' }}</td>
-          <td>
-            <span [class]="'badge ' + badgeClass(r.consentStatus)">
-              {{ label(r.consentStatus) }}
-            </span>
-          </td>
           <td class="td-muted">{{ r.consentValidUntil || '—' }}</td>
           <td class="td-muted">{{ r.lastConsentInviteSentAt ? (r.lastConsentInviteSentAt | date: 'medium') : '—' }}</td>
           <td class="td-muted">{{ r.lastConsentResponseAt ? (r.lastConsentResponseAt | date: 'medium') : '—' }}</td>
@@ -99,10 +94,106 @@
               <span class="vip-no">No</span>
             }
           </td>
+          <td>
+            <button
+              class="btn-view"
+              type="button"
+              [disabled]="historyLoadingFor() === r.customerId"
+              (click)="toggleHistory(r)"
+            >
+              @if (historyLoadingFor() === r.customerId) {
+                <mat-spinner diameter="14" />
+              } @else {
+                <mat-icon class="view-icon">
+                  {{ expandedCustomerIds().has(r.customerId) ? 'expand_less' : 'visibility' }}
+                </mat-icon>
+                View
+              }
+            </button>
+          </td>
         </tr>
+
+        @if (expandedCustomerIds().has(r.customerId)) {
+          <tr class="history-row">
+            <td colspan="9">
+              <div class="history-panel">
+                <div class="history-panel__header">
+                  <span class="history-panel__title">Consent record history</span>
+                  <span class="cc-record-count">
+                    {{ (historyByCustomer()[r.customerId] ?? []).length }}
+                    record{{ (historyByCustomer()[r.customerId] ?? []).length !== 1 ? 's' : '' }}
+                  </span>
+                </div>
+
+                @if (historyLoadingFor() === r.customerId) {
+                  <div class="cc-loading-row">
+                    <mat-spinner diameter="18" />
+                    <span>Loading records…</span>
+                  </div>
+                } @else if ((historyByCustomer()[r.customerId] ?? []).length === 0) {
+                  <div class="cc-empty">
+                    <mat-icon>description</mat-icon>
+                    <p>No consent records found for this customer</p>
+                  </div>
+                } @else {
+                  <div class="cc-table-wrap">
+                    <table class="cc-table">
+                      <thead>
+                        <tr>
+                          <th>Consent</th>
+                          <th>Status</th>
+                          <th>Responded</th>
+                          <th>Valid until</th>
+                          <th>Last invite</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (h of getPaginatedHistory(r.customerId); track h.id) {
+                          <tr>
+                            <td class="cc-table__name">{{ h.consentName || '—' }}</td>
+                            <td>
+                              <span [className]="badgeClass(h.status)">{{ label(h.status) }}</span>
+                            </td>
+                            <td class="cc-table__muted">{{ h.respondedAt ? (h.respondedAt | date: 'dd MMM yyyy') : '—' }}</td>
+                            <td class="cc-table__muted">{{ h.consentValidUntil ? (h.consentValidUntil | date: 'dd MMM yyyy') : '—' }}</td>
+                            <td class="cc-table__muted">{{ h.lastInviteSentAt ? (h.lastInviteSentAt | date: 'dd MMM yyyy') : '—' }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div class="cc-history-pager">
+                    <span class="cc-pager-info">
+                      Page <strong>{{ getHistoryCurrentPage(r.customerId) + 1 }}</strong> of <strong>{{ getHistoryTotalPages(r.customerId) }}</strong>
+                    </span>
+                    <div class="cc-pager-btns">
+                      <button 
+                        class="btn-cc-page" 
+                        type="button" 
+                        [disabled]="getHistoryCurrentPage(r.customerId) === 0"
+                        (click)="prevHistoryPage(r.customerId)"
+                      >
+                        <mat-icon>chevron_left</mat-icon>
+                      </button>
+                      <button 
+                        class="btn-cc-page" 
+                        type="button" 
+                        [disabled]="getHistoryCurrentPage(r.customerId) >= getHistoryTotalPages(r.customerId) - 1"
+                        (click)="nextHistoryPage(r.customerId)"
+                      >
+                        <mat-icon>chevron_right</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            </td>
+          </tr>
+        }
       } @empty {
         <tr class="empty-row">
-          <td colspan="10">{{ loading() ? 'Loading…' : 'No rows match your filters.' }}</td>
+          <td colspan="9">{{ loading() ? 'Loading…' : 'No rows match your filters.' }}</td>
         </tr>
       }
     </tbody>
