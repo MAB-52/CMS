@@ -1,0 +1,641 @@
+//
+//package com.consentiq.service;
+//
+//import com.consentiq.enums.AudienceSegmentCode;
+//import com.consentiq.enums.CustomerConsentRecordStatus;   // record-level enum
+//import com.consentiq.enums.CustomerConsentStatus;          // customer-level enum
+//import com.consentiq.model.dto.response.AudienceSegmentResponse;
+//import com.consentiq.model.entity.Customer;
+//import com.consentiq.repository.CustomerConsentRecordRepository;
+//import com.consentiq.repository.CustomerRepository;
+//import lombok.RequiredArgsConstructor;
+//import org.springframework.beans.factory.annotation.Value;
+//import org.springframework.stereotype.Service;
+//import org.springframework.transaction.annotation.Transactional;
+//
+//import java.time.Instant;
+//import java.time.LocalDate;
+//import java.time.ZoneId;
+//import java.time.temporal.ChronoUnit;
+//import java.util.*;
+//
+//@Service
+//@RequiredArgsConstructor
+//public class CustomerSegmentationService {
+//
+//    private final CustomerRepository customerRepository;
+//    private final CustomerConsentRecordRepository recordRepository;
+//
+//    @Value("${consentiq.segmentation.new-customer-days:30}")
+//    private int newCustomerDays;
+//
+//    @Value("${consentiq.segmentation.consent-expiring-window-days:30}")
+//    private int consentExpiringWindowDays;
+//
+//    @Value("${consentiq.segmentation.non-responder-min-hours:72}")
+//    private int nonResponderMinHours;
+//
+//    @Transactional(readOnly = true)
+//    public List<AudienceSegmentResponse> listAudienceSegments() {
+//        Instant now = Instant.now();
+//        ZoneId zone = ZoneId.of("Asia/Kolkata");
+//        LocalDate today = LocalDate.now(zone);
+//        LocalDate expiringUntil = today.plusDays(consentExpiringWindowDays);
+//        Instant noResponseSince = now.minus(nonResponderMinHours, ChronoUnit.HOURS);
+//
+//        // ── SOURCE: Customer entity ───────────────────────────────────────────
+//        // NEW_CUSTOMERS, EXISTING_CUSTOMERS, VIP — keyed on Customer fields.
+//        // DECLINED re-engagement stays here because reEngagementEligibleAfter
+//        // is a column on Customer, not on CustomerConsentRecord.
+//        long cVip               = customerRepository.countVipCustomers();
+//        long cNewLifecycle      = customerRepository.countByLastConsentResponseAtIsNull();
+//        long cExistingLifecycle = customerRepository.countByLastConsentResponseAtIsNotNull();
+//        long cReEng             = customerRepository.countDeclinedReEngagementEligible(now);
+//
+//        // ── SOURCE: CustomerConsentRecord entity ──────────────────────────────
+//        // Uses CustomerConsentRecordStatus — NOT CustomerConsentStatus.
+//        long cExpired = recordRepository
+//                .countDistinctCustomersWithExpiredConsent(today);
+//
+//        long cNoResp = recordRepository
+//                .countDistinctNonResponders(noResponseSince);
+//
+//        // PENDING_CONSENT — pass CustomerConsentRecordStatus.PENDING (record enum)
+//        long cPending = recordRepository
+//                .countDistinctCustomersByStatus(CustomerConsentRecordStatus.PENDING);
+//
+//        long cExpiringSoon = recordRepository
+//                .countDistinctCustomersConsentExpiringBetween(today, expiringUntil);
+//
+//        // ACCEPTED_CONSENT — pass CustomerConsentRecordStatus.ACCEPTED (record enum)
+//        long cAccepted = recordRepository
+//                .countDistinctCustomersByStatus(CustomerConsentRecordStatus.ACCEPTED);
+//
+//        List<AudienceSegmentResponse> list = new ArrayList<>();
+//
+//        list.add(seg(AudienceSegmentCode.EXPIRED_CONSENT,
+//                "Expired consent",
+//                "Customers with a consent validity end date in the past.",
+//                cExpired, true));
+//        list.add(seg(AudienceSegmentCode.NON_RESPONDER,
+//                "Non-responders",
+//                "Pending customers who have not responded beyond the minimum wait.",
+//                cNoResp, true));
+//        list.add(seg(AudienceSegmentCode.VIP,
+//                "VIP / priority",
+//                "Customers explicitly flagged as VIP.",
+//                cVip, cVip > 0));
+//        list.add(seg(AudienceSegmentCode.DECLINED_CUSTOMERS,
+//                "Declined — re-engagement eligible",
+//                "Declined customers past any configured cool-down window.",
+//                cReEng, true));
+//        list.add(seg(AudienceSegmentCode.NEW_CUSTOMERS,
+//                "New Customers (never responded)",
+//                "Customers who have never responded to any consent request.",
+//                cNewLifecycle, cNewLifecycle > 0));
+//        list.add(seg(AudienceSegmentCode.EXISTING_CUSTOMERS,
+//                "Existing Customers",
+//                "Customers who have responded to at least one consent request.",
+//                cExistingLifecycle, cExistingLifecycle > 0));
+//        list.add(seg(AudienceSegmentCode.PENDING_CONSENT,
+//                "Pending Consent",
+//                "Customers with a pending consent record.",
+//                cPending, cPending > 0));
+//        list.add(seg(AudienceSegmentCode.EXPIRING_CONSENT,
+//                "Consent Expiring Soon",
+//                "Customers whose consent validity ends within the upcoming window.",
+//                cExpiringSoon, cExpiringSoon > 0));
+//        list.add(seg(AudienceSegmentCode.ACCEPTED_CONSENT,
+//                "Active Consent",
+//                "Customers with accepted consent currently within validity.",
+//                cAccepted, cAccepted > 0));
+//
+//        return Collections.unmodifiableList(list);
+//    }
+//
+//    // ── validateSelectableSegments — unchanged ────────────────────────────────
+//
+//    @Transactional(readOnly = true)
+//    public void validateSelectableSegments(Collection<String> codes) {
+//        if (codes == null || codes.isEmpty()) return;
+//        for (String raw : codes) {
+//            if (raw == null || raw.isBlank()) {
+//                throw new IllegalArgumentException("Invalid empty segment code.");
+//            }
+//            try {
+//                AudienceSegmentCode.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+//            } catch (IllegalArgumentException ex) {
+//                throw new IllegalArgumentException("Unknown audience segment: " + raw);
+//            }
+//        }
+//    }
+//
+//    @Transactional(readOnly = true)
+//    public int countDistinctRecipientsUnion(Collection<AudienceSegmentCode> codes) {
+//        if (codes == null || codes.isEmpty()) return 0;
+//        return collectIds(codes).size();
+//    }
+//
+//    @Transactional(readOnly = true)
+//    public List<String> getDistinctRecipientEmails(Collection<AudienceSegmentCode> codes) {
+//        if (codes == null || codes.isEmpty()) return Collections.emptyList();
+//        Set<Long> ids = collectIds(codes);
+//        if (ids.isEmpty()) return Collections.emptyList();
+//        return customerRepository.findEmailsByIds(ids);
+//    }
+//
+//    @Transactional(readOnly = true)
+//    public List<Customer> getDistinctRecipients(Collection<AudienceSegmentCode> codes) {
+//        if (codes == null || codes.isEmpty()) return Collections.emptyList();
+//        Set<Long> ids = collectIds(codes);
+//        if (ids.isEmpty()) return Collections.emptyList();
+//        return customerRepository.findAllById(ids);
+//    }
+//
+//    public AudienceSegmentCode parseRequired(String raw) {
+//        try {
+//            return AudienceSegmentCode.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+//        } catch (Exception e) {
+//            throw new IllegalArgumentException("Unknown audience segment: " + raw);
+//        }
+//    }
+//
+//    private Set<Long> collectIds(Collection<AudienceSegmentCode> codes) {
+//        Instant now = Instant.now();
+//        ZoneId zone = ZoneId.of("Asia/Kolkata");
+//        LocalDate today = LocalDate.now(zone);
+//        Instant newSince = now.minus(newCustomerDays, ChronoUnit.DAYS);
+//        LocalDate expiringUntil = today.plusDays(consentExpiringWindowDays);
+//        Instant noResponseSince = now.minus(nonResponderMinHours, ChronoUnit.HOURS);
+//
+//        Set<Long> union = new HashSet<>();
+//
+//        for (AudienceSegmentCode code : codes) {
+//            switch (code) {
+//
+//                // ── Customer-entity-backed segments ───────────────────────────
+//
+//                case NEW_CUSTOMER ->
+//                    union.addAll(customerRepository.findIdsNewCustomersSince(newSince));
+//
+//                case NEW_CUSTOMERS ->
+//                    union.addAll(customerRepository.findIdsByLastConsentResponseAtIsNull());
+//
+//                case EXISTING_CUSTOMERS ->
+//                    union.addAll(customerRepository.findIdsByLastConsentResponseAtIsNotNull());
+//
+//                case VIP ->
+//                    union.addAll(customerRepository.findIdsVipCustomers());
+//
+//                // reEngagementEligibleAfter lives on Customer — stays here
+//                case DECLINED_RE_ENGAGEMENT, DECLINED_CUSTOMERS ->
+//                    union.addAll(customerRepository.findIdsDeclinedReEngagementEligible(now));
+//
+//                // ── CustomerConsentRecord-backed segments ─────────────────────
+//                // Records use customerId (String); resolve to Customer PK (Long).
+//
+//                case EXPIRED_CONSENT -> {
+//                    List<String> cids = recordRepository
+//                            .findCustomerIdsWithExpiredConsent(today);
+//                    union.addAll(resolveCustomerPks(cids));
+//                }
+//
+//                case NON_RESPONDER -> {
+//                    List<String> cids = recordRepository
+//                            .findCustomerIdsNonResponders(noResponseSince);
+//                    union.addAll(resolveCustomerPks(cids));
+//                }
+//
+//                case PENDING_CONSENT -> {
+//                    List<String> cids = recordRepository
+//                            .findCustomerIdsByStatus(CustomerConsentRecordStatus.PENDING);
+//                    union.addAll(resolveCustomerPks(cids));
+//                }
+//
+//                case CONSENT_EXPIRING, EXPIRING_CONSENT -> {
+//                    List<String> cids = recordRepository
+//                            .findCustomerIdsConsentExpiringBetween(today, expiringUntil);
+//                    union.addAll(resolveCustomerPks(cids));
+//                }
+//
+//                case ACCEPTED_CONSENT -> {
+//                    List<String> cids = recordRepository
+//                            .findCustomerIdsByStatus(CustomerConsentRecordStatus.ACCEPTED);
+//                    union.addAll(resolveCustomerPks(cids));
+//                }
+//            }
+//        }
+//        return union;
+//    }
+//
+//    private Set<Long> resolveCustomerPks(List<String> customerIds) {
+//        if (customerIds == null || customerIds.isEmpty()) return Collections.emptySet();
+//        return new HashSet<>(customerRepository.findIdsByCustomerIdIn(customerIds));
+//    }
+//
+//    private AudienceSegmentResponse seg(
+//            AudienceSegmentCode code,
+//            String label,
+//            String description,
+//            long count,
+//            boolean selectable) {
+//        return AudienceSegmentResponse.builder()
+//                .code(code.name())
+//                .label(label)
+//                .description(description)
+//                .customerCount(count)
+//                .selectable(selectable)
+//                .build();
+//    }
+//}
+package com.consentiq.service;
+
+import com.consentiq.model.dto.response.AudienceSegmentResponse;
+import com.consentiq.model.entity.Customer;
+import com.consentiq.repository.CustomerConsentRecordRepository;
+import com.consentiq.repository.CustomerRepository;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+
+@Service
+@RequiredArgsConstructor
+public class CustomerSegmentationService {
+
+	private static final Logger log = LoggerFactory.getLogger(CustomerSegmentationService.class);
+
+	private static String currentUser() {
+		return SecurityContextHolder.getContext().getAuthentication() != null
+				? SecurityContextHolder.getContext().getAuthentication().getName()
+				: "anonymous";
+	}
+
+	private final CustomerRepository customerRepository;
+	private final CustomerConsentRecordRepository recordRepository;
+
+	@Value("${consentiq.segmentation.new-customer-days:30}")
+	private int newCustomerDays;
+
+	@Value("${consentiq.segmentation.consent-expiring-window-days:10}")
+	private int consentExpiringWindowDays;
+
+	@Value("${consentiq.segmentation.non-responder-min-hours:72}")
+	private int nonResponderMinHours;
+
+	@Transactional(readOnly = true)
+	public List<AudienceSegmentResponse> listAudienceSegments() {
+		String cu = currentUser();
+		log.debug("Entering listAudienceSegments | params: none");
+		log.info("User={} | action=listAudienceSegments | entity=AudienceSegment | id=n/a", cu);
+		log.debug("Transaction started | method=listAudienceSegments | id=n/a");
+		try {
+			Instant now = Instant.now();
+			ZoneId zone = ZoneId.of("Asia/Kolkata");
+			LocalDate today = LocalDate.now(zone);
+			LocalDate expiringUntil = today.plusDays(consentExpiringWindowDays);
+			Instant noResponseSince = now.minus(nonResponderMinHours, ChronoUnit.HOURS);
+
+			log.info("Executing DB query | method=countVipCustomers | param=n/a");
+			long cVip = customerRepository.countVipCustomers();
+			log.info("DB query completed | method=countVipCustomers | result={}", cVip);
+
+			Instant newSince = now.minus(newCustomerDays, ChronoUnit.DAYS);
+			log.info("Executing DB query | method=findCustomerIdsNewCustomersSince | param=newSince");
+			List<String> newCustomerIds = customerRepository.findCustomerIdsNewCustomersSince(newSince);
+			log.info("DB query completed | method=findCustomerIdsNewCustomersSince | size={}", newCustomerIds.size());
+
+			long cNewCustomersNotResponded = 0;
+			if (!newCustomerIds.isEmpty()) {
+				log.info("Executing DB query | method=countLatestNeverRespondedCustomers | param=listSize");
+				cNewCustomersNotResponded = recordRepository.countLatestNeverRespondedCustomers(newCustomerIds);
+				log.info("DB query completed | method=countLatestNeverRespondedCustomers | result={}",
+						cNewCustomersNotResponded);
+			}
+
+			log.info("Executing DB query | method=countNewCustomersSince | param=newSince");
+			long cNewLifecycle = customerRepository.countNewCustomersSince(newSince);
+			log.info("DB query completed | method=countNewCustomersSince | result={}", cNewLifecycle);
+
+			log.info("Executing DB query | method=countByLastConsentResponseAtIsNotNull | param=n/a");
+			long cExistingLifecycle = customerRepository.countByLastConsentResponseAtIsNotNull();
+			log.info("DB query completed | method=countByLastConsentResponseAtIsNotNull | result={}", cExistingLifecycle);
+
+			log.info("Executing DB query | method=countDistinctCustomersWithExpiredConsent | param=today");
+			long cExpired = recordRepository.countDistinctCustomersWithExpiredConsent(today);
+			log.info("DB query completed | method=countDistinctCustomersWithExpiredConsent | result={}", cExpired);
+
+			log.info("Executing DB query | method=countDistinctNonResponders | param=noResponseSince");
+			long cNoResp = recordRepository.countDistinctNonResponders(noResponseSince);
+			log.info("DB query completed | method=countDistinctNonResponders | result={}", cNoResp);
+
+			log.info("Executing DB query | method=countDistinctCustomersByStatus | param=PENDING");
+			long cPending = recordRepository.countDistinctCustomersByStatus(CustomerConsentRecordStatus.PENDING);
+			log.info("DB query completed | method=countDistinctCustomersByStatus | result={}", cPending);
+
+			// CHANGED: EXPIRING is now resolved live by date window instead of the
+			// status=EXPIRING_SOON column (which only the 4 AM job writes).
+			log.info("Executing DB query | method=countDistinctCustomersConsentExpiringBetween | param=today,until");
+			long cExpiringSoon = recordRepository.countDistinctCustomersConsentExpiringBetween(today, expiringUntil);
+			log.info("DB query completed | method=countDistinctCustomersConsentExpiringBetween | result={}",
+					cExpiringSoon);
+
+			// CHANGED: ACCEPTED now means "accepted AND still within validity",
+			// computed live so date-lapsed consents drop out without waiting for 4 AM.
+			log.info("Executing DB query | method=countDistinctCustomersActivelyAccepted | param=today");
+			long cAccepted = recordRepository.countDistinctCustomersActivelyAccepted(today);
+			log.info("DB query completed | method=countDistinctCustomersActivelyAccepted | result={}", cAccepted);
+
+			log.info("Executing DB query | method=countDistinctDeclinedCustomers | param=n/a");
+			long cReEng = recordRepository.countDistinctDeclinedCustomers();
+			log.info("DB query completed | method=countDistinctDeclinedCustomers | result={}", cReEng);
+
+			List<AudienceSegmentResponse> list = new ArrayList<>();
+
+			list.add(seg(AudienceSegmentCode.EXPIRED_CONSENT, "Expired consent",
+					"Customers with a consent validity end date in the past.", cExpired, true));
+			list.add(seg(AudienceSegmentCode.NON_RESPONDER, "Non-responders",
+					"Pending customers who have not responded beyond the minimum wait.", cNoResp, true));
+			list.add(
+					seg(AudienceSegmentCode.VIP, "VIP / priority", "Customers explicitly flagged as VIP.", cVip, cVip > 0));
+			list.add(seg(AudienceSegmentCode.DECLINED_CUSTOMERS, "Declined — re-engagement eligible",
+					"Declined customers past any configured cool-down window.", cReEng, true));
+			list.add(seg(AudienceSegmentCode.NEW_CUSTOMERS, "New Customers",
+					"Customers onboarded within the last " + newCustomerDays + " days.", cNewLifecycle, cNewLifecycle > 0));
+			list.add(seg(AudienceSegmentCode.NEW_CUSTOMERS_NOT_RESPONDED, "New Customers (Not Responded)",
+					"New customers who received a consent request but have not responded to their latest consent request.",
+					cNewCustomersNotResponded, cNewCustomersNotResponded > 0));
+			list.add(seg(AudienceSegmentCode.EXISTING_CUSTOMERS, "Existing Customers",
+					"Customers who have responded to at least one consent request.", cExistingLifecycle,
+					cExistingLifecycle > 0));
+			list.add(seg(AudienceSegmentCode.PENDING_CONSENT, "Pending Consent", "Customers with a pending consent record.",
+					cPending, cPending > 0));
+			list.add(seg(AudienceSegmentCode.EXPIRING_CONSENT, "Consent Expiring Soon",
+					"Customers whose consent validity ends within the upcoming window.", cExpiringSoon, cExpiringSoon > 0));
+			list.add(seg(AudienceSegmentCode.ACCEPTED_CONSENT, "Active Consent",
+					"Customers with accepted consent currently within validity.", cAccepted, cAccepted > 0));
+
+			List<AudienceSegmentResponse> res = Collections.unmodifiableList(list);
+			log.debug("Transaction completing | method=listAudienceSegments | id=n/a");
+			log.debug("Exiting listAudienceSegments | result=size={}", res.size());
+			return res;
+		} catch (Exception e) {
+			log.error("Exception in listAudienceSegments | user={} | message={}", cu, e.getMessage(), e);
+			throw e;
+		}
+	}
+
+	@Transactional(readOnly = true)
+	public void validateSelectableSegments(Collection<String> codes) {
+		String cu = currentUser();
+		log.debug("Entering validateSelectableSegments | params: codesSize={}", codes == null ? 0 : codes.size());
+		log.info("User={} | action=validateSelectableSegments | entity=AudienceSegment | id=n/a", cu);
+		log.debug("Transaction started | method=validateSelectableSegments | id=n/a");
+		try {
+			if (codes == null || codes.isEmpty()) {
+				log.debug("Transaction completing | method=validateSelectableSegments | id=n/a");
+				log.debug("Exiting validateSelectableSegments | completed successfully");
+				return;
+			}
+			for (String raw : codes) {
+				if (raw == null || raw.isBlank()) {
+					throw new IllegalArgumentException("Invalid empty segment code.");
+				}
+				try {
+					AudienceSegmentCode.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+				} catch (IllegalArgumentException ex) {
+					log.error("Exception in validateSelectableSegments | user={} | message={}", cu, ex.getMessage(), ex);
+					throw new IllegalArgumentException("Unknown audience segment: " + raw);
+				}
+			}
+			log.debug("Transaction completing | method=validateSelectableSegments | id=n/a");
+			log.debug("Exiting validateSelectableSegments | completed successfully");
+		} catch (Exception e) {
+			if (!(e instanceof IllegalArgumentException) || e.getMessage() == null
+					|| !e.getMessage().startsWith("Unknown audience segment")) {
+				log.error("Exception in validateSelectableSegments | user={} | message={}", cu, e.getMessage(), e);
+			}
+			throw e;
+		}
+	}
+
+	@Transactional(readOnly = true)
+	public int countDistinctRecipientsUnion(Collection<AudienceSegmentCode> codes) {
+		String cu = currentUser();
+		log.debug("Entering countDistinctRecipientsUnion | params: codesSize={}", codes == null ? 0 : codes.size());
+		log.info("User={} | action=countDistinctRecipientsUnion | entity=Customer | id=n/a", cu);
+		log.debug("Transaction started | method=countDistinctRecipientsUnion | id=n/a");
+		try {
+			if (codes == null || codes.isEmpty()) {
+				log.debug("Transaction completing | method=countDistinctRecipientsUnion | id=n/a");
+				log.debug("Exiting countDistinctRecipientsUnion | result=0");
+				return 0;
+			}
+			int n = collectIds(codes).size();
+			log.debug("Transaction completing | method=countDistinctRecipientsUnion | id=n/a");
+			log.debug("Exiting countDistinctRecipientsUnion | result={}", n);
+			return n;
+		} catch (Exception e) {
+			log.error("Exception in countDistinctRecipientsUnion | user={} | message={}", cu, e.getMessage(), e);
+			throw e;
+		}
+	}
+
+	@Transactional(readOnly = true)
+	public List<String> getDistinctRecipientEmails(Collection<AudienceSegmentCode> codes) {
+		String cu = currentUser();
+		log.debug("Entering getDistinctRecipientEmails | params: codesSize={}", codes == null ? 0 : codes.size());
+		log.info("User={} | action=getDistinctRecipientEmails | entity=Customer | id=n/a", cu);
+		log.debug("Transaction started | method=getDistinctRecipientEmails | id=n/a");
+		try {
+			if (codes == null || codes.isEmpty()) {
+				log.debug("Transaction completing | method=getDistinctRecipientEmails | id=n/a");
+				log.debug("Exiting getDistinctRecipientEmails | result=size=0");
+				return Collections.emptyList();
+			}
+			Set<Long> ids = collectIds(codes);
+			if (ids.isEmpty()) {
+				log.debug("Transaction completing | method=getDistinctRecipientEmails | id=n/a");
+				log.debug("Exiting getDistinctRecipientEmails | result=size=0");
+				return Collections.emptyList();
+			}
+			log.info("Executing DB query | method=findEmailsByIds | param=idsSize");
+			List<String> res = customerRepository.findEmailsByIds(ids);
+			log.info("DB query completed | method=findEmailsByIds | size={}", res.size());
+			log.debug("Transaction completing | method=getDistinctRecipientEmails | id=n/a");
+			log.debug("Exiting getDistinctRecipientEmails | result=size={}", res.size());
+			return res;
+		} catch (Exception e) {
+			log.error("Exception in getDistinctRecipientEmails | user={} | message={}", cu, e.getMessage(), e);
+			throw e;
+		}
+	}
+
+	@Transactional(readOnly = true)
+	public List<Customer> getDistinctRecipients(Collection<AudienceSegmentCode> codes) {
+		String cu = currentUser();
+		log.debug("Entering getDistinctRecipients | params: codesSize={}", codes == null ? 0 : codes.size());
+		log.info("User={} | action=getDistinctRecipients | entity=Customer | id=n/a", cu);
+		log.debug("Transaction started | method=getDistinctRecipients | id=n/a");
+		try {
+			if (codes == null || codes.isEmpty()) {
+				log.debug("Transaction completing | method=getDistinctRecipients | id=n/a");
+				log.debug("Exiting getDistinctRecipients | result=size=0");
+				return Collections.emptyList();
+			}
+			Set<Long> ids = collectIds(codes);
+			if (ids.isEmpty()) {
+				log.debug("Transaction completing | method=getDistinctRecipients | id=n/a");
+				log.debug("Exiting getDistinctRecipients | result=size=0");
+				return Collections.emptyList();
+			}
+			log.info("Executing DB query | method=findAllById | param=idsSize");
+			List<Customer> res = customerRepository.findAllById(ids);
+			log.info("DB query completed | method=findAllById | size={}", res.size());
+			log.debug("Transaction completing | method=getDistinctRecipients | id=n/a");
+			log.debug("Exiting getDistinctRecipients | result=size={}", res.size());
+			return res;
+		} catch (Exception e) {
+			log.error("Exception in getDistinctRecipients | user={} | message={}", cu, e.getMessage(), e);
+			throw e;
+		}
+	}
+
+	public AudienceSegmentCode parseRequired(String raw) {
+		String cu = currentUser();
+		log.debug("Entering parseRequired | params: raw=present");
+		log.info("User={} | action=parseRequired | entity=AudienceSegment | id=n/a", cu);
+		try {
+			AudienceSegmentCode res = AudienceSegmentCode.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+			log.debug("Exiting parseRequired | result={}", res);
+			return res;
+		} catch (Exception e) {
+			log.error("Exception in parseRequired | user={} | message={}", cu, e.getMessage(), e);
+			throw new IllegalArgumentException("Unknown audience segment: " + raw);
+		}
+	}
+
+	private Set<Long> collectIds(Collection<AudienceSegmentCode> codes) {
+		Instant now = Instant.now();
+		ZoneId zone = ZoneId.of("Asia/Kolkata");
+		LocalDate today = LocalDate.now(zone);
+		LocalDate expiringUntil = today.plusDays(consentExpiringWindowDays);
+		Instant newSince = now.minus(newCustomerDays, ChronoUnit.DAYS);
+		Instant noResponseSince = now.minus(nonResponderMinHours, ChronoUnit.HOURS);
+
+		Set<Long> union = new HashSet<>();
+
+		for (AudienceSegmentCode code : codes) {
+			switch (code) {
+
+			case NEW_CUSTOMER -> {
+				log.info("Executing DB query | method=findIdsNewCustomersSince | param=newSince");
+				List<Long> part = customerRepository.findIdsNewCustomersSince(newSince);
+				log.info("DB query completed | method=findIdsNewCustomersSince | size={}", part.size());
+				union.addAll(part);
+			}
+
+			case NEW_CUSTOMERS -> {
+				log.info("Executing DB query | method=findIdsNewCustomersSince | param=newSince");
+				List<Long> part = customerRepository.findIdsNewCustomersSince(newSince);
+				log.info("DB query completed | method=findIdsNewCustomersSince | size={}", part.size());
+				union.addAll(part);
+			}
+
+			case NEW_CUSTOMERS_NOT_RESPONDED -> {
+				log.info("Executing DB query | method=findCustomerIdsNewCustomersSince | param=newSince");
+				List<String> newCustomerIds = customerRepository.findCustomerIdsNewCustomersSince(newSince);
+				log.info("DB query completed | method=findCustomerIdsNewCustomersSince | size={}", newCustomerIds.size());
+				if (!newCustomerIds.isEmpty()) {
+					log.info("Executing DB query | method=findLatestNeverRespondedCustomerIds | param=listSize");
+					List<String> customerIds = recordRepository.findLatestNeverRespondedCustomerIds(newCustomerIds);
+					log.info("DB query completed | method=findLatestNeverRespondedCustomerIds | size={}",
+							customerIds.size());
+					union.addAll(resolveCustomerPks(customerIds));
+				}
+			}
+
+			case EXISTING_CUSTOMERS -> {
+				log.info("Executing DB query | method=findIdsByLastConsentResponseAtIsNotNull | param=n/a");
+				List<Long> part = customerRepository.findIdsByLastConsentResponseAtIsNotNull();
+				log.info("DB query completed | method=findIdsByLastConsentResponseAtIsNotNull | size={}", part.size());
+				union.addAll(part);
+			}
+
+			case VIP -> {
+				log.info("Executing DB query | method=findIdsVipCustomers | param=n/a");
+				List<Long> part = customerRepository.findIdsVipCustomers();
+				log.info("DB query completed | method=findIdsVipCustomers | size={}", part.size());
+				union.addAll(part);
+			}
+
+			case DECLINED_RE_ENGAGEMENT, DECLINED_CUSTOMERS -> {
+				log.info("Executing DB query | method=findDeclinedCustomerIds | param=n/a");
+				List<String> cids = recordRepository.findDeclinedCustomerIds();
+				log.info("DB query completed | method=findDeclinedCustomerIds | size={}", cids.size());
+				union.addAll(resolveCustomerPks(cids));
+			}
+
+			case EXPIRED_CONSENT -> {
+				log.info("Executing DB query | method=findCustomerIdsWithExpiredConsent | param=today");
+				List<String> cids = recordRepository.findCustomerIdsWithExpiredConsent(today);
+				log.info("DB query completed | method=findCustomerIdsWithExpiredConsent | size={}", cids.size());
+				union.addAll(resolveCustomerPks(cids));
+			}
+			case NON_RESPONDER -> {
+				log.info("Executing DB query | method=findCustomerIdsNonResponders | param=noResponseSince");
+				List<String> cids = recordRepository.findCustomerIdsNonResponders(noResponseSince);
+				log.info("DB query completed | method=findCustomerIdsNonResponders | size={}", cids.size());
+				union.addAll(resolveCustomerPks(cids));
+			}
+			case PENDING_CONSENT -> {
+				log.info("Executing DB query | method=findCustomerIdsByStatus | param=PENDING");
+				List<String> cids = recordRepository.findCustomerIdsByStatus(CustomerConsentRecordStatus.PENDING);
+				log.info("DB query completed | method=findCustomerIdsByStatus | size={}", cids.size());
+				union.addAll(resolveCustomerPks(cids));
+			}
+			// CHANGED: EXPIRING resolved live by consentValidUntil window so the
+			// audience tracks the data continuously, not once per day at 4 AM.
+			case CONSENT_EXPIRING, EXPIRING_CONSENT -> {
+				log.info("Executing DB query | method=findCustomerIdsConsentExpiringBetween | param=today,until");
+				List<String> cids = recordRepository.findCustomerIdsConsentExpiringBetween(today, expiringUntil);
+				log.info("DB query completed | method=findCustomerIdsConsentExpiringBetween | size={}", cids.size());
+				union.addAll(resolveCustomerPks(cids));
+			}
+			// CHANGED: ACCEPTED resolved live — accepted AND still within validity.
+			case ACCEPTED_CONSENT -> {
+				log.info("Executing DB query | method=findCustomerIdsActivelyAccepted | param=today");
+				List<String> cids = recordRepository.findCustomerIdsActivelyAccepted(today);
+				log.info("DB query completed | method=findCustomerIdsActivelyAccepted | size={}", cids.size());
+				union.addAll(resolveCustomerPks(cids));
+			}
+			}
+		}
+		return union;
+	}
+
+	private Set<Long> resolveCustomerPks(List<String> customerIds) {
+		if (customerIds == null || customerIds.isEmpty()) {
+			return Collections.emptySet();
+		}
+		log.info("Executing DB query | method=findIdsByCustomerIdIn | param=listSize");
+		List<Long> ids = customerRepository.findIdsByCustomerIdIn(customerIds);
+		log.info("DB query completed | method=findIdsByCustomerIdIn | size={}", ids.size());
+		return new HashSet<>(ids);
+	}
+
+	private AudienceSegmentResponse seg(AudienceSegmentCode code, String label, String description, long count,
+			boolean selectable) {
+		return AudienceSegmentResponse.builder().code(code.name()).label(label).description(description)
+				.customerCount(count).selectable(selectable).build();
+	}
+}

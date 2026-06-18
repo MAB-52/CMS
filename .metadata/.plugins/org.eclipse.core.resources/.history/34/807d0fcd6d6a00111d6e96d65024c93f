@@ -1,0 +1,179 @@
+# ------------------------------------------------------------------------------
+# Server
+# ------------------------------------------------------------------------------
+server.port=8086
+spring.application.name=ConsentIQ
+#server.servlet.context-path=/api
+
+# ------------------------------------------------------------------------------
+# DataSource (MySQL)
+# ------------------------------------------------------------------------------
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# [LOCAL]
+#spring.datasource.url=jdbc:mysql://localhost:3306/consent_iq?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Kolkata&allowPublicKeyRetrieval=true
+#spring.datasource.username=root
+#spring.datasource.password=Mustafa52!
+
+# [PROD]
+spring.datasource.url=jdbc:mysql://localhost:3306/consent_iq?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Kolkata&allowPublicKeyRetrieval=true
+spring.datasource.username=root
+spring.datasource.password=root
+
+
+# ------------------------------------------------------------------------------
+# JPA / Hibernate
+# ------------------------------------------------------------------------------
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+# MySQLDialect covers MySQL 8+ (MySQL8Dialect is deprecated in newer Hibernate versions)
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect
+
+
+# ------------------------------------------------------------------------------
+# JSON / Jackson
+# ------------------------------------------------------------------------------
+spring.jackson.serialization.write-dates-as-timestamps=false
+spring.jackson.time-zone=Asia/Kolkata
+
+
+# ------------------------------------------------------------------------------
+# Security — JWT
+# ------------------------------------------------------------------------------
+jwt.secret=ConsentIQSuperSecretKey2026ForHS256AlgorithmMustBe256Bits!!
+jwt.expiration=86400000
+jwt.consent-session-expiration-ms=1800000
+
+
+# ------------------------------------------------------------------------------
+# CORS
+# ------------------------------------------------------------------------------
+# [LOCAL]
+cors.allowed-origins=http://localhost:4200
+
+# [PROD]
+#cors.allowed-origins=http://4.247.178.39:8086
+
+
+# ------------------------------------------------------------------------------
+# Public-Facing URLs
+# ------------------------------------------------------------------------------
+# [LOCAL]
+app.public-consent-base-url=http://localhost:4200
+consentiq.api.base-url=http://localhost:8086
+consentiq.reminder.app-base-url=http://localhost:4200
+
+# [PROD]
+#app.public-consent-base-url=http://4.247.178.39:8086
+#consentiq.api.base-url=http://4.247.178.39:8086/api
+#consentiq.reminder.app-base-url=http://4.247.178.39:8086
+
+
+# ------------------------------------------------------------------------------
+# Mail — SMTP
+# Leave host empty to log emails only (useful for local dev without a mail server)
+# ------------------------------------------------------------------------------
+spring.mail.default-encoding=UTF-8
+spring.mail.host=smtp.gmail.com
+spring.mail.port=587
+spring.mail.username=thoratdurgeshprakash@gmail.com
+spring.mail.password=mlkt ppza mvfv tqxf
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+spring.mail.properties.mail.smtp.connectiontimeout=10000
+spring.mail.properties.mail.smtp.timeout=10000
+spring.mail.properties.mail.smtp.writetimeout=10000
+
+# Sender identity (override via env vars in production)
+consentiq.mail.from=${MAIL_FROM:noreply@consentiq.local}
+consentiq.mail.organization-name=${MAIL_ORG_NAME:ConsentIQ}
+consentiq.mail.support-email=${MAIL_SUPPORT:support@consentiq.local}
+
+
+# ------------------------------------------------------------------------------
+# Customer Segmentation Windows
+# ------------------------------------------------------------------------------
+consentiq.segmentation.new-customer-days=30
+consentiq.segmentation.consent-expiring-window-days=10
+consentiq.segmentation.expiry-warning-days=10
+consentiq.segmentation.non-responder-min-hours=72
+consentiq.segmentation.re-engagement-days=90
+
+
+# ------------------------------------------------------------------------------
+# Consent Reminder Emails
+# ------------------------------------------------------------------------------
+# SLA before a reminder is sent (0 = trigger immediately, 5 = after 5 days)
+consentiq.reminder.sla-days=0
+
+# [LOCAL] Run every minute
+consentiq.reminder.cron=0 * * * * ?
+# [PROD]  Run at 08:00 AM IST
+#consentiq.reminder.cron=0 30 2 * * ?
+
+
+# ------------------------------------------------------------------------------
+# Broadcast Scheduler
+# Scans for READY_FOR_EXECUTION + SCHEDULED + due records
+# ------------------------------------------------------------------------------
+consentiq.broadcast.scan-interval-ms=60000
+consentiq.broadcast.scheduled-scan-batch-size=50
+
+# Inline image hosting for broadcast emails (Gmail/Outlook-safe public URLs)
+# Enable and set public-base-url to a URL reachable by recipients (e.g. your API origin)
+consentiq.broadcast.email-images.enabled=false
+consentiq.broadcast.email-images.storage-dir=${java.io.tmpdir}/consentiq-broadcast-email-images
+consentiq.broadcast.email-images.public-base-url=
+consentiq.broadcast.email-images.max-bytes=2097152
+
+# CSV export directory for broadcast execution history
+#consentiq.broadcast.csv-base-dir=D:/Broadcast-Execution-History
+
+
+# ------------------------------------------------------------------------------
+# Rule Engine
+# Scans for approved + active + due rules
+# ------------------------------------------------------------------------------
+consentiq.rule-engine.scan-interval-ms=60000
+
+
+# ------------------------------------------------------------------------------
+# Batched Email Dispatch (rules + broadcasts)
+# ------------------------------------------------------------------------------
+consentiq.batch.email-chunk-size=100
+consentiq.batch.chunk-delay-ms=200
+consentiq.batch.max-retries=3
+consentiq.batch.retry-delay-ms=500
+consentiq.execution-history-page-size=50
+
+
+# ------------------------------------------------------------------------------
+# Translation Services
+# ------------------------------------------------------------------------------
+consentiq.translation.enabled=true
+consentiq.translation.indictrans2.url=http://localhost:8090
+consentiq.translation.libretranslate.url=http://localhost:5000
+
+
+# ------------------------------------------------------------------------------
+# Actuator
+# ------------------------------------------------------------------------------
+management.endpoints.web.exposure.include=health
+management.endpoint.health.show-details=when-authorized
+
+
+# ------------------------------------------------------------------------------
+# Logging
+# ------------------------------------------------------------------------------
+logging.level.root=INFO
+logging.level.com.consentiq=DEBUG
+logging.level.org.springframework.security=INFO
+logging.level.org.hibernate.SQL=DEBUG
+logging.level.org.hibernate.type.descriptor.sql.BasicBinder=TRACE
+logging.level.org.hibernate.orm.jdbc.bind=TRACE
+
+logging.pattern.console=%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [userId=%X{userId}] [reqId=%X{requestId}] - %msg%n
+logging.file.name=logs/consentiq.log
+logging.logback.rollingpolicy.max-file-size=10MB
+logging.logback.rollingpolicy.max-history=30

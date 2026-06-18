@@ -3,3 +3,9 @@ frontend/node_modules/
 
 # Spring Boot properties
 backend/src/main/resources/application.properties
+
+# Frontend build output
+frontend/dist/
+
+# Backend build output
+backend/target/

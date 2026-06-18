@@ -252,4 +252,24 @@ public interface CustomerRepository extends JpaRepository<Customer, Long>, JpaSp
     	""")
     	List<String> findCustomerIdsNewCustomersSince(
     	        @Param("since") Instant since);
+
+    @Query("""
+        SELECT COUNT(c) FROM Customer c
+        WHERE ((c.createdAt IS NOT NULL AND c.createdAt >= :since)
+            OR (c.createdAt IS NULL AND c.updatedAt >= :since))
+        AND c.customerId NOT IN :respondedCustomerIds
+    """)
+    long countNewCustomersSinceExcluding(
+        @Param("since") Instant since,
+        @Param("respondedCustomerIds") Collection<String> respondedCustomerIds);
+
+    @Query("""
+        SELECT c.id FROM Customer c
+        WHERE ((c.createdAt IS NOT NULL AND c.createdAt >= :since)
+            OR (c.createdAt IS NULL AND c.updatedAt >= :since))
+        AND c.customerId NOT IN :respondedCustomerIds
+    """)
+    List<Long> findIdsNewCustomersSinceExcluding(
+        @Param("since") Instant since,
+        @Param("respondedCustomerIds") Collection<String> respondedCustomerIds);
 }
