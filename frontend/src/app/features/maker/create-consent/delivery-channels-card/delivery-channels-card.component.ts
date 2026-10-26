@@ -2,6 +2,7 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { MatIconModule } from '@angular/material/icon';
 import { MergeTag } from '../../../../core/models/consent.model';
 import { ChannelLanguageRenderMap } from '../../../../core/models/consent-translation.types';
 import { ConsentChannelLanguagePreviewComponent } from '../../../../shared/components/consent-channel-language-preview/consent-channel-language-preview.component';
@@ -11,7 +12,7 @@ type ChannelId = 'EMAIL' | 'SMS' | 'PUSH' | 'WHATSAPP' | 'RCS';
 @Component({
   selector: 'app-delivery-channels-card',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ConsentChannelLanguagePreviewComponent],
+  imports: [CommonModule, ReactiveFormsModule, MatIconModule, ConsentChannelLanguagePreviewComponent],
   templateUrl: './delivery-channels-card.component.html',
   styleUrl: './delivery-channels-card.component.css',
 })

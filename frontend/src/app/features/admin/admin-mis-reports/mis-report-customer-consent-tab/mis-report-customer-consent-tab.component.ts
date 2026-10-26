@@ -42,7 +42,7 @@ const ALL_STATUSES: CustomerConsentRecordStatus[] = [
     MatProgressSpinnerModule,
   ],
   templateUrl: './mis-report-customer-consent-tab.component.html',
-  styleUrl: './mis-report-customer-consent-tab.component.css',
+  styleUrls: ['../mis-tab-shared.css', './mis-report-customer-consent-tab.component.css'],
 })
 export class MisReportCustomerConsentTabComponent implements OnInit, OnDestroy {
   private readonly adminApi = inject(AdminService);

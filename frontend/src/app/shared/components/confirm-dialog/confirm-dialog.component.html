@@ -1,22 +1,21 @@
-<div class="wrap">
+<div class="wrap" [attr.data-tone]="data.confirmColor || 'primary'">
 
-  <!-- Glow -->
-  <div class="bg-glow"></div>
+  <!-- Brand bar -->
+  <div class="brand-bar" aria-hidden="true"></div>
 
   <!-- Icon -->
   @if (data.icon) {
     <div
       class="icon-wrap"
-      [style.background]="data.iconColor || 'rgba(125,86,111,0.12)'"
+      [style.background]="data.iconColor || null"
+      aria-hidden="true"
     >
-      <span class="icon">
-        {{ data.icon }}
-      </span>
+      <mat-icon class="icon">{{ materialIcon() }}</mat-icon>
     </div>
   }
 
   <!-- Title -->
-  <h2 class="title">
+  <h2 class="title" mat-dialog-title>
     {{ data.title }}
   </h2>
 
@@ -28,7 +27,8 @@
   <!-- Info Panel -->
   @if (data.infoPanel) {
     <div class="info-panel">
-      {{ data.infoPanel }}
+      <mat-icon aria-hidden="true">info</mat-icon>
+      <span>{{ data.infoPanel }}</span>
     </div>
   }
 
@@ -63,6 +63,7 @@
         class="confirm-btn"
         [color]="matColor()"
         [mat-dialog-close]="true"
+        cdkFocusInitial
       >
         {{ data.confirmLabel || 'Confirm' }}
       </button>

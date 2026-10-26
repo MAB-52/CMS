@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { Consent, MakerStats } from '../../../core/models/consent.model';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConsentService } from '../../../core/services/consent.service';
@@ -10,7 +11,7 @@ import { StatusBadgeComponent } from '../../../shared/components/status-badge/st
 @Component({
   selector: 'app-maker-dashboard',
   standalone: true,
-  imports: [RouterLink, MatButtonModule, StatusBadgeComponent, TimeAgoPipe],
+  imports: [RouterLink, MatButtonModule, MatIconModule, StatusBadgeComponent, TimeAgoPipe],
   templateUrl: './maker-dashboard.component.html',
   styleUrl: './maker-dashboard.component.css',
 })

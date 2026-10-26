@@ -2,6 +2,7 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AdminCustomerRow, AdminMisDashboard, customerConsentStatusLabel } from '../../../core/models/admin.model';
 import { AdminService } from '../../../core/services/admin.service';
@@ -11,7 +12,7 @@ import { LoggerService } from '../../../core/services/logger.service';
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, FormsModule, MatButtonModule, MatProgressSpinnerModule],
+  imports: [DatePipe, DecimalPipe, FormsModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.css',
 })

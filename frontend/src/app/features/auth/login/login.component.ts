@@ -5,6 +5,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { LoggerService } from '../../../core/services/logger.service';
@@ -18,6 +19,7 @@ import { LoggerService } from '../../../core/services/logger.service';
     MatInputModule,
     MatButtonModule,
     MatIconModule,
+    MatProgressSpinnerModule,
     RouterModule
   ],
   templateUrl: './login.component.html',

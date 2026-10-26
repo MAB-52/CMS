@@ -4,7 +4,7 @@
   <!-- Top Nav -->
   <div class="crr-subnav">
     <a class="crr-back-link" routerLink="/checker/rules/pending">
-      <span class="crr-back-link__arrow">←</span>
+      <mat-icon class="crr-back-link__arrow" aria-hidden="true">arrow_back</mat-icon>
       Pending Rules
     </a>
   </div>
@@ -49,8 +49,8 @@
 
   <!-- Info Banner -->
   <section class="crr-banner">
-    <div class="crr-banner__icon">
-      ⚙
+    <div class="crr-banner__icon" aria-hidden="true">
+      <mat-icon>settings_suggest</mat-icon>
     </div>
 
     <div class="crr-banner__content">
@@ -279,17 +279,20 @@
 
     <button class="crr-btn crr-btn--approve" [disabled]="!canDecide() || busy()" (click)="approve()">
 
-      ✓ Approve
+      <mat-icon>check_circle</mat-icon>
+      Approve
     </button>
 
     <button class="crr-btn crr-btn--revise" [disabled]="!canDecide() || busy()" (click)="revision()">
 
-      ↩ Request Revision
+      <mat-icon>assignment_return</mat-icon>
+      Request Revision
     </button>
 
     <button class="crr-btn crr-btn--reject" [disabled]="!canDecide() || busy()" (click)="reject()">
 
-      ✕ Reject
+      <mat-icon>cancel</mat-icon>
+      Reject
     </button>
 
   </div>

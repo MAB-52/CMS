@@ -13,7 +13,7 @@ export class LogoutFlowService {
   confirmAndLogout(): void {
     const data: ConfirmDialogData = {
       icon: '🚪',
-      iconColor: 'rgba(99,102,241,0.12)',
+      iconColor: 'rgba(69,50,158,0.12)',
       title: 'Logout',
       body: 'Are you sure you want to logout?',
       cancelLabel: 'Cancel',

@@ -340,7 +340,7 @@ export class ConsentMessageCardComponent implements OnInit, AfterViewInit, OnCha
     }
 
     chain
-      .insertContent(`<span style="color:#6366f1;font-weight:600"> ${tag.tagKey} </span>`)
+      .insertContent(`<span style="color:#45329E;font-weight:600"> ${tag.tagKey} </span>`)
       .run();
 
     this.savedRange = null;

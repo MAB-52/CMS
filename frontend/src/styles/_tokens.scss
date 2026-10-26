@@ -1,0 +1,145 @@
+// ─────────────────────────────────────────────────────────────
+// Interact Suite — Essential Design System v2.0 (design tokens)
+// Single source of truth for colour, type, shape, space & depth.
+// Components must consume these via var(--is-*) — never raw hex.
+// ─────────────────────────────────────────────────────────────
+
+:root {
+  /* Brand */
+  --is-primary: #45329E;
+  --is-primary-strong: #2E1475;
+  --is-primary-soft: #465599;
+  --is-secondary: #EA6B28;
+  --is-secondary-strong: #C9561A;
+  --is-secondary-on-dark: #FFC9A8;
+
+  /* Text */
+  --is-text: #000000;
+  --is-text-2: #64748B;
+  --is-text-3: #94A3B8;
+  --is-text-inverse: #FFFFFF;
+
+  /* Surfaces */
+  --is-canvas: #F7F8FC;
+  --is-surface: #FFFFFF;
+  --is-surface-2: #FBFBFE;
+  --is-border: #E2E8F0;
+  --is-border-strong: #CBD5E1;
+  --is-border-tint: #E4E0F2;
+  --is-tint-purple: #F3F0FB;
+  --is-tint-orange: #FFF1E9;
+
+  /* Supporting utility palette */
+  --is-blue: #0D6EFD;
+  --is-indigo: #6610F2;
+  --is-purple: #6F42C1;
+  --is-pink: #D63384;
+  --is-red: #DC3545;
+  --is-orange: #FD7E14;
+  --is-yellow: #FFC107;
+  --is-green: #198754;
+  --is-teal: #20C997;
+  --is-cyan: #0DCAF0;
+  --is-black: #000000;
+  --is-white: #FFFFFF;
+
+  /* Semantic status */
+  --is-success: var(--is-green);
+  --is-success-text: #146C43;
+  --is-success-bg: color-mix(in srgb, var(--is-green) 11%, white);
+  --is-success-border: color-mix(in srgb, var(--is-green) 28%, white);
+  --is-danger: var(--is-red);
+  --is-danger-text: #B02A37;
+  --is-danger-bg: color-mix(in srgb, var(--is-red) 10%, white);
+  --is-danger-border: color-mix(in srgb, var(--is-red) 28%, white);
+  --is-warning: var(--is-yellow);
+  --is-warning-text: #8A5A00;
+  --is-warning-bg: color-mix(in srgb, var(--is-yellow) 16%, white);
+  --is-warning-border: color-mix(in srgb, var(--is-yellow) 45%, white);
+  --is-info: var(--is-blue);
+  --is-info-text: #0A58CA;
+  --is-info-bg: color-mix(in srgb, var(--is-blue) 9%, white);
+  --is-info-border: color-mix(in srgb, var(--is-blue) 26%, white);
+  --is-neutral-bg: #F1F5F9;
+  --is-neutral-text: #475569;
+
+  /* Gradients */
+  /* Purple → orange brand blend (matches the Aurionpro product family) */
+  --is-grad-primary: linear-gradient(90deg, #45329E 0%, #4A35A0 45%, #EA6B28 100%);
+  --is-grad-brand: linear-gradient(90deg, #45329E 0%, #45329E 38%, #EA6B28 100%);
+  --is-grad-banner: linear-gradient(90deg, #45329E 0%, #EA6B28 100%);
+  --is-grad-header: linear-gradient(90deg, #45329E 0%, #45329E 46%, #7A3F8F 56%, #D9622F 66%, #EA6B28 72%, #EA6B28 100%);
+  --is-grad-sidebar: linear-gradient(160deg, #45329E 0%, #45329E 40%, #7A3F8F 70%, #EA6B28 100%);
+  --is-grad-hero: linear-gradient(135deg, #45329E 0%, #45329E 40%, #7A3F8F 72%, #EA6B28 100%);
+  --is-grad-active: linear-gradient(90deg, #45329E 0%, #45329E 30%, #EA6B28 100%);
+
+  /* Typography — Nunito */
+  --is-font: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --is-font-mono: ui-monospace, 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  --is-fs-h1: 32px;  --is-lh-h1: 40px;
+  --is-fs-h2: 24px;  --is-lh-h2: 32px;
+  --is-fs-h3: 18px;  --is-lh-h3: 26px;
+  --is-fs-title: 14.4px; --is-lh-title: 20px;
+  --is-fs-lg: 18px;
+  --is-fs-md: 16px;
+  --is-fs-body: 14px; --is-lh-body: 22px;
+  --is-fs-sm: 13px;
+  --is-fs-xs: 12px;
+  --is-fs-2xs: 11px;
+  --is-fw-regular: 400;
+  --is-fw-semibold: 600;
+  --is-fw-bold: 700;
+  --is-fw-black: 800;
+
+  /* Shape */
+  --is-r-xs: 6px;
+  --is-r-field: 8px;
+  --is-r-sm: 12px;
+  --is-r-nav: 16px;
+  --is-r-md: 16px;
+  --is-r-card: 24px;
+  --is-r-pill: 999px;
+
+  /* Space — multiples of 4 */
+  --is-s-1: 4px;
+  --is-s-2: 8px;
+  --is-s-3: 12px;
+  --is-s-4: 16px;
+  --is-s-5: 24px;
+  --is-s-6: 32px;
+  --is-s-7: 48px;
+  --is-s-8: 64px;
+  --is-card-gap: 24px;
+  --is-section-gap: 64px;
+  --is-card-pad: 24px;
+
+  /* Depth */
+  --is-shadow-xs: 0 1px 2px rgba(23, 36, 69, 0.06);
+  --is-shadow-soft: 0 4px 16px rgba(23, 36, 69, 0.08);
+  --is-shadow-raised: 0 12px 32px rgba(23, 36, 69, 0.16);
+  --is-shadow-primary: 0 8px 22px rgba(69, 50, 158, 0.28);
+  --is-ring: 0 0 0 3px rgba(69, 50, 158, 0.22);
+
+  /* Motion */
+  --is-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --is-dur-fast: 140ms;
+  --is-dur: 220ms;
+  --is-dur-slow: 420ms;
+
+  /* Layout */
+  --is-sidebar-w: 264px;
+  --is-sidebar-w-collapsed: 80px;
+  --is-topbar-h: 72px;
+  --is-content-max: 1440px;
+  --is-z-sidebar: 900;
+  --is-z-topbar: 800;
+  --is-z-overlay: 2000;
+  --is-z-toast: 3000;
+
+  @media (max-width: 900px) {
+    --is-card-pad: 16px;
+    --is-section-gap: 48px;
+    --is-fs-h1: 26px; --is-lh-h1: 34px;
+    --is-topbar-h: 64px;
+  }
+}

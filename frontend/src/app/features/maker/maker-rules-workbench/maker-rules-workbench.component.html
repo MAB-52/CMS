@@ -14,34 +14,50 @@
       routerLink="/maker/rules/new"
       class="cta"
     >
-      + New rule
+      <mat-icon>add</mat-icon>
+      New rule
     </a>
   </div>
 
   @if (loading()) {
-    <div class="state-card">Loading rules…</div>
+    <div class="grid" aria-busy="true">
+      @for (x of [1, 2, 3, 4, 5, 6]; track x) {
+        <div class="rule-card rule-card--skeleton">
+          <span class="is-skeleton sk-30"></span>
+          <span class="is-skeleton is-skeleton--lg sk-70"></span>
+          <span class="is-skeleton sk-90"></span>
+        </div>
+      }
+    </div>
+    <span class="is-sr-only">Loading rules…</span>
   } @else if (!rows().length) {
     <div class="state-card empty">
+      <div class="state-ico" aria-hidden="true"><mat-icon>rule</mat-icon></div>
       <div class="state-title">No rules yet</div>
       <p>
         Create your first scenario rule to align consent journeys with customer
         segments.
       </p>
-      <a mat-stroked-button routerLink="/maker/rules/new">Create rule</a>
+      <a mat-flat-button color="primary" routerLink="/maker/rules/new"><mat-icon>add</mat-icon>Create rule</a>
     </div>
   } @else {
     <!-- Top toolbar -->
     <div class="toolbar">
+      <span class="search-wrap">
+      <mat-icon aria-hidden="true">search</mat-icon>
       <input
         type="search"
         class="field"
+        aria-label="Filter by name"
         placeholder="Filter by name (this page)"
         [(ngModel)]="searchQuery"
         name="ruleSearch"
       />
+      </span>
 
       <select
         class="field select"
+        aria-label="Filter by status"
         [(ngModel)]="statusFilter"
         name="ruleStatus"
         (ngModelChange)="onStatusChange()"
@@ -59,6 +75,7 @@
           [disabled]="page() === 0"
           (click)="prevPage()"
         >
+          <mat-icon>chevron_left</mat-icon>
           Previous
         </button>
 
@@ -71,12 +88,13 @@
           (click)="nextPage()"
         >
           Next
+          <mat-icon iconPositionEnd>chevron_right</mat-icon>
         </button>
       </div>
     </div>
 
     <!-- Rule cards grid -->
-    <div class="grid">
+    <div class="grid is-stagger">
       @for (r of displayedRows(); track r.id) {
         <a class="rule-card" [routerLink]="['/maker/rules', r.id]">
           <div class="card-top">
@@ -87,6 +105,7 @@
           <h2>{{ r.ruleName }}</h2>
 
           <p class="desc">{{ r.ruleDescription || '—' }}</p>
+          <span class="open-hint" aria-hidden="true">Open rule <mat-icon>arrow_forward</mat-icon></span>
 
           <div class="chips">
             <span class="chip">

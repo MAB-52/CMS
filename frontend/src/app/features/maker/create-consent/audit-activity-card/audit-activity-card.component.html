@@ -1,7 +1,7 @@
 <div class="card">
   <div class="head">
-    <h2 class="title">🕐 Recent Activity</h2>
-    <a routerLink="/maker/audit" class="link">View All →</a>
+    <h2 class="title"><span class="title-ico" aria-hidden="true"><mat-icon>history</mat-icon></span>Recent Activity</h2>
+    <a routerLink="/maker/audit" class="link">View All <mat-icon>arrow_forward</mat-icon></a>
   </div>
 
   @if (!consentDbId) {
@@ -9,12 +9,13 @@
   } @else if (loading) {
     <div class="skel-list">
       @for (x of [1, 2, 3, 4, 5]; track x) {
-        <div class="skel-row"></div>
+        <div class="is-skeleton skel-row"></div>
       }
     </div>
   } @else if (error) {
-    <div class="err">
-      Failed to load activity.
+    <div class="err" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>Failed to load activity.</span>
       <button type="button" mat-stroked-button (click)="load()">Retry</button>
     </div>
   } @else if (!entries.length) {
@@ -22,8 +23,9 @@
   } @else {
     <div class="timeline">
       @for (e of entries; track e.id) {
+        @let t = timelineIcon(e.action);
         <div class="tl-row">
-          <div class="tl-dot">{{ iconFor(e.action) }}</div>
+          <div class="tl-dot tl-dot--{{ t.tone }}" aria-hidden="true"><mat-icon>{{ t.icon }}</mat-icon></div>
           <div class="tl-body">
             <div class="tl-action">{{ e.action.replaceAll('_', ' ') }}</div>
             <div class="tl-desc">{{ e.description }}</div>

@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MergeTag } from '../../../core/models/consent.model';
 
 export interface ConsentPreviewDialogData {
@@ -12,7 +13,7 @@ export interface ConsentPreviewDialogData {
 @Component({
   selector: 'app-consent-preview-dialog',
   standalone: true,
-  imports: [MatDialogModule, MatButtonModule],
+  imports: [MatDialogModule, MatButtonModule, MatIconModule],
   templateUrl: './consent-preview-dialog.component.html',
   styleUrls: ['./consent-preview-dialog.component.css'],
 })

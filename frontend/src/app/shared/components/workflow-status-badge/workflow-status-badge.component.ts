@@ -44,6 +44,21 @@ export class WorkflowStatusBadgeComponent {
     return map[s] || s.replace(/_/g, ' ');
   }
 
+  /** Maps a workflow variant onto the shared design-system badge tone. */
+  toneFor(variant: WorkflowStatusVariant): string {
+    const tones: Record<WorkflowStatusVariant, string> = {
+      slate: 'neutral',
+      amber: 'warning',
+      emerald: 'success',
+      red: 'danger',
+      orange: 'orange',
+      indigo: 'primary',
+      teal: 'teal',
+      rose: 'danger',
+    };
+    return tones[variant];
+  }
+
   get variant(): WorkflowStatusVariant {
     switch (this.status) {
       case 'DRAFT':

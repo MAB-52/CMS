@@ -27,7 +27,7 @@ import { NotificationService } from '../../../../core/services/notification.serv
     MatProgressBarModule,
   ],
   templateUrl: './mis-report-audit-tab.component.html',
-  styleUrl: './mis-report-audit-tab.component.css',
+  styleUrls: ['../mis-tab-shared.css', './mis-report-audit-tab.component.css'],
 })
 export class MisReportAuditTabComponent implements OnInit, OnDestroy {
   private readonly adminApi = inject(AdminService);

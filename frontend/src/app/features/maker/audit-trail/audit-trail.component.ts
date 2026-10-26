@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AuditService } from '../../../core/services/audit.service';
@@ -36,6 +37,7 @@ type AuditTypeFilter = 'all' | 'consents' | 'broadcasts' | 'rules' | 'decisions'
     MatCardModule,
     MatTableModule,
     MatButtonModule,
+    MatIconModule,
     MatTooltipModule,
     RouterLink,
     FormsModule,

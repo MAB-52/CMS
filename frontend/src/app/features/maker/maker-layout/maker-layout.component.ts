@@ -1,14 +1,14 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { ConsentService } from '../../../core/services/consent.service';
-import { MakerSidebarComponent } from '../maker-sidebar/maker-sidebar.component';
-import { MakerTopbarComponent } from '../maker-topbar/maker-topbar.component';
+import { AppShellComponent } from '../../../shared/layout/app-shell/app-shell.component';
+import { ShellNavGroup } from '../../../shared/layout/app-shell/app-shell.model';
 
 @Component({
   selector: 'app-maker-layout',
   standalone: true,
-  imports: [MakerSidebarComponent, MakerTopbarComponent, RouterOutlet],
+  imports: [AppShellComponent, RouterOutlet],
   templateUrl: './maker-layout.component.html',
   styleUrl: './maker-layout.component.css',
 })
@@ -18,6 +18,25 @@ export class MakerLayoutComponent implements OnInit {
 
   readonly pageTitle = signal('Dashboard');
   readonly revisionCount = signal(0);
+
+  readonly nav = computed<ShellNavGroup[]>(() => [
+    {
+      label: 'Workspace',
+      items: [
+        { label: 'Dashboard', icon: 'dashboard', link: '/maker/dashboard' },
+        { label: 'My Consents', icon: 'assignment', link: '/maker/consents', exact: true, count: this.revisionCount() },
+        { label: 'Create Consent', icon: 'edit_note', link: '/maker/consents/new', tag: '+ NEW' },
+      ],
+    },
+    {
+      label: 'Automation',
+      items: [{ label: 'Broadcast Rule', icon: 'rule', link: '/maker/rules' }],
+    },
+    {
+      label: 'Activity',
+      items: [{ label: 'Audit Trail', icon: 'history', link: '/maker/audit' }],
+    },
+  ]);
 
   ngOnInit(): void {
     this.syncRouteTitle();

@@ -1,7 +1,7 @@
 <div class="card" [formGroup]="form">
 
   <!-- Hidden image file input -->
-  <input #imageInput type="file" accept="image/*" style="display:none"
+  <input #imageInput type="file" accept="image/*" class="file-input-hidden" aria-hidden="true" tabindex="-1"
     (change)="onImageSelected($event)" />
 
   <!-- ── Header ─────────────────────────────────────────────── -->
@@ -42,7 +42,7 @@
     <button type="button" class="tb-btn" [class.tb-btn--active]="isActive('bold')"
       title="Bold" (click)="toggleBold()"><b>B</b></button>
     <button type="button" class="tb-btn" [class.tb-btn--active]="isActive('italic')"
-      title="Italic" (click)="toggleItalic()"><i style="font-style:italic;">I</i></button>
+      title="Italic" (click)="toggleItalic()"><i class="tb-italic">I</i></button>
     <button type="button" class="tb-btn" [class.tb-btn--active]="isActive('underline')"
       title="Underline" (click)="toggleUnderline()"><u>U</u></button>
     <button type="button" class="tb-btn" [class.tb-btn--active]="isActive('strike')"

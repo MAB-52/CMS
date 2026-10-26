@@ -33,7 +33,7 @@
     <div class="cc-results cc-results--visible">
 
       <!-- ── CUSTOMER PROFILE ─────────────────────────────────────────── -->
-      <div class="cc-profile cc-card cc-animate" style="--delay: 0ms">
+      <div class="cc-profile cc-card cc-animate" >
         <div class="cc-profile__avatar">
           <span>{{ (c.fullName || 'U').charAt(0).toUpperCase() }}</span>
         </div>
@@ -71,7 +71,7 @@
       </div>
 
       <!-- ── CONSENT HISTORY ──────────────────────────────────────────── -->
-      <div class="cc-card cc-animate" style="--delay: 60ms">
+      <div class="cc-card cc-animate cc-d1">
         <div class="cc-card__header">
           <span class="cc-card__title">Consent record history</span>
           <span class="cc-record-count">{{ consentHistory().length }} record{{ consentHistory().length !== 1 ? 's' : '' }}</span>
@@ -109,7 +109,7 @@
       <div class="cc-actions">
 
         <!-- LEFT: Send via link -->
-        <div class="cc-card cc-action-card cc-animate" style="--delay: 120ms">
+        <div class="cc-card cc-action-card cc-animate cc-d2">
           <div class="cc-action-card__accent cc-action-card__accent--blue"></div>
           <div class="cc-card__header">
             <span class="cc-card__title">Send consent via link</span>
@@ -171,7 +171,7 @@
         </div>
 
         <!-- RIGHT: On behalf -->
-        <div class="cc-card cc-action-card cc-animate" style="--delay: 160ms">
+        <div class="cc-card cc-action-card cc-animate cc-d3">
           <div class="cc-action-card__accent cc-action-card__accent--green"></div>
           <div class="cc-card__header">
             <span class="cc-card__title">Take consent on behalf</span>

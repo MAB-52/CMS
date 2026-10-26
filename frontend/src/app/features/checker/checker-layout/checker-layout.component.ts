@@ -5,13 +5,13 @@ import { forkJoin } from 'rxjs';
 import { ConsentService } from '../../../core/services/consent.service';
 import { ConsentRulesService } from '../../../core/services/consent-rules.service';
 import { BroadcastsService } from '../../../core/services/broadcasts.service';
-import { CheckerSidebarComponent } from '../checker-sidebar/checker-sidebar.component';
-import { CheckerTopbarComponent } from '../checker-topbar/checker-topbar.component';
+import { AppShellComponent } from '../../../shared/layout/app-shell/app-shell.component';
+import { ShellNavGroup } from '../../../shared/layout/app-shell/app-shell.model';
 
 @Component({
   selector: 'app-checker-layout',
   standalone: true,
-  imports: [CheckerSidebarComponent, CheckerTopbarComponent, RouterOutlet],
+  imports: [AppShellComponent, RouterOutlet],
   templateUrl: './checker-layout.component.html',
   styleUrl: './checker-layout.component.css',
 })
@@ -23,6 +23,19 @@ export class CheckerLayoutComponent implements OnInit {
 
   readonly pageTitle = signal('Dashboard');
   readonly pendingCount = signal(0);
+
+  readonly nav: ShellNavGroup[] = [
+    {
+      label: 'Review Queue',
+      items: [
+        { label: 'Dashboard', icon: 'dashboard', link: '/checker/dashboard' },
+        { label: 'Pending Consents', icon: 'pending_actions', link: '/checker/pending' },
+        { label: 'Linked consent + rule', icon: 'link', link: '/checker/linked-pending' },
+        { label: 'Pending Broadcast Rules', icon: 'rule', link: '/checker/rules/pending' },
+        { label: 'Review History', icon: 'history', link: '/checker/history' },
+      ],
+    },
+  ];
 
   ngOnInit(): void {
     this.syncRouteTitle();

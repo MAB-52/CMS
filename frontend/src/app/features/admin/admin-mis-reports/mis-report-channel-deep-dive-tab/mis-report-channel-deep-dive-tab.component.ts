@@ -27,7 +27,7 @@ import { NotificationService } from '../../../../core/services/notification.serv
     MatTooltipModule,
   ],
   templateUrl: './mis-report-channel-deep-dive-tab.component.html',
-  styleUrl: './mis-report-channel-deep-dive-tab.component.css',
+  styleUrls: ['../mis-tab-shared.css', './mis-report-channel-deep-dive-tab.component.css'],
 })
 export class MisReportChannelDeepDiveTabComponent implements OnInit, OnDestroy {
   private readonly adminApi = inject(AdminService);
@@ -103,25 +103,29 @@ export class MisReportChannelDeepDiveTabComponent implements OnInit, OnDestroy {
 
   // ── Heat helpers ────────────────────────────────────────────────────────────
 
+  // Interact Suite status scale: --is-red (#DC3545) → --is-green (#198754).
   heatBg(rate: number): string {
-    const t = Math.max(0, Math.min(100, rate)) / 100;
-    const r = Math.round(239 + (34 - 239) * t);
-    const g = Math.round(68 + (197 - 68) * t);
-    const b = Math.round(68 + (94 - 68) * t);
-    return `rgba(${r},${g},${b},0.14)`;
+    const [r, g, b] = this.heatRgb(rate);
+    return `rgba(${r},${g},${b},0.12)`;
   }
 
   heatColor(rate: number): string {
-    const t = Math.max(0, Math.min(100, rate)) / 100;
-    const r = Math.round(185 + (21 - 185) * t);
-    const g = Math.round(28 + (163 - 28) * t);
-    const b = Math.round(28 + (74 - 28) * t);
+    const [r, g, b] = this.heatRgb(rate);
     return `rgb(${r},${g},${b})`;
   }
 
   heatGradient(rate: number): string {
-    const color = this.heatColor(rate);
-    return `linear-gradient(90deg, ${color}cc, ${color})`;
+    const [r, g, b] = this.heatRgb(rate);
+    return `linear-gradient(90deg, rgba(${r},${g},${b},0.65), rgb(${r},${g},${b}))`;
+  }
+
+  private heatRgb(rate: number): [number, number, number] {
+    const t = Math.max(0, Math.min(100, rate)) / 100;
+    return [
+      Math.round(220 + (25 - 220) * t),
+      Math.round(53 + (135 - 53) * t),
+      Math.round(69 + (84 - 69) * t),
+    ];
   }
 
   rateLabel(rate: number): string {

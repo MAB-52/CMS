@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
 import { ConsentRulesService } from '../../../core/services/consent-rules.service';
 import { AuditService } from '../../../core/services/audit.service';
@@ -15,7 +16,7 @@ import { CommonModule } from '@angular/common';
 @Component({
   selector: 'app-checker-rule-review',
   standalone: true,
-  imports: [RouterLink, MatButtonModule, WorkflowStatusBadgeComponent, CommonModule],
+  imports: [RouterLink, MatButtonModule, MatIconModule, WorkflowStatusBadgeComponent, CommonModule],
   templateUrl: './checker-rule-review.component.html',
   styleUrl: './checker-rule-review.component.css',
 })
@@ -56,7 +57,7 @@ export class CheckerRuleReviewComponent implements OnInit {
   //   }
   //   const data: ConfirmDialogData = {
   //     icon: '✅',
-  //     iconColor: 'rgba(22,163,74,0.15)',
+  //     iconColor: 'rgba(25,135,84,0.15)',
   //     title: 'Approve this rule?',
   //     body: `'${r.ruleName}' will be marked approved. The maker can publish it live when ready.`,
   //     cancelLabel: 'Cancel',
@@ -90,7 +91,7 @@ export class CheckerRuleReviewComponent implements OnInit {
     const data: ReviewActionDialogData = {
       title: 'Approve this rule',
       icon: '✅',
-      iconColor: 'rgba(22,163,74,0.15)',
+      iconColor: 'rgba(25,135,84,0.15)',
       textareaLabel: 'Reason for approval',
       placeholder: 'Describe why this rule meets the required criteria…',
       confirmLabel: 'Confirm Approval',
@@ -129,7 +130,7 @@ export class CheckerRuleReviewComponent implements OnInit {
     const data: ReviewActionDialogData = {
       title: 'Request revision',
       icon: '↩',
-      iconColor: '#d97706',
+      iconColor: '#EA6B28',
       textareaLabel: 'What should the maker change?',
       placeholder: 'Be specific about policy, segments, or schedule…',
       confirmLabel: 'Send revision request',
@@ -163,7 +164,7 @@ export class CheckerRuleReviewComponent implements OnInit {
     const data: ReviewActionDialogData = {
       title: 'Reject rule',
       icon: '❌',
-      iconColor: '#dc2626',
+      iconColor: '#DC3545',
       textareaLabel: 'Reason for rejection',
       placeholder: 'Provide a clear reason…',
       confirmLabel: 'Reject',

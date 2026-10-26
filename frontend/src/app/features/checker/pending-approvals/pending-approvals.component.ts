@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
 import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -21,6 +22,7 @@ import { ConsentPreviewDialogComponent, ConsentPreviewDialogData } from '../../.
   standalone: true,
   imports: [
     MatButtonModule,
+    MatIconModule,
     FormsModule,
     MatFormFieldModule,
     MatInputModule,

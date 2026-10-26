@@ -31,7 +31,7 @@ export type SortOption = 'date' | 'name' | 'type';
     ConsentTypeLabelPipe,
   ],
   templateUrl: './linked-approvals.component.html',
-  styleUrl: './linked-approvals.component.css',
+  styleUrls: ['../checker-shared.css', './linked-approvals.component.css'],
 })
 export class LinkedApprovalsComponent implements OnInit {
   private readonly consentApi = inject(ConsentService);

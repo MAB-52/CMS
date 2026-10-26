@@ -1,9 +1,9 @@
-<div class="shell">
-      <app-admin-sidebar />
-      <div class="main">
-        <app-admin-topbar [pageTitle]="pageTitle()" />
-        <div class="content">
-          <router-outlet />
-        </div>
-      </div>
-    </div>
+<app-shell
+  workspaceLabel="Admin Workspace"
+  roleLabel="System · Admin"
+  crumbLabel="Admin"
+  [pageTitle]="pageTitle()"
+  [nav]="nav"
+>
+  <router-outlet />
+</app-shell>

@@ -1,17 +1,22 @@
 <div class="dlg" [attr.data-color]="data.confirmColor">
+  <div class="brand-bar" aria-hidden="true"></div>
+
   <div class="head">
     @if (data.icon) {
-      <div class="icon-wrap" [attr.data-color]="data.confirmColor">
-        <span class="ico">{{ data.icon }}</span>
+      <div class="icon-wrap" [attr.data-color]="data.confirmColor" aria-hidden="true">
+        <mat-icon class="ico">{{ materialIcon() }}</mat-icon>
       </div>
     }
 
     <div class="head-copy">
       <h2 class="ttl">{{ data.title }}</h2>
+      <p class="head-sub">Your comment is recorded in the audit trail and shared with the maker.</p>
     </div>
-  </div>
 
-  <div class="divider"></div>
+    <button type="button" class="close-x" mat-dialog-close aria-label="Close dialog">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
 
   <mat-dialog-content class="content">
     <mat-form-field appearance="outline" floatLabel="always" class="full">
@@ -35,12 +40,12 @@
     }
 
     @if (submitted && text.invalid) {
-      <p class="err">Please enter at least {{ data.minLength }} characters.</p>
+      <p class="err" role="alert"><mat-icon aria-hidden="true">error_outline</mat-icon>Please enter at least {{ data.minLength }} characters.</p>
     }
   </mat-dialog-content>
 
   <mat-dialog-actions class="actions">
-    <button type="button" mat-button class="cancel-btn" mat-dialog-close>
+    <button type="button" mat-stroked-button class="cancel-btn" mat-dialog-close>
       Cancel
     </button>
 

@@ -57,13 +57,13 @@
         <h1>{{ c.consentName }}</h1>
         <div class="summary-meta">
           <span class="mono">{{ c.consentId }}</span>
-          <span class="meta-dot">·</span>
+          <span class="meta-dot" aria-hidden="true"></span>
           <span>Rule: <strong>{{ r.ruleName }}</strong></span>
-          <span class="meta-dot">·</span>
+          <span class="meta-dot" aria-hidden="true"></span>
           <span>{{ c.category }}</span>
-          <span class="meta-dot">·</span>
+          <span class="meta-dot" aria-hidden="true"></span>
           <span>{{ c.submittedAt | date: 'dd MMM yyyy' }}</span>
-          <span class="meta-dot">·</span>
+          <span class="meta-dot" aria-hidden="true"></span>
           <span>by {{ c.createdBy?.fullName || '—' }}</span>
         </div>
       </div>
@@ -221,7 +221,7 @@
               Consent <strong>{{ c.consentName }}</strong> v{{ c.version }}
               · Rule <strong>{{ r.ruleName }}</strong>
             </div>
-            <div class="reviewed-tracker">{{ viewedCount() }}/{{ totalCombinations() }} combinations viewed</div>
+            <div class="reviewed-tracker" [class.reviewed-tracker--done]="viewedCount() >= totalCombinations()">{{ viewedCount() }}/{{ totalCombinations() }} combinations viewed</div>
           </div>
           <div class="d-btns">
             <button

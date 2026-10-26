@@ -21,7 +21,7 @@ import { NotificationService } from '../../../../core/services/notification.serv
     MatTooltipModule,
   ],
   templateUrl: './mis-report-consent-leaderboard-tab.component.html',
-  styleUrl: './mis-report-consent-leaderboard-tab.component.css',
+  styleUrls: ['../mis-tab-shared.css', './mis-report-consent-leaderboard-tab.component.css'],
 })
 export class MisReportConsentLeaderboardTabComponent implements OnInit, OnDestroy {
   private readonly adminApi  = inject(AdminService);

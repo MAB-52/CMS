@@ -1,26 +1,36 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  font-family: var(--is-font);
+  background:
+    radial-gradient(900px 420px at 0% 0%, rgba(69, 50, 158, 0.14), transparent 70%),
+    radial-gradient(800px 400px at 100% 100%, rgba(234, 107, 40, 0.12), transparent 70%),
+    var(--is-canvas);
+}
+
 .wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 40vh;
-  padding: 2rem;
-  border-radius: 20px;
-  background: linear-gradient(180deg, #ffffff 0%, #fcfcff 100%);
-  border: 1px solid #e6e9f2;
-  box-shadow: 0 8px 24px rgba(31, 41, 84, 0.05);
+  gap: var(--is-s-4);
+  min-height: 100vh;
+  padding: var(--is-s-6) var(--is-s-4);
 }
 
 .err {
   max-width: 28rem;
   margin: 0;
-  padding: 14px 16px;
-  text-align: center;
-  color: #c45656;
-  background: #fdecec;
-  border: 1px solid #f5d0d0;
-  border-radius: 14px;
-  font-size: 14px;
-  font-weight: 600;
+  padding: var(--is-s-4) var(--is-s-5);
+  border-radius: var(--is-r-md);
+  border: 1px solid var(--is-danger-border);
+  border-left: 4px solid var(--is-danger);
+  background: var(--is-surface);
+  box-shadow: var(--is-shadow-soft);
+  color: var(--is-danger-text);
+  font-size: var(--is-fs-body);
+  font-weight: var(--is-fw-semibold);
   line-height: 1.7;
+  text-align: center;
+  animation: is-scale-in var(--is-dur-slow) var(--is-ease) both;
 }

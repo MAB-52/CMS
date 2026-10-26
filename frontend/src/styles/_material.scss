@@ -1,0 +1,370 @@
+// Angular Material (M3) aligned to the Interact Suite design system.
+// System tokens are remapped so every Material component inherits the
+// brand palette, Nunito typography and the PDF's shape scale.
+@use '@angular/material' as mat;
+
+html {
+  @include mat.theme((
+    color: (
+      primary: mat.$violet-palette,
+      tertiary: mat.$orange-palette,
+      theme-type: light,
+    ),
+    typography: (
+      plain-family: 'Nunito',
+      brand-family: 'Nunito',
+      bold-weight: 700,
+      medium-weight: 600,
+      regular-weight: 400,
+    ),
+    density: 0,
+  ));
+
+  @include mat.theme-overrides((
+    primary: #45329E,
+    on-primary: #FFFFFF,
+    primary-container: #F3F0FB,
+    on-primary-container: #2E1475,
+    secondary: #45329E,
+    on-secondary: #FFFFFF,
+    secondary-container: #F3F0FB,
+    on-secondary-container: #2E1475,
+    tertiary: #EA6B28,
+    on-tertiary: #FFFFFF,
+    tertiary-container: #FFF1E9,
+    on-tertiary-container: #7A2E06,
+    error: #DC3545,
+    on-error: #FFFFFF,
+    error-container: #FBE7E9,
+    on-error-container: #842029,
+    background: #F7F8FC,
+    on-background: #000000,
+    surface: #FFFFFF,
+    on-surface: #000000,
+    on-surface-variant: #64748B,
+    surface-container-lowest: #FFFFFF,
+    surface-container-low: #FBFBFE,
+    surface-container: #FFFFFF,
+    surface-container-high: #FFFFFF,
+    surface-container-highest: #F1F5F9,
+    outline: #CBD5E1,
+    outline-variant: #E2E8F0,
+    corner-extra-small: 6px,
+    corner-small: 8px,
+    corner-medium: 12px,
+    corner-large: 16px,
+    corner-extra-large: 24px,
+    corner-full: 999px,
+  ));
+
+  @include mat.form-field-overrides((
+    outlined-container-shape: 8px,
+    outlined-outline-color: #E2E8F0,
+    outlined-hover-outline-color: #A99FD6,
+    outlined-focus-outline-color: #45329E,
+    outlined-focus-outline-width: 2px,
+    outlined-label-text-color: #64748B,
+    outlined-focus-label-text-color: #45329E,
+    outlined-input-text-color: #000000,
+    outlined-input-text-placeholder-color: #94A3B8,
+    outlined-caret-color: #45329E,
+    filled-container-shape: 8px,
+    filled-container-color: #F7F8FC,
+    container-height: 48px,
+    container-vertical-padding: 12px,
+    container-text-size: 14px,
+  ));
+
+  @include mat.button-overrides((
+    filled-container-shape: 999px,
+    outlined-container-shape: 999px,
+    protected-container-shape: 999px,
+    text-container-shape: 999px,
+    tonal-container-shape: 999px,
+    filled-label-text-weight: 700,
+    outlined-label-text-weight: 700,
+    protected-label-text-weight: 700,
+    text-label-text-weight: 700,
+    filled-label-text-size: 14px,
+    outlined-label-text-size: 14px,
+    text-label-text-size: 14px,
+    outlined-outline-color: #45329E,
+    outlined-label-text-color: #45329E,
+    text-label-text-color: #45329E,
+  ));
+
+  @include mat.dialog-overrides((
+    container-shape: 24px,
+    container-color: #FFFFFF,
+    subhead-color: #000000,
+    supporting-text-color: #64748B,
+  ));
+
+  @include mat.tabs-overrides((
+    active-indicator-color: #45329E,
+    active-focus-indicator-color: #45329E,
+    active-hover-indicator-color: #45329E,
+    active-label-text-color: #45329E,
+    active-focus-label-text-color: #45329E,
+    active-hover-label-text-color: #45329E,
+    inactive-label-text-color: #64748B,
+    active-indicator-height: 3px,
+    label-text-weight: 700,
+    divider-color: #E2E8F0,
+  ));
+
+  @include mat.table-overrides((
+    background-color: #FFFFFF,
+    header-headline-color: #64748B,
+    row-item-label-text-color: #000000,
+    row-item-outline-color: #EEF1F6,
+  ));
+
+  @include mat.select-overrides((
+    panel-background-color: #FFFFFF,
+    focused-arrow-color: #45329E,
+    trigger-text-size: 14px,
+  ));
+
+  @include mat.menu-overrides((
+    container-shape: 12px,
+  ));
+
+  @include mat.chips-overrides((
+    container-shape-radius: 999px,
+  ));
+
+  @include mat.progress-spinner-overrides((
+    active-indicator-color: #45329E,
+  ));
+
+  @include mat.progress-bar-overrides((
+    active-indicator-color: #45329E,
+    track-color: #F3F0FB,
+  ));
+}
+
+// ─── Buttons ────────────────────────────────────────────────
+// Primary (filled / raised) → dark gradient pill · 44px min height
+.mat-mdc-unelevated-button,
+.mat-mdc-raised-button {
+  &:not(:disabled):not(.mat-warn) {
+    background: var(--is-grad-primary) !important;
+    color: var(--is-text-inverse) !important;
+    box-shadow: 0 6px 16px rgba(46, 20, 117, 0.22);
+    transition: transform var(--is-dur-fast) var(--is-ease),
+                box-shadow var(--is-dur) var(--is-ease),
+                filter var(--is-dur) ease;
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--is-shadow-primary);
+      filter: brightness(1.06);
+    }
+    &:active { transform: translateY(0); filter: brightness(0.98); }
+  }
+  &.mat-accent:not(:disabled) {
+    background: var(--is-grad-brand) !important;
+  }
+  &.mat-warn:not(:disabled) {
+    background: var(--is-danger) !important;
+    color: var(--is-text-inverse) !important;
+  }
+}
+
+.mat-mdc-unelevated-button,
+.mat-mdc-raised-button,
+.mat-mdc-outlined-button {
+  min-height: 44px;
+  padding: 0 24px !important;
+  letter-spacing: 0.01em !important;
+  font-family: var(--is-font) !important;
+  font-weight: var(--is-fw-bold) !important;
+
+  .mat-icon { margin-right: 6px; font-size: 20px; width: 20px; height: 20px; }
+}
+
+// Secondary (stroked) → outlined pill
+.mat-mdc-outlined-button:not(:disabled) {
+  background: var(--is-surface);
+  transition: background-color var(--is-dur) ease, transform var(--is-dur-fast) var(--is-ease),
+              box-shadow var(--is-dur) ease;
+  &:hover {
+    background: var(--is-tint-purple);
+    transform: translateY(-1px);
+    box-shadow: var(--is-shadow-xs);
+  }
+  &.mat-warn {
+    --mat-button-outlined-outline-color: var(--is-danger);
+    --mat-button-outlined-label-text-color: var(--is-danger-text);
+    &:hover { background: var(--is-danger-bg); }
+  }
+}
+
+.mat-mdc-button:not(:disabled) {
+  font-weight: var(--is-fw-bold);
+  &:hover { background: var(--is-tint-purple); }
+}
+
+.mat-mdc-unelevated-button:disabled,
+.mat-mdc-raised-button:disabled,
+.mat-mdc-outlined-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.mat-mdc-icon-button {
+  --mat-icon-button-state-layer-color: var(--is-primary);
+  color: inherit;
+}
+
+// ─── Form fields ─────────────────────────────────────────────
+.mat-mdc-form-field {
+  font-family: var(--is-font);
+
+  .mdc-text-field--outlined:not(.mdc-text-field--disabled) {
+    background: var(--is-surface);
+    border-radius: var(--is-r-field);
+  }
+  .mat-mdc-form-field-icon-prefix, .mat-mdc-form-field-icon-suffix {
+    color: var(--is-text-2);
+  }
+  &.mat-focused .mat-mdc-form-field-icon-prefix { color: var(--is-primary); }
+}
+.mat-mdc-form-field-error { font-size: var(--is-fs-xs); font-weight: var(--is-fw-semibold); }
+.mat-mdc-form-field-hint { font-size: var(--is-fs-xs); color: var(--is-text-2); }
+
+// ─── Overlay panels (select / autocomplete / menu / datepicker) ──
+.mat-mdc-select-panel,
+.mat-mdc-autocomplete-panel,
+.mat-mdc-menu-panel {
+  border-radius: var(--is-r-sm) !important;
+  box-shadow: var(--is-shadow-raised) !important;
+  border: 1px solid var(--is-border);
+  padding: 6px !important;
+  animation: is-scale-in var(--is-dur) var(--is-ease) both;
+}
+.mat-mdc-option {
+  border-radius: var(--is-r-field);
+  min-height: 40px !important;
+  font-size: var(--is-fs-body);
+  &.mdc-list-item--selected:not(.mdc-list-item--disabled) {
+    background: var(--is-tint-purple) !important;
+    .mdc-list-item__primary-text { color: var(--is-primary) !important; font-weight: var(--is-fw-bold); }
+  }
+}
+.mat-datepicker-content {
+  border-radius: var(--is-r-md) !important;
+  box-shadow: var(--is-shadow-raised) !important;
+}
+
+// ─── Dialogs ─────────────────────────────────────────────────
+.cdk-overlay-backdrop.cdk-overlay-dark-backdrop {
+  background: rgba(23, 18, 54, 0.45);
+  backdrop-filter: blur(3px);
+}
+.mat-mdc-dialog-container .mat-mdc-dialog-surface {
+  border-radius: var(--is-r-card) !important;
+  box-shadow: var(--is-shadow-raised) !important;
+  overflow: hidden;
+}
+.mat-mdc-dialog-container {
+  animation: is-scale-in var(--is-dur-slow) var(--is-ease) both;
+}
+.mat-mdc-dialog-title { font-family: var(--is-font) !important; font-weight: var(--is-fw-bold) !important; }
+
+// ─── Tabs ────────────────────────────────────────────────────
+.mat-mdc-tab-group .mat-mdc-tab {
+  font-family: var(--is-font);
+  letter-spacing: 0.01em;
+}
+.mat-mdc-tab .mdc-tab-indicator__content--underline {
+  border-radius: 3px 3px 0 0;
+}
+
+// ─── Tables ──────────────────────────────────────────────────
+.mat-mdc-table {
+  font-family: var(--is-font);
+  .mat-mdc-header-cell {
+    font-size: var(--is-fs-xs);
+    font-weight: var(--is-fw-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: var(--is-surface-2);
+  }
+  .mat-mdc-row { transition: background-color var(--is-dur-fast) ease; }
+  .mat-mdc-row:hover { background: var(--is-tint-purple); }
+}
+
+// ─── Chips ───────────────────────────────────────────────────
+.mat-mdc-chip { font-weight: var(--is-fw-semibold); }
+
+// ─── Tooltips ────────────────────────────────────────────────
+.mat-mdc-tooltip .mdc-tooltip__surface {
+  background: #1C1446 !important;
+  border-radius: var(--is-r-field) !important;
+  font-family: var(--is-font) !important;
+  font-size: var(--is-fs-xs) !important;
+  padding: 6px 10px !important;
+}
+
+// ─── Expansion panels ────────────────────────────────────────
+.mat-expansion-panel {
+  border-radius: var(--is-r-md) !important;
+  border: 1px solid var(--is-border);
+  box-shadow: none !important;
+  &.mat-expanded { box-shadow: var(--is-shadow-soft) !important; }
+}
+
+// ─── Checkbox / radio / slide ─────────────────────────────────
+.mat-mdc-checkbox, .mat-mdc-radio-button {
+  --mat-checkbox-label-text-font: var(--is-font);
+  --mat-radio-label-text-font: var(--is-font);
+}
+
+// ─── Button toggle ───────────────────────────────────────────
+.mat-button-toggle-group-appearance-standard {
+  border-radius: var(--is-r-pill) !important;
+  border-color: var(--is-border) !important;
+  .mat-button-toggle-checked {
+    background: var(--is-tint-purple);
+    color: var(--is-primary);
+    font-weight: var(--is-fw-bold);
+  }
+}
+
+// Outline notch: prevent a stray right border on the floating-label notch.
+.mdc-notched-outline__notch { border-right: none !important; }
+
+// ─── Shell user menu ─────────────────────────────────────────
+.is-user-menu.mat-mdc-menu-panel {
+  min-width: 240px;
+  border-radius: var(--is-r-md) !important;
+}
+.is-user-menu .user-menu__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+  padding: 10px 12px 14px;
+  border-bottom: 1px solid var(--is-border);
+}
+.is-user-menu .user-menu__avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--is-grad-banner);
+  color: #fff;
+  font-weight: var(--is-fw-black);
+}
+.is-user-menu .user-menu__name { font-weight: var(--is-fw-bold); color: var(--is-text); }
+.is-user-menu .user-menu__role { font-size: var(--is-fs-xs); color: var(--is-text-2); }
+.is-user-menu .mat-mdc-menu-item {
+  border-radius: var(--is-r-field);
+  min-height: 44px;
+  color: var(--is-primary);
+  font-weight: var(--is-fw-bold);
+  .mat-icon { color: var(--is-primary); }
+  &:hover { background: var(--is-tint-purple); }
+}

@@ -1,0 +1,195 @@
+/*
+ * Shared MIS report tab styles (Interact Suite).
+ * Included first in every MIS tab's styleUrls; tab-specific
+ * stylesheets only add what is unique to that report.
+ */
+:host {
+  display: block;
+  font-family: var(--is-font);
+  animation: is-fade-up var(--is-dur-slow) var(--is-ease) both;
+}
+
+/* ── Toolbar ──────────────────────────────────────────── */
+.tab-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--is-s-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--is-s-4);
+}
+.toolbar-left { display: grid; gap: 4px; min-width: 0; }
+.toolbar-title {
+  margin: 0;
+  font-size: var(--is-fs-lg);
+  line-height: 26px;
+  font-weight: var(--is-fw-bold);
+  color: var(--is-text);
+}
+.toolbar-sub {
+  margin: 0;
+  font-size: var(--is-fs-sm);
+  color: var(--is-text-2);
+}
+.exports {
+  display: flex;
+  gap: var(--is-s-2);
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+.exports button .mat-icon { margin-right: 4px; }
+
+/* ── Filters ──────────────────────────────────────────── */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--is-s-3);
+  align-items: center;
+  margin-bottom: var(--is-s-4);
+  padding: var(--is-s-4);
+  background: var(--is-surface);
+  border: 1px solid var(--is-border);
+  border-radius: var(--is-r-md);
+  box-shadow: var(--is-shadow-xs);
+}
+.ff { min-width: 170px; }
+.ff-grow { flex: 1; min-width: 220px; }
+.ff-date {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ff-date span {
+  font-size: var(--is-fs-2xs);
+  font-weight: var(--is-fw-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--is-text-2);
+}
+.ff-date input {
+  height: 48px;
+  padding: 0 12px;
+  border: 1px solid var(--is-border);
+  border-radius: var(--is-r-field);
+  background: var(--is-surface);
+  color: var(--is-text);
+  font: var(--is-fw-regular) var(--is-fs-body) var(--is-font);
+  transition: border-color var(--is-dur) ease, box-shadow var(--is-dur) ease;
+}
+.ff-date input:hover { border-color: var(--is-border-strong); }
+.ff-date input:focus {
+  outline: none;
+  border-color: var(--is-primary);
+  box-shadow: var(--is-ring);
+}
+
+/* Compact Material fields inside MIS filter bars only */
+:host ::ng-deep .filters .mat-mdc-form-field-subscript-wrapper { display: none; }
+
+/* ── Table ────────────────────────────────────────────── */
+.table-wrap {
+  overflow: auto;
+  max-height: 62vh;
+  border: 1px solid var(--is-border);
+  border-radius: var(--is-r-md);
+  background: var(--is-surface);
+  box-shadow: var(--is-shadow-soft);
+}
+.data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--is-fs-body);
+}
+.data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 12px 16px;
+  text-align: left;
+  white-space: nowrap;
+  font-size: var(--is-fs-2xs);
+  font-weight: var(--is-fw-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--is-text-2);
+  background: var(--is-surface-2);
+  border-bottom: 1px solid var(--is-border);
+}
+.data-table td {
+  padding: 14px 16px;
+  color: var(--is-text);
+  vertical-align: middle;
+  line-height: 1.45;
+  border-bottom: 1px solid var(--is-border);
+}
+.data-table tbody tr { transition: background-color var(--is-dur-fast) ease; }
+.data-table tbody tr:hover td { background: color-mix(in srgb, var(--is-tint-purple) 70%, white); }
+.data-table tbody tr:last-child td { border-bottom: 0; }
+.data-table .num, .data-table td.num, .data-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.desc {
+  max-width: 340px;
+  white-space: normal;
+  font-size: var(--is-fs-sm);
+  color: var(--is-text-2);
+}
+.empty {
+  padding: var(--is-s-7) var(--is-s-5) !important;
+  text-align: center;
+  color: var(--is-text-2);
+  font-weight: var(--is-fw-semibold);
+}
+.data-table tbody tr:hover td.empty { background: transparent; }
+
+/* ── Pager ────────────────────────────────────────────── */
+.pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--is-s-3);
+  flex-wrap: wrap;
+  margin-top: var(--is-s-4);
+  font-size: var(--is-fs-sm);
+  font-weight: var(--is-fw-semibold);
+  color: var(--is-text-2);
+}
+.pager > div { display: flex; gap: var(--is-s-2); }
+
+/* ── KPI cards used by several reports ────────────────── */
+.kpis, .kpi-row, .kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--is-s-4);
+  margin-bottom: var(--is-card-gap);
+}
+.kpi, .kpi-card {
+  position: relative;
+  padding: 18px 20px;
+  background: var(--is-surface);
+  border: 1px solid var(--is-border);
+  border-radius: var(--is-r-card);
+  box-shadow: var(--is-shadow-soft);
+  overflow: hidden;
+  transition: transform var(--is-dur) var(--is-ease), box-shadow var(--is-dur) var(--is-ease);
+}
+.kpi:hover, .kpi-card:hover { transform: translateY(-2px); box-shadow: var(--is-shadow-raised); }
+.kpi::before, .kpi-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--is-grad-banner);
+  opacity: 0.85;
+}
+
+.mat-mdc-progress-bar { border-radius: var(--is-r-pill); margin-bottom: var(--is-s-3); }
+
+/* ── Responsive ───────────────────────────────────────── */
+@media (max-width: 768px) {
+  .exports { width: 100%; margin-left: 0; }
+  .exports button { flex: 1 1 140px; }
+  .filters { padding: var(--is-s-3); }
+  .ff, .ff-grow, .ff-date { width: 100%; min-width: 100%; }
+  .filters > button { width: 100%; }
+}

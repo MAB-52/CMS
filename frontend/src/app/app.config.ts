@@ -1,5 +1,6 @@
-import { ApplicationConfig, importProvidersFrom } from '@angular/core';
-import { provideRouter, withComponentInputBinding } from '@angular/router';
+import { ApplicationConfig, importProvidersFrom, inject, provideAppInitializer } from '@angular/core';
+import { provideRouter, withComponentInputBinding, withViewTransitions } from '@angular/router';
+import { MatIconRegistry } from '@angular/material/icon';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
@@ -29,7 +30,11 @@ const rootReducers: ActionReducerMap<{ consentIq: ConsentIqRootState }> = {
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideRouter(routes, withComponentInputBinding()),
+    provideRouter(routes, withComponentInputBinding(), withViewTransitions({ skipInitialTransition: true })),
+    // Interact Suite icon style: Material Icons Round (same ligature names as Material Icons).
+    provideAppInitializer(() => {
+      inject(MatIconRegistry).setDefaultFontSetClass('material-icons-round');
+    }),
     provideHttpClient(
       withInterceptors([publicConsentCredentialsInterceptor, jwtInterceptor, loadingInterceptor]),
     ),

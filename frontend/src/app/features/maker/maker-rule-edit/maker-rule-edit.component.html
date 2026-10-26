@@ -1,6 +1,6 @@
 <div class="page">
   <div class="subnav">
-    <a mat-stroked-button routerLink="/maker/rules">← Rules</a>
+    <a class="is-back-link" routerLink="/maker/rules"><mat-icon>arrow_back</mat-icon>Rules</a>
   </div>
 
   @if (rule(); as r) {
@@ -9,16 +9,18 @@
     <app-workflow-status-badge [status]="r.status" />
   </div>
   } @else {
-  <h1>{{ isNew() ? 'New rule' : 'Edit rule' }}</h1>
+  <div class="title-row">
+    <h1>{{ isNew() ? 'New rule' : 'Edit rule' }}</h1>
+  </div>
   }
 
   @if (feedbackBanner(); as fb) {
-  <div class="alert warn">{{ fb }}</div>
+  <div class="alert warn" role="status"><mat-icon aria-hidden="true">info</mat-icon><span>{{ fb }}</span></div>
   }
 
   <div class="layout">
     <div class="panel main-form">
-      <div class="section-title">Definition</div>
+      <div class="section-title"><mat-icon aria-hidden="true">tune</mat-icon>Definition</div>
       <mat-form-field appearance="outline" class="full">
         <mat-label>Rule name</mat-label>
         <input matInput name="ruleName" [(ngModel)]="form.ruleName" [disabled]="!canEdit()" required />
@@ -57,7 +59,7 @@
       </mat-form-field>
       }
 
-      <div class="section-title">Audience &amp; template</div>
+      <div class="section-title"><mat-icon aria-hidden="true">groups</mat-icon>Audience &amp; template</div>
 
       <mat-form-field appearance="outline" class="full">
         <mat-label>Audience segments</mat-label>
@@ -91,7 +93,7 @@
         }
       </mat-form-field>
 
-      <div class="section-title">Schedule</div>
+      <div class="section-title"><mat-icon aria-hidden="true">schedule</mat-icon>Schedule</div>
       <mat-radio-group class="stack" name="sch" [(ngModel)]="form.scheduleType" [disabled]="!canEdit()"
         (ngModelChange)="onScheduleTypeChange($event)">
         <mat-radio-button value="IMMEDIATE">Immediate</mat-radio-button>
@@ -134,7 +136,7 @@
 
         @if (scheduledDateTimePreview()) {
         <div class="datetime-preview">
-          <span class="preview-icon">🗓</span>
+          <mat-icon class="preview-icon" aria-hidden="true">event</mat-icon>
           Scheduled for <strong>{{ scheduledDateTimePreview() }}</strong>
         </div>
         }
@@ -153,7 +155,7 @@
         (scheduleValidChange)="recurringScheduleValid.set($event)" />
       }
 
-      <div class="section-title">Channels</div>
+      <div class="section-title"><mat-icon aria-hidden="true">campaign</mat-icon>Channels</div>
       <div class="channel-grid">
         @for (ch of CHANNELS; track ch) {
         <mat-checkbox [checked]="channelOn(ch)" (change)="toggleChannel(ch, $event.checked)" [disabled]="!canEdit()">{{
@@ -163,16 +165,17 @@
 
       <div class="actions">
         <button mat-stroked-button type="button" (click)="saveDraft()"
-          [disabled]="busy() || !canEdit() || !recurringScheduleOk()">Save draft</button>
+          [disabled]="busy() || !canEdit() || !recurringScheduleOk()"><mat-icon>save</mat-icon>Save draft</button>
         <button mat-flat-button color="primary" type="button" (click)="submitForApproval()"
           [disabled]="busy() || !canSubmit() || !recurringScheduleOk()">
+          <mat-icon>send</mat-icon>
           Submit for approval
         </button>
       </div>
     </div>
 
     <aside class="panel audit">
-      <div class="section-title">Approval &amp; audit</div>
+      <div class="section-title"><mat-icon aria-hidden="true">history</mat-icon>Approval &amp; audit</div>
       @if (!audit().length) {
       <p class="muted">No audit entries yet.</p>
       } @else {

@@ -9,18 +9,20 @@
   </div>
 </div>
 
-<mat-button-toggle-group [(ngModel)]="mode" (change)="apply()" class="mode-toggle">
-  <mat-button-toggle value="EXPIRING">Expiring soon</mat-button-toggle>
-  <mat-button-toggle value="EXPIRED">Expired</mat-button-toggle>
-</mat-button-toggle-group>
-
-@if (mode === 'EXPIRING') {
-  <div class="radio-row">
-    <label><input type="radio" name="wd" [(ngModel)]="withinDays" [value]="30" (change)="apply()" /> 30 days</label>
-    <label><input type="radio" name="wd" [(ngModel)]="withinDays" [value]="60" (change)="apply()" /> 60 days</label>
-    <label><input type="radio" name="wd" [(ngModel)]="withinDays" [value]="90" (change)="apply()" /> 90 days</label>
-  </div>
-}
+<div class="filters expiry-filters">
+  <mat-button-toggle-group [(ngModel)]="mode" (change)="apply()" class="mode-toggle">
+    <mat-button-toggle value="EXPIRING">Expiring soon</mat-button-toggle>
+    <mat-button-toggle value="EXPIRED">Expired</mat-button-toggle>
+  </mat-button-toggle-group>
+  
+  @if (mode === 'EXPIRING') {
+    <div class="radio-row" role="radiogroup" aria-label="Expiring within">
+      <label class="radio-chip"><input type="radio" name="wd" [(ngModel)]="withinDays" [value]="30" (change)="apply()" /> 30 days</label>
+      <label class="radio-chip"><input type="radio" name="wd" [(ngModel)]="withinDays" [value]="60" (change)="apply()" /> 60 days</label>
+      <label class="radio-chip"><input type="radio" name="wd" [(ngModel)]="withinDays" [value]="90" (change)="apply()" /> 90 days</label>
+    </div>
+  }
+</div>
 
 @if (loading()) {
   <mat-progress-bar mode="indeterminate" />

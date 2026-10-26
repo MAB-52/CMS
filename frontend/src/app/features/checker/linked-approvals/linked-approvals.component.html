@@ -20,14 +20,14 @@
         </div>
       </div>
     </div>
-    <button mat-icon-button type="button" class="refresh-btn" (click)="reload()" title="Refresh" [disabled]="loading()">
+    <button mat-icon-button type="button" class="refresh-btn" (click)="reload()" title="Refresh" aria-label="Refresh queue" [disabled]="loading()">
       <mat-icon>refresh</mat-icon>
     </button>
   </div>
 
   <!-- ─── SUBNAV ────────────────────────────────────────────────────────── -->
   <div class="subnav">
-    <a mat-stroked-button routerLink="/checker/pending">
+    <a class="is-back-link" routerLink="/checker/pending">
       <mat-icon>arrow_back</mat-icon>
       Pending consents (standalone)
     </a>
@@ -62,7 +62,7 @@
 
   <div class="toolbar">
     <div class="search-wrap">
-      <input type="text" class="search-input" placeholder="Search by name, ID or rule…" [value]="searchQuery()"
+      <input type="text" class="search-input" aria-label="Search linked pairs" placeholder="Search by name, ID or rule…" [value]="searchQuery()"
         (input)="searchQuery.set($any($event.target).value)" />
     </div>
 
@@ -126,7 +126,7 @@
   } @else {
 
   <!-- ─── CARDS LIST ──────────────────────────────────────────────────── -->
-  <div class="cards">
+  <div class="cards is-stagger">
     @for (c of filteredList(); track c.id) {
     @if (c.linkedRule; as r) {
 
@@ -148,13 +148,13 @@
           <h2 class="summary-name">{{ c.consentName }}</h2>
           <div class="summary-meta">
             <span class="mono">{{ c.consentId }}</span>
-            <span class="meta-dot">·</span>
+            <span class="meta-dot" aria-hidden="true"></span>
             <span>Rule: <strong>{{ r.ruleName }}</strong></span>
-            <span class="meta-dot">·</span>
+            <span class="meta-dot" aria-hidden="true"></span>
             <span>{{ c.category }}</span>
-            <span class="meta-dot">·</span>
+            <span class="meta-dot" aria-hidden="true"></span>
             <span>{{ c.submittedAt | date: 'dd MMM yyyy' }}</span>
-            <span class="meta-dot">·</span>
+            <span class="meta-dot" aria-hidden="true"></span>
             <span>by {{ c.createdBy?.fullName || '—' }}</span>
           </div>
           <div class="summary-chips">
@@ -174,7 +174,7 @@
             <mat-icon>schedule</mat-icon>
             Awaiting review
           </span>
-          <a mat-flat-button class="review-btn" [routerLink]="[c.id]"> Review → </a>
+          <a mat-flat-button class="review-btn" [routerLink]="[c.id]">Review<mat-icon iconPositionEnd>arrow_forward</mat-icon></a>
           <mat-icon class="chevron-icon">chevron_right</mat-icon>
           } @else if (c.status === 'REVISION_REQUESTED') {
           <span class="pending-badge pending-badge--muted">

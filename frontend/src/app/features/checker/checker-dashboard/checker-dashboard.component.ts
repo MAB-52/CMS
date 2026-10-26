@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { CheckerStats, Consent } from '../../../core/models/consent.model';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConsentService } from '../../../core/services/consent.service';
@@ -11,7 +12,7 @@ import { TimeAgoPipe } from '../../../shared/pipes/time-ago.pipe';
 @Component({
   selector: 'app-checker-dashboard',
   standalone: true,
-  imports: [RouterLink, MatButtonModule, TimeAgoPipe],
+  imports: [RouterLink, MatButtonModule, MatIconModule, TimeAgoPipe],
   templateUrl: './checker-dashboard.component.html',
   styleUrl: './checker-dashboard.component.css',
 })

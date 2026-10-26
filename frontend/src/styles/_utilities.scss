@@ -1,0 +1,18 @@
+// Layout utilities (Interact Suite)
+
+.is-stack { display: flex; flex-direction: column; gap: var(--is-s-4); }
+.is-stack-lg { display: flex; flex-direction: column; gap: var(--is-card-gap); }
+.is-row { display: flex; align-items: center; gap: var(--is-s-3); flex-wrap: wrap; }
+.is-row-between { display: flex; align-items: center; justify-content: space-between; gap: var(--is-s-3); flex-wrap: wrap; }
+.is-grid-auto { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--is-card-gap); }
+.is-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--is-card-gap); }
+.is-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--is-card-gap); }
+
+@media (max-width: 1200px) { .is-grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 900px)  { .is-grid-2, .is-grid-3 { grid-template-columns: 1fr; } }
+
+.is-w-full { width: 100%; }
+.is-text-right { text-align: right; }
+.is-nowrap { white-space: nowrap; }
+.is-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.is-tabular { font-variant-numeric: tabular-nums; }

@@ -3,6 +3,7 @@ import { FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule, MatDatepickerInputEvent } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MAT_DATE_LOCALE } from '@angular/material/core';
@@ -17,6 +18,7 @@ import { StatusBadgeComponent } from '../../../../shared/components/status-badge
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatIconModule,
     MatDatepickerModule,
     MatNativeDateModule,
     StatusBadgeComponent,

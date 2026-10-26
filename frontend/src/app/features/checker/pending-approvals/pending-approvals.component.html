@@ -40,8 +40,9 @@
       class="refresh-btn"
       (click)="reload()"
       title="Refresh"
+      aria-label="Refresh queue"
     >
-      🔄
+      <mat-icon>refresh</mat-icon>
     </button>
   </div>
 
@@ -64,6 +65,7 @@
           Search
         </mat-label>
 
+        <mat-icon matPrefix class="pfx">search</mat-icon>
         <input
           matInput
           [(ngModel)]="search"
@@ -104,7 +106,7 @@
   @if (!filtered().length) {
     <div class="empty">
       <div class="empty__icon">
-        ✓
+        <mat-icon>task_alt</mat-icon>
       </div>
       <h2>
         All caught up!
@@ -116,7 +118,7 @@
   } @else {
 
     <!-- CARDS -->
-    <div class="cards">
+    <div class="cards is-stagger">
       @for (c of filtered(); track c.id) {
         <div
           class="card"
@@ -135,8 +137,8 @@
               </h3>
 
             </div>
-            <div class="pending-icon">
-              ⏳
+            <div class="pending-icon" aria-hidden="true">
+              <mat-icon>hourglass_top</mat-icon>
             </div>
           </div>
 
@@ -148,13 +150,13 @@
               {{ c.consentId }}
             </span>
 
-            <span class="dot">•</span>
+            <span class="dot" aria-hidden="true"></span>
             <span>
               <strong>Submitted by:</strong>
               {{ c.createdBy?.fullName || '—' }}
             </span>
 
-            <span class="dot">•</span>
+            <span class="dot" aria-hidden="true"></span>
             <span>
               {{ c.submittedAt | timeAgo }}
             </span>
@@ -165,7 +167,7 @@
               <strong>Category:</strong>
               {{ c.category }}
             </span>
-            <span class="dot">•</span>
+            <span class="dot" aria-hidden="true"></span>
             <span>
               <strong>Channels:</strong>
               {{ channels(c) }}
@@ -176,7 +178,7 @@
               <strong>Version:</strong>
               {{ c.version }}
             </span>
-            <span class="dot">•</span>
+            <span class="dot" aria-hidden="true"></span>
             <span>
               <strong>Validity:</strong>
               {{ c.validityPeriodDays }} days
@@ -203,7 +205,8 @@
               class="review-btn"
               (click)="review(c)"
             >
-              Review →
+              Review
+              <mat-icon iconPositionEnd>arrow_forward</mat-icon>
             </button>
           </div>
         </div>

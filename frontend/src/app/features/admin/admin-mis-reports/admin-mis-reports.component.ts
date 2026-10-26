@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MatIconModule } from '@angular/material/icon';
 import { MisReportCustomerConsentTabComponent } from './mis-report-customer-consent-tab/mis-report-customer-consent-tab.component';
 import { MisReportAuditTabComponent } from './mis-report-audit-tab/mis-report-audit-tab.component';
 import { MisReportExpiryTabComponent } from './mis-report-expiry-tab/mis-report-expiry-tab.component';
@@ -13,6 +14,7 @@ import { MisReportConsentLeaderboardTabComponent } from './mis-report-consent-le
   standalone: true,
   imports: [
     MatTabsModule,
+    MatIconModule,
     MisReportCustomerConsentTabComponent,
     MisReportAuditTabComponent,
     MisReportExpiryTabComponent,

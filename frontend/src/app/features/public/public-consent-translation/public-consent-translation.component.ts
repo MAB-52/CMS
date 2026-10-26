@@ -3,15 +3,16 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatIconModule } from '@angular/material/icon';
 import { PublicConsentTranslationService } from '../../../core/services/public-consent-translation.service';
 import { LoggerService } from '../../../core/services/logger.service';
 
 @Component({
   selector: 'app-public-consent-translation',
   standalone: true,
-  imports: [MatProgressSpinnerModule, RouterLink],
+  imports: [MatProgressSpinnerModule, MatIconModule, RouterLink],
   templateUrl: './public-consent-translation.component.html',
-  styleUrl: './public-consent-translation.component.css',
+  styleUrls: ['../public-consent-respond/public-consent-respond.component.css', './public-consent-translation.component.css'],
 })
 export class PublicConsentTranslationComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);

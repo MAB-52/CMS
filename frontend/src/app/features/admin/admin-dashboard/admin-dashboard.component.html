@@ -1,51 +1,85 @@
 <section class="mis-head" aria-labelledby="mis-title">
-  <div class="mis-head-row">
-    <h1 id="mis-title" class="mis-title">Executive MIS</h1>
-    <!-- <button mat-stroked-button type="button" (click)="loadMis()" [disabled]="misLoading()">Refresh metrics</button> -->
-  </div>
-  <!-- <p class="mis-sub">Channel mix and maker–checker throughput are derived from live data where available.</p> -->
+  <header class="is-hero hero">
+    <div class="hero__text">
+      <span class="is-eyebrow">Admin · Overview</span>
+      <h1 id="mis-title" class="mis-title">Executive MIS</h1>
+      <p>Consent health, channel mix and maker–checker throughput at a glance.</p>
+    </div>
+    <div class="hero__icon" aria-hidden="true"><mat-icon>insights</mat-icon></div>
+  </header>
 
   @if (misLoading()) {
+    <div class="kpi-row" aria-busy="true">
+      @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+        <div class="kpi-card kpi-card--skeleton">
+          <span class="is-skeleton sk-60"></span>
+          <span class="is-skeleton is-skeleton--lg sk-40"></span>
+        </div>
+      }
+    </div>
     <div class="mis-loading">
-      <mat-progress-spinner diameter="40" mode="indeterminate" />
+      <mat-progress-spinner diameter="32" mode="indeterminate" />
       <span>Loading dashboard…</span>
     </div>
   } @else {
     @if (mis(); as m) {
-    <div class="kpi-row" role="list">
+    <div class="kpi-row is-stagger" role="list">
       <article class="kpi-card kpi-card--accent" role="listitem">
-        <div class="kpi-label">Consent rate</div>
-        <div class="kpi-value">{{ m.kpi.consentRate | number: '1.0-1' }}%</div>
-        <div class="kpi-hint">Active ÷ (active + pending + declined)</div>
+        <div class="kpi-icon"><mat-icon>verified</mat-icon></div>
+        <div class="kpi-body">
+          <div class="kpi-label">Consent rate</div>
+          <div class="kpi-value">{{ m.kpi.consentRate | number: '1.0-1' }}%</div>
+          <div class="kpi-hint">Active ÷ (active + pending + declined)</div>
+        </div>
       </article>
       <article class="kpi-card" role="listitem">
-        <div class="kpi-label">Total customers</div>
-        <div class="kpi-value">{{ m.kpi.totalCustomers }}</div>
-        <div class="kpi-hint">Directory size</div>
+        <div class="kpi-icon"><mat-icon>groups</mat-icon></div>
+        <div class="kpi-body">
+          <div class="kpi-label">Total customers</div>
+          <div class="kpi-value">{{ m.kpi.totalCustomers }}</div>
+          <div class="kpi-hint">Directory size</div>
+        </div>
       </article>
-      <article class="kpi-card" role="listitem">
-        <div class="kpi-label">Active consents</div>
-        <div class="kpi-value">{{ m.kpi.activeConsents }}</div>
+      <article class="kpi-card kpi-card--green" role="listitem">
+        <div class="kpi-icon"><mat-icon>task_alt</mat-icon></div>
+        <div class="kpi-body">
+          <div class="kpi-label">Active consents</div>
+          <div class="kpi-value">{{ m.kpi.activeConsents }}</div>
+        </div>
       </article>
-      <article class="kpi-card" role="listitem">
-        <div class="kpi-label">Pending response</div>
-        <div class="kpi-value">{{ m.kpi.pendingResponse }}</div>
+      <article class="kpi-card kpi-card--amber" role="listitem">
+        <div class="kpi-icon"><mat-icon>hourglass_top</mat-icon></div>
+        <div class="kpi-body">
+          <div class="kpi-label">Pending response</div>
+          <div class="kpi-value">{{ m.kpi.pendingResponse }}</div>
+        </div>
       </article>
-      <article class="kpi-card" role="listitem">
-        <div class="kpi-label">Declined</div>
-        <div class="kpi-value">{{ m.kpi.declined }}</div>
+      <article class="kpi-card kpi-card--red" role="listitem">
+        <div class="kpi-icon"><mat-icon>do_not_disturb_on</mat-icon></div>
+        <div class="kpi-body">
+          <div class="kpi-label">Declined</div>
+          <div class="kpi-value">{{ m.kpi.declined }}</div>
+        </div>
       </article>
       <article class="kpi-card kpi-card--warn" role="listitem">
-        <div class="kpi-label">Pending MC approvals</div>
-        <div class="kpi-value">{{ m.kpi.pendingMcApprovals }}</div>
-        <div class="kpi-hint">Awaiting checker</div>
+        <div class="kpi-icon"><mat-icon>fact_check</mat-icon></div>
+        <div class="kpi-body">
+          <div class="kpi-label">Pending MC approvals</div>
+          <div class="kpi-value">{{ m.kpi.pendingMcApprovals }}</div>
+          <div class="kpi-hint">Awaiting checker</div>
+        </div>
       </article>
     </div>
 
-    <div class="mis-panels">
+    <div class="mis-panels is-stagger">
       <section class="mis-panel" aria-labelledby="ch-perf">
-        <h2 id="ch-perf" class="panel-h">Channel performance</h2>
-        <p class="panel-sub">Share of published / approved templates by delivery channel</p>
+        <div class="panel-head">
+          <div class="panel-ico" aria-hidden="true"><mat-icon>hub</mat-icon></div>
+          <div>
+            <h2 id="ch-perf" class="panel-h">Channel performance</h2>
+            <p class="panel-sub">Share of published / approved templates by delivery channel</p>
+          </div>
+        </div>
         <ul class="bar-list">
           @for (row of m.channelPerformance; track row.channel) {
             <li class="bar-item">
@@ -62,8 +96,13 @@
       </section>
 
       <section class="mis-panel" aria-labelledby="mc-act">
-        <h2 id="mc-act" class="panel-h">Maker–checker activity</h2>
-        <p class="panel-sub">Operational counts from the audit trail and review cycle</p>
+        <div class="panel-head">
+          <div class="panel-ico panel-ico--orange" aria-hidden="true"><mat-icon>swap_horiz</mat-icon></div>
+          <div>
+            <h2 id="mc-act" class="panel-h">Maker–checker activity</h2>
+            <p class="panel-sub">Operational counts from the audit trail and review cycle</p>
+          </div>
+        </div>
         <div class="mc-grid">
           <div class="mc-cell">
             <div class="mc-label">Consent MC</div>
@@ -88,11 +127,11 @@
         </div>
         <div class="mc-footer">
           <div>
-            <span class="mc-foot-label">Avg. approval time</span>
+            <span class="mc-foot-label"><mat-icon>schedule</mat-icon>Avg. approval time</span>
             <strong>{{ m.makerChecker.averageApprovalHours | number: '1.0-1' }}h</strong>
           </div>
           <div>
-            <span class="mc-foot-label">Approval rate</span>
+            <span class="mc-foot-label"><mat-icon>trending_up</mat-icon>Approval rate</span>
             <strong>{{ m.makerChecker.approvalRate | number: '1.0-1' }}%</strong>
           </div>
         </div>
@@ -104,7 +143,10 @@
 
 <section class="table-card" aria-labelledby="customers-heading">
   <div class="table-head">
-    <h2 id="customers-heading" class="section-title">Customer directory</h2>
+    <div>
+      <h2 id="customers-heading" class="section-title">Customer directory</h2>
+      <p class="section-sub">Search customers and review their latest consent status.</p>
+    </div>
     <button
       mat-stroked-button
       type="button"
@@ -112,6 +154,7 @@
       [disabled]="exporting()"
       (click)="exportCsv()"
     >
+      <mat-icon>download</mat-icon>
       {{ exporting() ? 'Exporting…' : 'Export CSV' }}
     </button>
   </div>
@@ -119,31 +162,43 @@
   <div class="filters">
     <label class="field">
       <span class="field-label">Mobile Number</span>
-      <input type="text" name="mobile" [(ngModel)]="filterMobile" placeholder="Search mobile" />
+      <span class="ctl-wrap">
+        <mat-icon aria-hidden="true">smartphone</mat-icon>
+        <input type="text" name="mobile" [(ngModel)]="filterMobile" placeholder="Search mobile" />
+      </span>
     </label>
     <label class="field">
       <span class="field-label">Customer ID</span>
-      <input type="text" name="custId" [(ngModel)]="filterCustomerId" placeholder="Customer ID" />
+      <span class="ctl-wrap">
+        <mat-icon aria-hidden="true">badge</mat-icon>
+        <input type="text" name="custId" [(ngModel)]="filterCustomerId" placeholder="Customer ID" />
+      </span>
     </label>
     <label class="field">
       <span class="field-label">Consent Status</span>
-      <select name="status" [(ngModel)]="filterConsentStatus">
-        <option value="ALL">All</option>
-        <option value="ACTIVE">Active (legacy)</option>
-        <option value="ACCEPTED">Active (accepted)</option>
-        <option value="PENDING">Pending</option>
-        <option value="INVITED">Invited</option>
-        <option value="EXPIRING_SOON">Expiring soon</option>
-        <option value="EXPIRED">Expired</option>
-        <option value="DECLINED">Declined</option>
-        <option value="WITHDRAWN">Withdrawn</option>
-      </select>
+      <span class="ctl-wrap ctl-wrap--select">
+        <mat-icon aria-hidden="true">filter_list</mat-icon>
+        <select name="status" [(ngModel)]="filterConsentStatus">
+          <option value="ALL">All</option>
+          <option value="ACTIVE">Active (legacy)</option>
+          <option value="ACCEPTED">Active (accepted)</option>
+          <option value="PENDING">Pending</option>
+          <option value="INVITED">Invited</option>
+          <option value="EXPIRING_SOON">Expiring soon</option>
+          <option value="EXPIRED">Expired</option>
+          <option value="DECLINED">Declined</option>
+          <option value="WITHDRAWN">Withdrawn</option>
+        </select>
+      </span>
     </label>
-    <button mat-stroked-button type="button" class="apply-btn" (click)="applyFilters()">Apply filters</button>
+    <button mat-flat-button type="button" class="apply-btn" (click)="applyFilters()">
+      <mat-icon>tune</mat-icon>
+      Apply filters
+    </button>
   </div>
 
-  <div class="table-wrap">
-    <table class="data-table">
+  <div class="is-table-wrap table-wrap">
+    <table class="is-table data-table">
       <thead>
         <tr>
           <th>Customer ID</th>
@@ -158,29 +213,40 @@
       <tbody>
         @for (row of rows(); track row.customerId) {
           <tr>
-            <td>{{ row.customerId }}</td>
-            <td>{{ row.customerName }}</td>
+            <td class="mono">{{ row.customerId }}</td>
+            <td class="strong">{{ row.customerName }}</td>
             <td>{{ row.mobileNumber }}</td>
             <td>{{ row.email || '—' }}</td>
             <td><span [class]="badgeClass(row.consentStatus)">{{ consentStatusDisplay(row.consentStatus) }}</span></td>
-            <td>{{ row.lastUpdated | date: 'medium' }}</td>
+            <td class="muted">{{ row.lastUpdated | date: 'medium' }}</td>
             <td><span class="action-muted">—</span></td>
           </tr>
         } @empty {
           <tr>
-            <td colspan="7" class="empty-cell">{{ loading() ? 'Loading…' : 'No customers match the filters.' }}</td>
+            <td colspan="7" class="empty-cell">
+              @if (loading()) {
+                <div class="is-loading"><span class="is-spinner"></span>Loading…</div>
+              } @else {
+                <div class="is-empty">
+                  <div class="is-empty__icon"><mat-icon>person_search</mat-icon></div>
+                  <div class="is-empty__title">No customers found</div>
+                  <div class="is-empty__text">No customers match the filters.</div>
+                </div>
+              }
+            </td>
           </tr>
         }
       </tbody>
     </table>
   </div>
 
-  <div class="pager">
-    <span class="pager-meta">
-      Page {{ currentPage() + 1 }} of {{ totalPages() || 1 }} · {{ totalElements() }} total
+  <div class="is-pager pager">
+    <span class="is-pager__info pager-meta">
+      Page <strong>{{ currentPage() + 1 }}</strong> of <strong>{{ totalPages() || 1 }}</strong> · {{ totalElements() }} total
     </span>
-    <div class="pager-btns">
+    <div class="is-pager__btns pager-btns">
       <button mat-stroked-button type="button" [disabled]="currentPage() <= 0 || loading()" (click)="prevPage()">
+        <mat-icon>chevron_left</mat-icon>
         Previous
       </button>
       <button
@@ -190,6 +256,7 @@
         (click)="nextPage()"
       >
         Next
+        <mat-icon iconPositionEnd>chevron_right</mat-icon>
       </button>
     </div>
   </div>

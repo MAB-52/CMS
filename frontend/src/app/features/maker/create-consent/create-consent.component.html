@@ -9,7 +9,7 @@
   </div>
 
   <div class="autosave">
-    💾 Draft auto-saves every 2 minutes.
+    <mat-icon class="as-ico" aria-hidden="true">cloud_done</mat-icon> Draft auto-saves every 2 minutes.
     @if (autosaveBusy()) {
       <span class="muted">Saving…</span>
     } @else if (lastSaved()) {
@@ -20,7 +20,7 @@
   @if (loadedStatus() === 'PENDING_APPROVAL') {
     <div class="banner banner--amber">
       <div>
-        <div class="banner-title">⏳ Pending Checker Approval <span class="dot">● Awaiting</span></div>
+        <div class="banner-title"><mat-icon aria-hidden="true">hourglass_top</mat-icon> Pending Checker Approval <span class="dot">● Awaiting</span></div>
         <p class="banner-text">Your consent is being reviewed by the Checker.</p>
       </div>
     </div>
@@ -28,7 +28,7 @@
 
   @if (loadedStatus() === 'REVISION_REQUESTED') {
     <div class="banner banner--orange">
-      <div class="banner-title">↩ Revision Requested by Checker</div>
+      <div class="banner-title"><mat-icon aria-hidden="true">assignment_return</mat-icon> Revision Requested by Checker</div>
       @if (revisionMessage()) {
         <blockquote class="rev-q">"{{ revisionMessage() }}"</blockquote>
       }
@@ -249,7 +249,7 @@
 
           @if (scheduledDateTimePreview()) {
             <div class="datetime-preview">
-              <span class="preview-icon">🗓</span>
+              <mat-icon class="preview-icon" aria-hidden="true">event</mat-icon>
               Scheduled for <strong>{{ scheduledDateTimePreview() }}</strong>
             </div>
           }
@@ -292,10 +292,10 @@
   <div class="sticky-actions">
     <div class="prog">
       @let p = progress();
-      <span>{{ p.details ? '●' : '○' }} Details</span>
-      <span>{{ p.message ? '●' : '○' }} Message</span>
-      <span>{{ p.channels ? '●' : '○' }} Channels</span>
-      <span>{{ p.ready ? '●' : '○' }} Ready</span>
+      <span class="prog-step" [class.done]="p.details"><mat-icon aria-hidden="true">{{ p.details ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>Details</span>
+      <span class="prog-step" [class.done]="p.message"><mat-icon aria-hidden="true">{{ p.message ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>Message</span>
+      <span class="prog-step" [class.done]="p.channels"><mat-icon aria-hidden="true">{{ p.channels ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>Channels</span>
+      <span class="prog-step" [class.done]="p.ready"><mat-icon aria-hidden="true">{{ p.ready ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>Ready</span>
     </div>
 
     <div class="act">
@@ -322,7 +322,7 @@
           class="ciq-btn-secondary"
           [disabled]="!nameOk() || !editable()"
           (click)="saveDraft()">
-          💾 Save Draft
+          <mat-icon>save</mat-icon> Save Draft
         </button>
 
         <button
@@ -331,7 +331,7 @@
           type="button"
           [disabled]="!canSubmit() || !editable()"
           (click)="submitForApproval()">
-          📤 Submit for Approval
+          <mat-icon>send</mat-icon> Submit for Approval
         </button>
       }
     </div>

@@ -72,7 +72,7 @@
             <tr class="data-row" [class.data-row--expanded]="expandedId === r.consentDbId">
               <td class="td-rank">
                 @if (medal(i)) {
-                  <span class="medal">{{ medal(i) }}</span>
+                  <span class="medal medal--{{ i + 1 }}" [attr.aria-label]="'Rank ' + (i + 1)"><mat-icon aria-hidden="true">emoji_events</mat-icon>{{ i + 1 }}</span>
                 } @else {
                   <span class="rank-num">{{ currentPage() * pageSize + i + 1 }}</span>
                 }

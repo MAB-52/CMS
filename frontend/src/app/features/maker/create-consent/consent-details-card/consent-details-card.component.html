@@ -1,6 +1,7 @@
 <div class="card" dir="ltr">
   <div class="head">
-    <div>
+    <span class="head-ico" aria-hidden="true"><mat-icon>description</mat-icon></span>
+    <div class="head-text">
       <h2 class="title">Consent Details</h2>
       <p class="sub">Basic information about this consent</p>
     </div>
@@ -12,7 +13,7 @@
   <!-- ADD floatLabel="always" to EVERY mat-form-field -->
   <mat-form-field appearance="outline" floatLabel="always" class="full mono id-field">
     <mat-label>Consent ID</mat-label>
-    <span matPrefix class="pfx">🔒&nbsp;</span>
+    <mat-icon matPrefix class="pfx">lock</mat-icon>
     <input matInput readonly [value]="idLoading ? 'Generating…' : consentIdPreview" />
     <mat-hint>Auto-generated unique identifier</mat-hint>
   </mat-form-field>
@@ -20,7 +21,7 @@
   <div [formGroup]="form">
     @if (validationErrors().length) {
     <div class="val-summary">
-      <strong>Please fix the following errors:</strong>
+      <strong><mat-icon aria-hidden="true">error_outline</mat-icon>Please fix the following errors:</strong>
       <ul>
         @for (e of validationErrors(); track e) {
         <li>{{ e }}</li>

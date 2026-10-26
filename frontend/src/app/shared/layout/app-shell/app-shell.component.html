@@ -1,0 +1,169 @@
+<div class="shell" [class.shell--rail]="isRail()" [class.shell--mobile]="isMobile()" [class.shell--drawer-open]="drawerOpen()">
+  <a class="skip-link" href="#main-content">Skip to content</a>
+
+  <!-- ── Brand header ────────────────────────────────────── -->
+  <header class="header">
+    <svg class="header__circuit" viewBox="0 0 460 80" preserveAspectRatio="xMinYMid meet" aria-hidden="true">
+      <defs>
+        <linearGradient id="circuitFade" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#F08A55" stop-opacity="0.9" />
+          <stop offset="0.75" stop-color="#F08A55" stop-opacity="0.55" />
+          <stop offset="1" stop-color="#F08A55" stop-opacity="0" />
+        </linearGradient>
+      </defs>
+      <g fill="none" stroke="url(#circuitFade)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 12 H190 L214 -4" />
+        <path d="M62 32 H250 L292 -4" />
+        <path d="M62 52 H270 L340 -4" />
+        <path d="M110 72 H300 L360 22 H460" />
+      </g>
+      <g fill="#F08A55">
+        <circle cx="8" cy="12" r="4" />
+        <circle cx="62" cy="32" r="4" />
+        <circle cx="62" cy="52" r="4" />
+        <circle cx="110" cy="72" r="4" />
+      </g>
+    </svg>
+
+    <div class="header__left">
+      @if (isMobile()) {
+        <button
+          type="button"
+          class="menu-btn"
+          (click)="toggleDrawer()"
+          aria-controls="app-sidebar"
+          [attr.aria-expanded]="drawerOpen()"
+          aria-label="Open navigation"
+        >
+          <mat-icon>menu</mat-icon>
+        </button>
+      }
+      <img src="assets/images/logo-white.png" alt="Aurionpro — Lead the next" class="brand-logo" />
+      <span class="brand-divider" aria-hidden="true"></span>
+      <div class="brand-text">
+        <span class="brand-name">ConsentIQ</span>
+        <span class="brand-sub">{{ workspaceLabel }}</span>
+      </div>
+    </div>
+
+    <div class="header__right">
+      <button type="button" class="user-chip" [matMenuTriggerFor]="userMenu" aria-label="Account menu">
+        <span class="user-chip__avatar" aria-hidden="true">{{ initials() }}</span>
+        <span class="user-chip__meta">
+          <span class="user-chip__name">{{ userName() }}</span>
+          <span class="user-chip__role">{{ roleLabel }}</span>
+        </span>
+        <mat-icon class="user-chip__chev" aria-hidden="true">expand_more</mat-icon>
+      </button>
+      <mat-menu #userMenu="matMenu" xPosition="before" class="is-user-menu">
+        <div class="user-menu__head">
+          <span class="user-menu__avatar" aria-hidden="true">{{ initials() }}</span>
+          <div>
+            <div class="user-menu__name">{{ userName() }}</div>
+            <div class="user-menu__role">{{ roleLabel }}</div>
+          </div>
+        </div>
+        <button mat-menu-item type="button" (click)="logout.confirmAndLogout()">
+          <mat-icon>logout</mat-icon>
+          <span>Logout</span>
+        </button>
+      </mat-menu>
+    </div>
+  </header>
+
+  <div class="body">
+    <!-- ── Sidebar ───────────────────────────────────────── -->
+    <aside
+      class="sidebar"
+      id="app-sidebar"
+      aria-label="Primary navigation"
+      [attr.aria-hidden]="isMobile() && !drawerOpen() ? 'true' : null"
+      [attr.inert]="isMobile() && !drawerOpen() ? '' : null"
+      [cdkTrapFocus]="isMobile() && drawerOpen()"
+      [cdkTrapFocusAutoCapture]="true"
+    >
+      @if (isMobile()) {
+        <div class="drawer-head">
+          <span class="drawer-title">{{ workspaceLabel }}</span>
+          <button type="button" class="drawer-close" (click)="drawerOpen.set(false)" aria-label="Close navigation">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      }
+
+      @if (!isMobile()) {
+        <button
+          type="button"
+          class="collapse-btn"
+          (click)="toggleCollapse()"
+          [attr.aria-label]="isRail() ? 'Show the menu' : 'Hide the menu'"
+          [attr.aria-expanded]="!isRail()"
+          [matTooltip]="isRail() ? 'Show the menu' : 'Hide the menu'"
+          matTooltipPosition="right"
+        >
+          <mat-icon>{{ isRail() ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+        </button>
+      }
+
+      <nav class="nav-scroll">
+        @for (group of nav; track group.label) {
+          <div class="group">
+            <div class="group-label">{{ group.label }}</div>
+            @for (item of group.items; track item.link) {
+              <a
+                class="nav-link"
+                [routerLink]="item.link"
+                routerLinkActive="active"
+                [routerLinkActiveOptions]="{ exact: !!item.exact }"
+                #rla="routerLinkActive"
+                [attr.aria-current]="rla.isActive ? 'page' : null"
+                matRipple
+                [matTooltip]="item.label"
+                matTooltipPosition="right"
+                [matTooltipDisabled]="!isRail()"
+              >
+                <span class="nav-icon"><mat-icon>{{ item.icon }}</mat-icon></span>
+                <span class="nav-label">{{ item.label }}</span>
+                @if (item.count) {
+                  <span class="nav-count" [attr.aria-label]="item.count + ' items'">{{ item.count > 99 ? '99+' : item.count }}</span>
+                }
+                @if (item.tag) {
+                  <span class="nav-tag">{{ item.tag }}</span>
+                }
+              </a>
+            }
+          </div>
+        }
+      </nav>
+
+      @if (isMobile()) {
+        <div class="sidebar-footer">
+          <button type="button" class="btn-logout" (click)="logout.confirmAndLogout()">
+            <mat-icon>logout</mat-icon>
+            <span>Logout</span>
+          </button>
+        </div>
+      }
+    </aside>
+
+    @if (isMobile() && drawerOpen()) {
+      <div class="scrim" (click)="drawerOpen.set(false)" aria-hidden="true"></div>
+    }
+
+    <!-- ── Content panel ─────────────────────────────────── -->
+    <main class="content" id="main-content" tabindex="-1">
+      <nav class="crumb" aria-label="Breadcrumb">
+        @if (crumbLabel) {
+          <span class="crumb__label">{{ crumbLabel }}</span>
+          <mat-icon class="crumb__divider" aria-hidden="true">chevron_right</mat-icon>
+        }
+        <span class="crumb__current" aria-current="page">{{ pageTitle }}</span>
+      </nav>
+      <div class="content__inner">
+        <ng-content />
+      </div>
+    </main>
+  </div>
+
+  <footer class="footer">© {{ year }} Aurionpro. All rights reserved.</footer>
+</div>

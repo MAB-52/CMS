@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Subscription, combineLatest, forkJoin, of } from 'rxjs';
@@ -16,7 +17,7 @@ import { PublicConsentRespondResolve } from '../public-consent-request.solver';
 @Component({
   selector: 'app-public-consent-respond',
   standalone: true,
-  imports: [DatePipe, MatButtonModule, MatProgressSpinnerModule],
+  imports: [DatePipe, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './public-consent-respond.component.html',
   styleUrl: './public-consent-respond.component.css',
 })

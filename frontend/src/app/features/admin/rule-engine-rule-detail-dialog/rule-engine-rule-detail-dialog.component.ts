@@ -109,50 +109,79 @@ export interface RuleEngineRuleDetailDialogData {
   styles: [`
     :host {
       display: block;
-      color: #251f1b;
+      color: var(--is-text);
+      font-family: var(--is-font);
+    }
+
+    :host ::ng-deep .mat-mdc-dialog-title {
+      position: relative;
+      margin: 0;
+      padding: 24px 24px 14px;
+      font-size: var(--is-fs-lg);
+      line-height: 26px;
+      font-weight: var(--is-fw-bold);
+      color: var(--is-text);
+      border-bottom: 1px solid var(--is-border);
+    }
+    :host ::ng-deep .mat-mdc-dialog-title::before {
+      content: '';
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 4px;
+      background: var(--is-grad-banner);
     }
 
     .dlg {
-      min-width: min(560px, 92vw);
+      min-width: min(600px, 92vw);
       max-width: 100%;
       max-height: 70vh;
-      padding-top: 6px;
-      background:
-        radial-gradient(circle at top right, rgba(125, 86, 111, 0.06), transparent 28%),
-        linear-gradient(to bottom, #fffdfa 0%, #f8f2ed 100%);
-      border-top: 1px solid rgba(125, 86, 111, 0.08);
+      padding-top: 4px !important;
+      background: var(--is-surface);
     }
 
     .spin {
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 40px 24px;
       min-height: 180px;
+      padding: 40px 24px;
     }
 
     .empty {
-      color: #736760;
-      font-size: 14px;
-      padding: 20px 2px;
       margin: 0;
+      padding: 32px 4px;
+      text-align: center;
+      color: var(--is-text-2);
+      font-size: var(--is-fs-body);
     }
 
     .list {
       list-style: none;
       margin: 0;
-      padding: 10px 0 0;
+      padding: 14px 0 0;
       max-height: 48vh;
       overflow: auto;
+      display: grid;
+      gap: 10px;
     }
 
     .list li {
-      border: 1px solid #eadfd7;
-      background: linear-gradient(180deg, #fffdfa 0%, #fbf6f1 100%);
-      box-shadow: 0 8px 18px rgba(67, 42, 30, 0.05);
-      border-radius: 16px;
-      padding: 14px;
-      margin-bottom: 12px;
+      position: relative;
+      padding: 14px 16px 14px 20px;
+      border: 1px solid var(--is-border);
+      border-radius: var(--is-r-md);
+      background: var(--is-surface-2);
+      animation: is-fade-up var(--is-dur-slow) var(--is-ease) both;
+    }
+    .list li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 14px;
+      bottom: 14px;
+      width: 3px;
+      border-radius: 0 3px 3px 0;
+      background: var(--is-primary);
     }
 
     .row-top {
@@ -160,57 +189,56 @@ export interface RuleEngineRuleDetailDialogData {
       justify-content: space-between;
       align-items: flex-start;
       gap: 12px;
-      font-size: 13px;
+      font-size: var(--is-fs-sm);
     }
 
     .action {
-      font-weight: 700;
-      color: #2e2521;
+      font-weight: var(--is-fw-bold);
+      color: var(--is-text);
       line-height: 1.4;
       word-break: break-word;
     }
 
     .time {
-      color: #8a7a70;
       flex-shrink: 0;
       white-space: nowrap;
-      font-size: 12px;
-      font-weight: 600;
+      color: var(--is-text-2);
+      font-size: var(--is-fs-xs);
+      font-weight: var(--is-fw-semibold);
     }
 
     .meta {
-      font-size: 12px;
-      color: #736760;
       margin-top: 6px;
+      font-size: var(--is-fs-xs);
       line-height: 1.5;
+      color: var(--is-text-2);
     }
 
     .sum {
-      font-size: 12px;
-      color: #4a403b;
       margin-top: 8px;
-      line-height: 1.5;
       padding: 10px 12px;
-      border-radius: 12px;
-      background: rgba(125, 86, 111, 0.05);
-      border: 1px solid rgba(125, 86, 111, 0.08);
+      border-radius: var(--is-r-sm);
+      border: 1px solid var(--is-border-tint);
+      background: var(--is-tint-purple);
+      color: var(--is-text);
+      font-size: var(--is-fs-xs);
+      line-height: 1.5;
     }
 
     .sum--detail {
       white-space: pre-wrap;
-      color: #5d514c;
-      background: rgba(215, 132, 51, 0.06);
-      border-color: rgba(215, 132, 51, 0.12);
+      border-color: color-mix(in srgb, var(--is-secondary) 24%, white);
+      background: var(--is-tint-orange);
     }
 
     .channels {
       margin-top: 10px;
       padding: 10px 12px;
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.72);
-      border: 1px solid #eee2d9;
-      font-size: 12px;
-      color: #5d514c;
+      border-radius: var(--is-r-sm);
+      border: 1px solid var(--is-border);
+      background: var(--is-surface);
+      font-size: var(--is-fs-xs);
+      color: var(--is-text-2);
     }
 
     .ch-row {
@@ -221,127 +249,32 @@ export interface RuleEngineRuleDetailDialogData {
       margin-top: 6px;
       line-height: 1.45;
     }
-
-    .ch-row:first-child {
-      margin-top: 0;
-    }
-
+    .ch-row:first-child { margin-top: 0; }
     .ch-row strong {
-      color: #7d566f;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      font-size: 11px;
       min-width: 78px;
+      color: var(--is-primary);
+      font-size: var(--is-fs-2xs);
+      font-weight: var(--is-fw-bold);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
     }
-
-    .ch-meta {
-      color: #736760;
-      text-align: right;
-      word-break: break-word;
-    }
+    .ch-meta { text-align: right; word-break: break-word; }
 
     .dlg-actions {
-      padding: 12px 24px 20px;
-      border-top: 1px solid #eee3da;
-      background: linear-gradient(to bottom, rgba(255, 250, 246, 0.4), rgba(248, 242, 237, 0.85));
+      padding: 14px 24px 20px !important;
+      border-top: 1px solid var(--is-border);
+      background: var(--is-surface-2);
     }
-
-    .close-btn {
-      margin: 0;
-      background: linear-gradient(135deg, #7d566f 0%, #d78433 100%);
-      color: #ffffff !important;
-      border: none !important;
-      min-width: 140px;
-      height: 42px;
-      border-radius: 12px !important;
-      font-weight: 700;
-      box-shadow: 0 10px 22px rgba(125, 86, 111, 0.22);
-    }
-
-    .close-btn:hover {
-      filter: brightness(1.02);
-      box-shadow: 0 12px 26px rgba(125, 86, 111, 0.28);
-    }
-
-    ::ng-deep .mat-mdc-dialog-title {
-      margin: 0;
-      padding: 22px 24px 14px;
-      font-size: 20px;
-      line-height: 1.3;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      color: #251f1b;
-      background: linear-gradient(to bottom, #fffdfa 0%, #fbf5f0 100%);
-      border-bottom: 1px solid #eee3da;
-    }
-
-    ::ng-deep .mat-mdc-tab-group {
-      --mdc-tab-indicator-active-indicator-color: #7d566f;
-      --mat-tab-header-active-label-text-color: #7d566f;
-      --mat-tab-header-active-ripple-color: rgba(125, 86, 111, 0.16);
-      --mat-tab-header-inactive-ripple-color: rgba(125, 86, 111, 0.08);
-      --mat-tab-header-active-focus-label-text-color: #7d566f;
-      --mat-tab-header-active-hover-label-text-color: #7d566f;
-      --mat-tab-header-active-focus-indicator-color: #7d566f;
-      --mat-tab-header-active-hover-indicator-color: #7d566f;
-    }
-
-    ::ng-deep .mat-mdc-tab-header {
-      border-bottom: 1px solid #eee3da;
-      margin-bottom: 4px;
-    }
-
-    ::ng-deep .mdc-tab {
-      min-height: 46px;
-    }
-
-    ::ng-deep .mdc-tab__text-label {
-      font-size: 13px;
-      font-weight: 700;
-      color: #736760;
-    }
-
-    ::ng-deep .mat-mdc-progress-spinner circle,
-    ::ng-deep .mdc-circular-progress__indeterminate-circle-graphic {
-      stroke: #7d566f !important;
-    }
+    .close-btn { min-width: 140px; }
 
     @media (max-width: 640px) {
-      .dlg {
-        min-width: min(100vw - 24px, 100%);
-        max-height: 72vh;
-      }
-
-      .row-top {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .time {
-        white-space: normal;
-      }
-
-      .ch-row {
-        flex-direction: column;
-      }
-
-      .ch-meta {
-        text-align: left;
-      }
-
-      .close-btn {
-        width: 100%;
-      }
-
-      ::ng-deep .mat-mdc-dialog-title {
-        padding: 18px 18px 12px;
-        font-size: 18px;
-      }
-
-      .dlg-actions {
-        padding: 12px 18px 18px;
-      }
+      .dlg { min-width: min(100vw - 24px, 100%); max-height: 72vh; }
+      .row-top, .ch-row { flex-direction: column; }
+      .time { white-space: normal; }
+      .ch-meta { text-align: left; }
+      .close-btn { width: 100%; }
+      :host ::ng-deep .mat-mdc-dialog-title { padding: 20px 18px 12px; }
+      .dlg-actions { padding: 12px 18px 18px !important; }
     }
   `],
 })

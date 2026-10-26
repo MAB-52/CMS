@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AdminUser, CreateUserPayload, UpdateUserPayload, UserRole } from '../../../core/models/admin.model';
 import { AdminService } from '../../../core/services/admin.service';
@@ -13,7 +14,7 @@ const ROLES: UserRole[] = ['ADMIN', 'MAKER', 'CHECKER'];
 @Component({
   selector: 'app-admin-user-management',
   standalone: true,
-  imports: [FormsModule, MatButtonModule, MatProgressSpinnerModule, DatePipe],
+  imports: [FormsModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, DatePipe],
   templateUrl: './admin-user-management.component.html',
   styleUrl: './admin-user-management.component.css',
 })

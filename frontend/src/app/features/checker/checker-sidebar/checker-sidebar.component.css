@@ -3,9 +3,9 @@
   --sidebar-width: 260px;
   --sidebar-width-collapsed: 88px;
 
-  --sidebar-top: #f05f67;
-  --sidebar-mid: #c94d8f;
-  --sidebar-bottom: #5a4fb2;
+  --sidebar-top: var(--is-secondary);
+  --sidebar-mid: var(--is-pink);
+  --sidebar-bottom: var(--is-primary);
 
   --sidebar-text: rgba(255, 250, 246, 0.98);
   --sidebar-text-soft: rgba(255, 244, 236, 0.80);
@@ -16,11 +16,11 @@
   --sidebar-surface-strong: rgba(255, 255, 255, 0.14);
   --sidebar-surface-active: rgba(255, 255, 255, 0.18);
 
-  --sidebar-shadow: 6px 0 30px rgba(62, 41, 92, 0.20);
+  --sidebar-shadow: 6px 0 30px rgba(23, 36, 69, 0.20);
   --sidebar-logo-bg: rgba(255, 248, 243, 0.92);
-  --sidebar-accent: #f4bf7c;
-  --sidebar-accent-strong: #ffd7ab;
-  --sidebar-danger: #ffd1d1;
+  --sidebar-accent: var(--is-secondary);
+  --sidebar-accent-strong: var(--is-secondary);
+  --sidebar-danger: var(--is-danger-border);
   --sidebar-danger-bg: rgba(255, 255, 255, 0.06);
 }
 
@@ -58,7 +58,7 @@
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 28%, rgba(255,255,255,0) 100%);
+    linear-gradient(180deg, rgba(255, 255, 255,0.08) 0%, rgba(255, 255, 255,0.02) 28%, rgba(255, 255, 255,0) 100%);
   mix-blend-mode: screen;
 }
 
@@ -102,7 +102,7 @@
   align-items: center;
   justify-content: center;
   background: var(--sidebar-logo-bg);
-  color: #7a5a48;
+  color: var(--is-text-2);
   font-size: 14px;
   font-weight: 800;
   letter-spacing: 0.03em;
@@ -189,7 +189,7 @@
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.10));
   color: #ffffff;
   border-color: rgba(255, 255, 255, 0.16);
-  box-shadow: 0 10px 24px rgba(62, 41, 92, 0.14);
+  box-shadow: 0 10px 24px rgba(23, 36, 69, 0.14);
 }
 
 .nav-link.active::before {
@@ -247,12 +247,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #ffd29c, #f08b38);
-  color: #4a3124;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--is-secondary) 30%, white), var(--is-secondary));
+  color: var(--is-text);
   font-size: 10px;
   font-weight: 800;
   line-height: 1;
-  box-shadow: 0 4px 12px rgba(240, 139, 56, 0.26);
+  box-shadow: 0 4px 12px rgba(234, 107, 40, 0.26);
 }
 
 /* ───────────────────────────── */
@@ -288,7 +288,7 @@
   align-items: center;
   justify-content: center;
   background: rgba(255, 248, 243, 0.92);
-  color: #7a5a48;
+  color: var(--is-text-2);
   font-size: 13px;
   font-weight: 800;
   box-shadow: 0 8px 18px rgba(84, 52, 40, 0.16);
@@ -343,8 +343,8 @@
   transform: translateY(-2px);
   background: rgba(255, 255, 255, 0.12);
   border-color: rgba(255, 255, 255, 0.16);
-  color: #fff5f2;
-  box-shadow: 0 10px 24px rgba(62, 41, 92, 0.14);
+  color: var(--is-danger-bg);
+  box-shadow: 0 10px 24px rgba(23, 36, 69, 0.14);
 }
 
 .btn-logout mat-icon {

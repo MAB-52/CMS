@@ -1,9 +1,9 @@
-  <div class="shell">
-      <app-maker-sidebar />
-      <div class="main">
-        <app-maker-topbar [pageTitle]="pageTitle()" [revisionCount]="revisionCount()" />
-        <div class="content">
-          <router-outlet />
-        </div>
-      </div>
-    </div>
+<app-shell
+  workspaceLabel="Maker Workspace"
+  roleLabel="Consent Manager · Maker"
+  crumbLabel="Maker Workspace"
+  [pageTitle]="pageTitle()"
+  [nav]="nav()"
+>
+  <router-outlet />
+</app-shell>

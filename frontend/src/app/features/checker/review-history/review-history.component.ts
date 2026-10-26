@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { AuditService } from '../../../core/services/audit.service';
 import { AuditLogEntry } from '../../../core/models/audit.model';
 import { TimeAgoPipe } from '../../../shared/pipes/time-ago.pipe';
@@ -24,7 +25,7 @@ type ReviewHistoryTypeFilter = 'all' | 'consents' | 'broadcasts' | 'rules';
 @Component({
   selector: 'app-review-history',
   standalone: true,
-  imports: [RouterLink, FormsModule, MatButtonModule, TimeAgoPipe],
+  imports: [RouterLink, FormsModule, MatButtonModule, MatIconModule, TimeAgoPipe],
   templateUrl: './review-history.component.html',
   styleUrl: './review-history.component.css',
 })

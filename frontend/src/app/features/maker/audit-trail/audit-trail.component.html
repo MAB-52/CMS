@@ -3,12 +3,13 @@
     <div>
       <div class="eyebrow">Activity</div>
       <h1>Audit Trail</h1>
+      <p class="lede">Every action on your consents, broadcasts and rules — including checker decisions.</p>
     </div>
-    <a mat-stroked-button routerLink="/maker/dashboard">Back to Dashboard</a>
+    <a mat-stroked-button routerLink="/maker/dashboard"><mat-icon>arrow_back</mat-icon>Back to Dashboard</a>
   </div>
 
   <mat-card>
-    <div class="audit-toolbar">
+    <div class="audit-toolbar" role="group" aria-label="Filter activity">
       <button mat-stroked-button [class.active]="typeFilter() === 'all'" (click)="typeFilter.set('all')">
         All
       </button>
@@ -45,7 +46,7 @@
           <th mat-header-cell *matHeaderCellDef>Entity</th>
           <td mat-cell *matCellDef="let row">
             <span class="entity-cell">
-              <span class="chip" [class]="'chip--' + entityChipKind(row.entityType)">
+              <span class="chip" [class]="'chip chip--' + entityChipKind(row.entityType)">
                 {{ entityChipLabel(row.entityType) }}
               </span>
               <span class="entity-name truncate">{{ row.entityName }}</span>
@@ -57,7 +58,7 @@
         <ng-container matColumnDef="status">
           <th mat-header-cell *matHeaderCellDef>Checker Status</th>
           <td mat-cell *matCellDef="let row">
-            <span *ngIf="isCheckerDecision(row)" class="badge" [class]="'badge--' + actionBadgeTone(row.action)"
+            <span *ngIf="isCheckerDecision(row)" [class]="'badge badge--' + actionBadgeTone(row.action)"
               [matTooltip]="row.description">
               {{ statusLabel(row.action) }}
             </span>
@@ -83,14 +84,17 @@
       </table>
 
       <div class="empty-state" *ngIf="displayedRows().length === 0 && !loading()">
-        <p>No activity to show yet.</p>
+        <div class="is-empty">
+          <div class="is-empty__icon"><mat-icon>history_toggle_off</mat-icon></div>
+          <div class="is-empty__title">No activity to show yet.</div>
+        </div>
       </div>
     </div>
 
     <div class="pager">
-      <button mat-stroked-button (click)="prev()" [disabled]="page() === 0">Previous</button>
+      <button mat-stroked-button (click)="prev()" [disabled]="page() === 0"><mat-icon>chevron_left</mat-icon>Previous</button>
       <span>Page {{ page() + 1 }}</span>
-      <button mat-stroked-button (click)="next()" [disabled]="!hasNext()">Next</button>
+      <button mat-stroked-button (click)="next()" [disabled]="!hasNext()">Next<mat-icon iconPositionEnd>chevron_right</mat-icon></button>
     </div>
   </mat-card>
 </div>

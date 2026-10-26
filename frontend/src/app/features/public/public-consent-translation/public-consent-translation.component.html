@@ -1,6 +1,12 @@
 <div class="public-page" dir="ltr">
   <div class="shell-card">
-    <div class="brand">ConsentIQ</div>
+    <header class="card-header">
+      <div class="brand">
+        <div class="brand-icon-wrap"><span class="brand-icon-inner">CQ</span></div>
+        ConsentIQ
+      </div>
+    </header>
+    <div class="gradient-strip" aria-hidden="true"></div>
     <h1 class="title">Consent message</h1>
     <p class="lede">Read the full consent text in the language you selected.</p>
 
@@ -11,17 +17,19 @@
       </div>
     } @else {
       @if (errorMessage(); as err) {
-        <div class="banner banner--error" role="alert">{{ err }}</div>
+        <div class="banner banner--error" role="alert"><mat-icon class="banner-icon" aria-hidden="true">error_outline</mat-icon><span>{{ err }}</span></div>
       } @else {
         <a
           class="back-link"
           routerLink="/public/consent/respond"
           [queryParams]="{ token: token() }"
         >
-          ← Back to consent request
+          <mat-icon aria-hidden="true">arrow_back</mat-icon>
+          Back to consent request
         </a>
 
         <section class="panel">
+          <div class="panel__accent" aria-hidden="true"></div>
           <div class="greet">Hello, {{ customerDisplayName() }}</div>
           <h2 class="consent-title">{{ consentTitle() }}</h2>
           <div class="translated-content" [innerHTML]="safeHtml()"></div>

@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MatIconModule } from '@angular/material/icon';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { MergeTag } from '../../../core/models/consent.model';
 import { ChannelLanguageRenderMap } from '../../../core/models/consent-translation.types';
@@ -29,7 +30,7 @@ const CHANNEL_META: Record<ChannelId, { icon: string; name: string }> = {
 @Component({
   selector: 'app-consent-channel-language-preview',
   standalone: true,
-  imports: [CommonModule, MatTabsModule],
+  imports: [CommonModule, MatTabsModule, MatIconModule],
   templateUrl: './consent-channel-language-preview.component.html',
   styleUrl: './consent-channel-language-preview.component.css',
 })

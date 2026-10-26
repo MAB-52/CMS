@@ -1,35 +1,51 @@
 <div class="login-page">
 
-  <!-- ── Left panel── -->
+  <!-- ── Left panel: brand ── -->
+  <aside class="left-panel" aria-label="ConsentIQ">
+    <span class="orb orb--1" aria-hidden="true"></span>
+    <span class="orb orb--2" aria-hidden="true"></span>
 
-<div class="left-panel">
-  <div class="brand-block brand-block--logo-only">
-    <div class="brand-logo-plate">
-      <img src="assets/images/logo.png" alt="Aurionpro Logo" class="brand-logo" />
+    <div class="brand-row">
+      <img src="assets/images/logo-white.png" alt="Aurionpro — Lead the next" class="brand-logo" />
+      <span class="brand-divider" aria-hidden="true"></span>
+      <span class="brand-product">ConsentIQ</span>
     </div>
-  </div>
-</div>
+
+    <div class="brand-copy">
+      <h2 class="brand-title">Every consent,<br />captured and compliant.</h2>
+      <p class="brand-text">One secure home to capture, review and broadcast customer consent, with every decision recorded.</p>
+    </div>
+
+    <ul class="brand-points">
+      <li><span class="bp-icon"><mat-icon>lock</mat-icon></span> Role-based maker–checker approvals</li>
+      <li><span class="bp-icon"><mat-icon>fact_check</mat-icon></span> Every action is recorded in an audit trail</li>
+      <li><span class="bp-icon"><mat-icon>verified_user</mat-icon></span> Access follows your role, nothing more</li>
+    </ul>
+  </aside>
 
   <!-- ── Right panel: form ── -->
-  <div class="right-panel">
+  <main class="right-panel">
     <div class="login-card">
 
-      <h1 class="welcome">Welcome back</h1>
-      <p class="welcome-sub">Sign in to continue to your dashboard.</p>
-      <hr class="title-rule" />
+      <img src="assets/images/logo.png" alt="Aurionpro Logo" class="card-logo" />
+      <h1 class="welcome">Welcome to ConsentIQ</h1>
+      <p class="welcome-sub">Sign in to your account to continue.</p>
 
       @if (errorBanner()) {
-        <div class="err-banner">{{ errorBanner() }}</div>
+        <div class="err-banner" role="alert">
+          <mat-icon aria-hidden="true">error_outline</mat-icon>
+          <span>{{ errorBanner() }}</span>
+        </div>
       }
 
       <form [formGroup]="form" (ngSubmit)="submit()" class="form">
 
         <!-- Email -->
         <div class="field-group">
-          <label class="field-label">Email</label>
+          <label class="field-label" for="login-email">Email</label>
           <mat-form-field appearance="outline" floatLabel="always" class="field">
-            <mat-icon matPrefix class="pfx-icon">email</mat-icon>
-            <input matInput type="email" formControlName="email"
+            <mat-icon matPrefix class="pfx-icon">person_outline</mat-icon>
+            <input matInput id="login-email" type="email" formControlName="email"
                    autocomplete="username" placeholder="Enter email here ..." />
             @if (form.controls.email.touched && form.controls.email.hasError('required')) {
               <mat-error>Email is required</mat-error>
@@ -42,40 +58,43 @@
 
         <!-- Password -->
         <div class="field-group">
-          <label class="field-label">Password</label>
+          <label class="field-label" for="login-password">Password</label>
           <mat-form-field appearance="outline" floatLabel="always" class="field">
-            <mat-icon matPrefix class="pfx-icon">lock</mat-icon>
-            <input matInput [type]="hidePw() ? 'password' : 'text'"
+            <mat-icon matPrefix class="pfx-icon">lock_outline</mat-icon>
+            <input matInput id="login-password" [type]="hidePw() ? 'password' : 'text'"
                    formControlName="password" autocomplete="current-password"
                    placeholder="Enter password" />
             <button mat-icon-button matSuffix type="button"
-                    (click)="togglePw()" aria-label="Toggle password visibility">
-              <mat-icon>{{ hidePw() ? 'visibility' : 'visibility_off' }}</mat-icon>
+                    (click)="togglePw()" [attr.aria-label]="hidePw() ? 'Show password' : 'Hide password'">
+              <mat-icon>{{ hidePw() ? 'visibility_off' : 'visibility' }}</mat-icon>
             </button>
             @if (form.controls.password.touched && form.controls.password.hasError('required')) {
               <mat-error>Password is required</mat-error>
             }
           </mat-form-field>
           <div class="forgot-row">
-            <a routerLink="/forgot-password" class="forgot-link">Forgot Password</a>
+            <a routerLink="/forgot-password" class="forgot-link">Forgot Password?</a>
           </div>
         </div>
 
         <!-- Submit -->
-        <button mat-stroked-button class="submit-btn"
+        <button mat-flat-button class="submit-btn"
                 type="submit" [disabled]="loading()"
                 [class.success-pulse]="successPulse()">
           @if (loading()) {
-            <span class="spin">⏳</span> Signing in...
+            <span class="btn-inner">
+              <mat-spinner diameter="18" strokeWidth="2.5" class="btn-spinner"></mat-spinner>
+              Signing in...
+            </span>
           } @else {
-            Login
+            <span class="btn-inner">Sign in</span>
           }
         </button>
 
       </form>
 
-      <p class="version">ConsentIQ &nbsp;·&nbsp; Secure &nbsp;·&nbsp; Compliant</p>
+      <p class="version">Trouble signing in? Ask your administrator.</p>
     </div>
-  </div>
+  </main>
 
 </div>

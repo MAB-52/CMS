@@ -1,6 +1,1 @@
-<span class="wf-badge" [ngClass]="'wf-' + variant">
-  @if (dot) {
-    <span class="dot">●</span>
-  }
-  {{ label }}
-</span>
+<span class="is-badge wf-badge" [ngClass]="['is-badge--' + toneFor(variant), 'wf-' + variant]" [class.is-badge--no-dot]="!dot">{{ label }}</span>

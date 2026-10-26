@@ -19,7 +19,7 @@ import { NotificationService } from '../../../../core/services/notification.serv
   standalone: true,
   imports: [DatePipe, FormsModule, MatButtonModule, MatButtonToggleModule, MatIconModule, MatProgressBarModule],
   templateUrl: './mis-report-expiry-tab.component.html',
-  styleUrl: './mis-report-expiry-tab.component.css',
+  styleUrls: ['../mis-tab-shared.css', './mis-report-expiry-tab.component.css'],
 })
 export class MisReportExpiryTabComponent implements OnInit, OnDestroy {
   private readonly adminApi = inject(AdminService);

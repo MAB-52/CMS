@@ -3,19 +3,19 @@
 <div class="preview-wrap">
   <div class="preview-head">
     <div class="preview-head-text">
-      <span class="preview-title">📱 Channel Previews</span>
+      <span class="preview-title"><mat-icon aria-hidden="true">devices</mat-icon>Channel Previews</span>
       <span class="preview-sub">Click a channel tab to see how the message will appear</span>
     </div>
     @if (totalCombinations > 0) {
       <span class="combo-badge" [class.combo-badge--complete]="viewedCount === totalCombinations">
-        👁 {{ viewedCount }}/{{ totalCombinations }} viewed
+        <mat-icon aria-hidden="true">visibility</mat-icon>{{ viewedCount }}/{{ totalCombinations }} viewed
       </span>
     }
   </div>
 
   @if (!activeChannels.length) {
   <div class="empty-prev">
-    <div class="empty-ico">📡</div>
+    <div class="empty-ico" aria-hidden="true"><mat-icon>cell_tower</mat-icon></div>
     <p>No delivery channels configured for this consent</p>
   </div>
   } @else {
@@ -39,7 +39,7 @@
 
   @if (showTranslationBanner()) {
   <div class="translation-banner">
-    ⚠️ AI-generated translation — please verify accuracy before {{ readOnly ? 'approving' : 'submitting' }}.
+    <mat-icon aria-hidden="true">translate</mat-icon> AI-generated translation — please verify accuracy before {{ readOnly ? 'approving' : 'submitting' }}.
   </div>
   }
 

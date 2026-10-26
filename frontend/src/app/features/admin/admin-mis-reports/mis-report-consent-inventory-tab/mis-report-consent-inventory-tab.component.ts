@@ -48,7 +48,7 @@ import type {
     MatTooltipModule,
   ],
   templateUrl: './mis-report-consent-inventory-tab.component.html',
-  styleUrl: './mis-report-consent-inventory-tab.component.css',
+  styleUrls: ['../mis-tab-shared.css', './mis-report-consent-inventory-tab.component.css'],
 })
 export class MisReportConsentInventoryTabComponent
   implements OnInit, AfterViewInit, OnDestroy
@@ -97,13 +97,14 @@ export class MisReportConsentInventoryTabComponent
     Math.max(1, ...(this.bundle()?.consentsByCategory ?? []).map((p) => p.count)),
   );
 
+  /** Interact Suite chart palette (primary, secondary, then supporting utility colours). */
   readonly sliceColors = [
-    '#185FA5',
-    '#22c55e',
-    '#f59e0b',
-    '#ef4444',
-    '#8b5cf6',
-    '#94a3b8',
+    '#45329E',
+    '#EA6B28',
+    '#20C997',
+    '#0D6EFD',
+    '#FFC107',
+    '#D63384',
   ];
 
   // Typed via the import-type above; assigned after dynamic import resolves.

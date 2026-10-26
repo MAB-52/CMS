@@ -2,12 +2,12 @@
   display: block;
   width: 100%;
   --tb-bg: rgba(252, 249, 246, 0.92);
-  --tb-bg-solid: #faf6f2;
-  --tb-border: #e8ddd5;
-  --tb-text: #261f1c;
-  --tb-text-soft: #756963;
+  --tb-bg-solid: var(--is-tint-orange);
+  --tb-border: color-mix(in srgb, var(--is-secondary) 30%, white);
+  --tb-text: var(--is-text);
+  --tb-text-soft: var(--is-text-2);
   --tb-chip-bg: rgba(143, 86, 98, 0.10);
-  --tb-chip-text: #865262;
+  --tb-chip-text: var(--is-text-2);
 }
 
 .topbar {

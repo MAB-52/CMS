@@ -1,0 +1,76 @@
+// Motion — subtle, purposeful, reduced-motion safe
+
+@keyframes is-fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes is-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes is-scale-in {
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes is-slide-in-right {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes is-shimmer {
+  0%   { background-position: -480px 0; }
+  100% { background-position: 480px 0; }
+}
+@keyframes is-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.08); opacity: 0.85; }
+}
+@keyframes is-ping {
+  0%   { transform: scale(1); opacity: 0.6; }
+  80%, 100% { transform: scale(2.2); opacity: 0; }
+}
+@keyframes is-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50%      { transform: translate3d(0, -14px, 0); }
+}
+@keyframes is-spin { to { transform: rotate(360deg); } }
+@keyframes is-progress-indeterminate {
+  0%   { transform: translateX(-100%) scaleX(0.35); }
+  50%  { transform: translateX(30%) scaleX(0.6); }
+  100% { transform: translateX(100%) scaleX(0.35); }
+}
+@keyframes is-bar-grow {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+.is-animate-fade-up { animation: is-fade-up var(--is-dur-slow) var(--is-ease) both; }
+.is-animate-fade-in { animation: is-fade-in var(--is-dur-slow) ease both; }
+.is-animate-scale-in { animation: is-scale-in var(--is-dur-slow) var(--is-ease) both; }
+
+/* Stagger children: <div class="is-stagger"> … </div> */
+.is-stagger > * {
+  animation: is-fade-up var(--is-dur-slow) var(--is-ease) both;
+}
+@for $i from 1 through 12 {
+  .is-stagger > *:nth-child(#{$i}) { animation-delay: #{($i - 1) * 45}ms; }
+}
+.is-stagger > *:nth-child(n + 13) { animation-delay: 540ms; }
+
+/* Route transitions (Router withViewTransitions) */
+::view-transition-old(root) {
+  animation: 160ms ease both is-fade-in reverse;
+}
+::view-transition-new(root) {
+  animation: 260ms var(--is-ease) both is-fade-in;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none !important; }
+}

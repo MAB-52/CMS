@@ -36,7 +36,7 @@ const CHANNEL_CHIP_LABEL: Record<ChannelId, string> = {
     ConsentChannelLanguagePreviewComponent,
   ],
   templateUrl: './linked-approval-review.component.html',
-  styleUrl: './linked-approval-review.component.css',
+  styleUrls: ['../checker-shared.css', '../linked-approvals/linked-approvals.component.css', './linked-approval-review.component.css'],
 })
 export class LinkedApprovalReviewComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
@@ -153,7 +153,7 @@ export class LinkedApprovalReviewComponent implements OnInit {
     const data: ReviewActionDialogData = {
       title: 'Approve this consent',
       icon: '✅',
-      iconColor: 'rgba(22,163,74,0.15)',
+      iconColor: 'rgba(25,135,84,0.15)',
       textareaLabel: 'Reason for approval',
       placeholder: 'Describe why this consent meets the required criteria…',
       confirmLabel: 'Confirm Approval',
@@ -190,7 +190,7 @@ export class LinkedApprovalReviewComponent implements OnInit {
     const data: ReviewActionDialogData = {
       title: 'Request revision',
       icon: '↩',
-      iconColor: '#d97706',
+      iconColor: '#EA6B28',
       textareaLabel: 'What should the maker change?',
       placeholder: `Describe updates for the consent and/or the rule "${r.ruleName}"…`,
       confirmLabel: 'Send revision request',
@@ -232,7 +232,7 @@ export class LinkedApprovalReviewComponent implements OnInit {
     const data: ReviewActionDialogData = {
       title: 'Reject consent and paired rule',
       icon: '❌',
-      iconColor: '#dc2626',
+      iconColor: '#DC3545',
       textareaLabel: 'Reason for rejection',
       placeholder: 'Provide a clear reason for the maker (applies to both the consent and the broadcast rule)…',
       confirmLabel: 'Confirm rejection',

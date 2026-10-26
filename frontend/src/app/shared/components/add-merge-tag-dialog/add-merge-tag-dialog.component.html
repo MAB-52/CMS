@@ -1,5 +1,8 @@
 <div class="dialog-container">
-  <h2 mat-dialog-title>Add Variable Tag</h2>
+  <div class="dlg-head">
+    <span class="dlg-ico" aria-hidden="true"><mat-icon>sell</mat-icon></span>
+    <h2 mat-dialog-title>Add Variable Tag</h2>
+  </div>
 
   <mat-dialog-content [formGroup]="form">
 
@@ -45,7 +48,7 @@
         @for (field of customerFields; track field.fieldKey) {
           <mat-option [value]="field.fieldKey">
             {{ field.fieldLabel }}
-            <span style="color:#94a3b8; font-size:11px">
+            <span class="field-type">
               {{ getFieldTypeLabel(field.fieldType) }}
             </span>
           </mat-option>
@@ -53,11 +56,11 @@
       </mat-select>
       <mat-hint>
         @if (isBoolean) {
-          ✅ Boolean field — define what to show for each value below.
+          <mat-icon class="hint-ico" aria-hidden="true">toggle_on</mat-icon> Boolean field — define what to show for each value below.
         } @else if (selectedField) {
-          ✅ Each customer sees their own <strong>{{ selectedField.fieldLabel }}</strong>.
+          <mat-icon class="hint-ico" aria-hidden="true">person</mat-icon> Each customer sees their own <strong>{{ selectedField.fieldLabel }}</strong>.
         } @else {
-          ℹ️ No mapping — sample value sent to every customer as-is.
+          <mat-icon class="hint-ico" aria-hidden="true">info</mat-icon> No mapping — sample value sent to every customer as-is.
         }
       </mat-hint>
     </mat-form-field>
@@ -66,7 +69,7 @@
     @if (isBoolean) {
       <div class="boolean-labels">
         <p class="boolean-hint">
-          🔘 Define what to display when the value is true or false:
+          <mat-icon class="hint-ico" aria-hidden="true">tune</mat-icon> Define what to display when the value is true or false:
         </p>
         <div class="boolean-row">
           <mat-form-field appearance="outline" class="half-width">
@@ -99,7 +102,7 @@
     }
 
     <!-- Sample Value -->
-    <mat-form-field appearance="outline" class="full-width" style="margin-top:8px">
+    <mat-form-field appearance="outline" class="full-width sample-field">
       <mat-label>Sample Value</mat-label>
       <input matInput formControlName="sampleValue"
              [placeholder]="isBoolean

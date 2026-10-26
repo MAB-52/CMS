@@ -5,20 +5,20 @@
   z-index: 20;
 
   --topbar-bg: rgba(255, 255, 255, 0.96);
-  --topbar-border: #ebeef5;
+  --topbar-border: var(--is-border-tint);
   --topbar-shadow: none;
 
-  --topbar-text: #26233a;
-  --topbar-text-soft: #6f7185;
-  --topbar-text-faint: #9aa0b2;
+  --topbar-text: var(--is-text);
+  --topbar-text-soft: var(--is-text-2);
+  --topbar-text-faint: var(--is-text-3);
 
-  --topbar-plum: #7d6f85;
-  --topbar-plum-dark: #5e48b8;
-  --topbar-amber: #f08b38;
+  --topbar-plum: var(--is-text-2);
+  --topbar-plum-dark: var(--is-primary);
+  --topbar-amber: var(--is-secondary);
 
   --topbar-surface: #ffffff;
-  --topbar-surface-soft: #f7f8fd;
-  --topbar-border-strong: #d8dfeb;
+  --topbar-surface-soft: var(--is-canvas);
+  --topbar-border-strong: var(--is-border-strong);
 }
 
 .topbar {
@@ -57,15 +57,15 @@
   min-height: 30px;
   padding: 0 14px;
   border-radius: 999px;
-  background: #f5eef0;
-  color: #8a6f77;
+  background: var(--is-border-tint);
+  color: var(--is-text-2);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0;
 }
 
 .crumb__divider {
-  color: #c5cad7;
+  color: var(--is-border-strong);
   font-weight: 700;
 }
 
@@ -127,10 +127,10 @@
 
 .icon-btn:hover {
   transform: translateY(-2px);
-  border-color: rgba(94, 72, 184, 0.22);
+  border-color: rgba(69, 50, 158, 0.22);
   background: var(--topbar-surface-soft);
   color: var(--topbar-plum-dark);
-  box-shadow: 0 8px 18px rgba(31, 41, 84, 0.08);
+  box-shadow: 0 8px 18px rgba(23, 36, 69, 0.08);
 }
 
 .icon-btn mat-icon {
@@ -147,14 +147,14 @@
   height: 17px;
   padding: 0 4px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #ffd29c, #f08b38);
-  color: #4a3124;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--is-secondary) 30%, white), var(--is-secondary));
+  color: var(--is-text);
   font-size: 10px;
   font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(240, 139, 56, 0.30);
+  box-shadow: 0 2px 6px rgba(234, 107, 40, 0.30);
 }
 
 /* Remove old profile card look */
@@ -193,7 +193,7 @@
   background: linear-gradient(90deg, var(--topbar-plum-dark), var(--topbar-amber));
   border-color: transparent;
   color: white;
-  box-shadow: 0 10px 22px rgba(94, 72, 184, 0.18);
+  box-shadow: 0 10px 22px rgba(69, 50, 158, 0.18);
 }
 
 .logout-btn mat-icon {

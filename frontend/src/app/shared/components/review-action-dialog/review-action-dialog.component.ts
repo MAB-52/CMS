@@ -6,6 +6,7 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -39,6 +40,7 @@ export interface ReviewActionDialogResult {
     MatFormFieldModule,
     MatInputModule,
     MatCheckboxModule,
+    MatIconModule,
     ReactiveFormsModule,
   ],
   templateUrl: './review-action-dialog.component.html',
@@ -53,6 +55,21 @@ export class ReviewActionDialogComponent {
   readonly text = new FormControl<string>('', { nonNullable: true });
   readonly flagCombo = new FormControl<boolean>(false, { nonNullable: true });
   submitted = false;
+
+  /** Maps legacy emoji icons from callers onto Material icon ligatures. */
+  materialIcon(): string {
+    const icon = (this.data.icon || '').trim();
+    if (/^[a-z0-9_]+$/.test(icon)) return icon;
+    const map: Record<string, string> = {
+      '🚪': 'logout',
+      '✅': 'check_circle',
+      '↩': 'assignment_return',
+      '❌': 'cancel',
+      '⚠️': 'warning',
+      '🗑️': 'delete',
+    };
+    return map[icon] ?? 'info';
+  }
 
   constructor() {
     this.text.setValidators([

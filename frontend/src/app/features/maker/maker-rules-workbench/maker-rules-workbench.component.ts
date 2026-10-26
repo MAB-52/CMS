@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { ConsentRulesService } from '../../../core/services/consent-rules.service';
 import { ConsentRule, ConsentRuleStatus } from '../../../core/models/workflow.model';
 import { WorkflowStatusBadgeComponent } from '../../../shared/components/workflow-status-badge/workflow-status-badge.component';
@@ -12,7 +13,7 @@ const PAGE_SIZE = 9;
 @Component({
   selector: 'app-maker-rules-workbench',
   standalone: true,
-  imports: [RouterLink, FormsModule, MatButtonModule, WorkflowStatusBadgeComponent, TimeAgoPipe],
+  imports: [RouterLink, FormsModule, MatButtonModule, MatIconModule, WorkflowStatusBadgeComponent, TimeAgoPipe],
   templateUrl: './maker-rules-workbench.component.html',
   styleUrl: './maker-rules-workbench.component.css',
 })

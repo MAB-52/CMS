@@ -3,7 +3,7 @@
   <div class="page">
 
     <div class="subnav">
-      <a mat-stroked-button routerLink="/checker/pending">← Pending Approvals</a>
+      <a class="is-back-link" routerLink="/checker/pending"><mat-icon>arrow_back</mat-icon>Pending Approvals</a>
     </div>
 
     <div class="title-row">
@@ -12,7 +12,7 @@
     </div>
 
     <div class="mode-card">
-      <div class="mode-title">✅ CHECKER REVIEW MODE</div>
+      <div class="mode-title"><mat-icon aria-hidden="true">fact_check</mat-icon>Checker review mode</div>
       <p class="mode-sub">
         You are reviewing a consent submitted by
         <strong>{{ c.createdBy?.fullName || '—' }}</strong> ·
@@ -22,7 +22,7 @@
         </span>
       </p>
       @if (c.version > 1) {
-        <p class="mode-note">↩ This consent may have prior revisions on record (v{{ c.version }}).</p>
+        <p class="mode-note"><mat-icon aria-hidden="true">history</mat-icon> This consent may have prior revisions on record (v{{ c.version }}).</p>
       }
     </div>
 
@@ -70,7 +70,7 @@
 
     @for (d of diff(); track d.fieldName) {
       <div class="diff-box">
-        <div class="diff-title">✏️ Modified · {{ d.fieldLabel }}</div>
+        <div class="diff-title"><mat-icon aria-hidden="true">edit_note</mat-icon>Modified · {{ d.fieldLabel }}</div>
         <div class="diff-new">{{ d.newValue }}</div>
         <div class="diff-old">Was: {{ d.oldValue }}</div>
       </div>
@@ -96,7 +96,7 @@
       <div>
         <div class="d-title">Make your decision for: {{ c.consentName }} v{{ c.version }}</div>
         <div class="d-sub">Your decision will be logged and the maker will be notified.</div>
-        <div class="reviewed-tracker">{{ viewedCount() }}/{{ totalCombinations() }} combinations viewed</div>
+        <div class="reviewed-tracker" [class.reviewed-tracker--done]="viewedCount() >= totalCombinations()"><mat-icon aria-hidden="true">{{ viewedCount() >= totalCombinations() ? 'task_alt' : 'visibility' }}</mat-icon>{{ viewedCount() }}/{{ totalCombinations() }} combinations viewed</div>
       </div>
       <div class="d-btns">
         <button
@@ -104,6 +104,7 @@
           class="ciq-btn-success ap"
           [disabled]="!canDecide() || busy() || viewedCount() < totalCombinations()"
           (click)="approve()">
+          <mat-icon>check_circle</mat-icon>
           Approve
         </button>
         <button
@@ -111,13 +112,15 @@
           class="ciq-btn-warning rev"
           [disabled]="!canDecide() || busy()"
           (click)="requestRevision()">
-          ↩ Request Revision
+          <mat-icon>assignment_return</mat-icon>
+          Request Revision
         </button>
         <button
           mat-stroked-button
           class="reject-btn"
           [disabled]="!canDecide() || busy()"
           (click)="reject()">
+          <mat-icon>cancel</mat-icon>
           Reject
         </button>
       </div>

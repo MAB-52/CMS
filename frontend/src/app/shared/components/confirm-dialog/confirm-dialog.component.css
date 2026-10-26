@@ -1,254 +1,90 @@
 :host {
   display: block;
+  font-family: var(--is-font);
 }
 
-/* ─────────────────────────────────────────
-   DIALOG CONTAINER
-───────────────────────────────────────── */
 .wrap {
+  --_tone: var(--is-primary);
+  --_tone-bg: var(--is-tint-purple);
   position: relative;
-
-  padding: 34px 30px 28px;
-
+  display: grid;
+  justify-items: center;
+  gap: var(--is-s-3);
+  padding: 36px var(--is-s-6) var(--is-s-5);
   text-align: center;
-
-  border-radius: 28px;
-
-  overflow: hidden;
-
-  background: rgba(255, 253, 250, 0.90);
-
-  backdrop-filter: blur(18px);
-
-  border: 1px solid rgba(234, 223, 215, 0.85);
-
-  box-shadow:
-    0 10px 40px rgba(67, 42, 30, 0.12),
-    0 2px 10px rgba(67, 42, 30, 0.06);
+  background: var(--is-surface);
 }
+.wrap[data-tone='warn'] { --_tone: var(--is-danger); --_tone-bg: var(--is-danger-bg); }
+.wrap[data-tone='success'] { --_tone: var(--is-success); --_tone-bg: var(--is-success-bg); }
+.wrap[data-tone='accent'] { --_tone: var(--is-secondary); --_tone-bg: var(--is-tint-orange); }
 
-/* ─────────────────────────────────────────
-   BACKGROUND GLOW
-───────────────────────────────────────── */
-.bg-glow {
+.brand-bar {
   position: absolute;
-  inset: 0;
-
-  background:
-    radial-gradient(
-      circle at top left,
-      rgba(125, 86, 111, 0.10),
-      transparent 35%
-    ),
-    radial-gradient(
-      circle at bottom right,
-      rgba(215, 132, 51, 0.08),
-      transparent 35%
-    );
-
-  pointer-events: none;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: var(--is-grad-banner);
 }
 
-/* ─────────────────────────────────────────
-   ICON
-───────────────────────────────────────── */
 .icon-wrap {
-  width: 62px;
-  height: 62px;
-
-  margin: 0 auto 18px;
-
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  backdrop-filter: blur(10px);
-
-  border: 1px solid rgba(255, 255, 255, 0.7);
-
-  box-shadow: 0 6px 18px rgba(67, 42, 30, 0.10);
-
-  position: relative;
-  z-index: 1;
+  background: var(--_tone-bg);
+  color: var(--_tone);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--_tone-bg) 50%, transparent);
+  animation: is-scale-in var(--is-dur-slow) var(--is-ease) 80ms both;
 }
+.icon { font-size: 30px; width: 30px; height: 30px; }
 
-.icon {
-  font-size: 30px;
-  line-height: 1;
-}
-
-/* ─────────────────────────────────────────
-   TITLE
-───────────────────────────────────────── */
 .title {
-  margin: 0 0 10px;
-
-  font-size: 24px;
-  font-weight: 800;
-
-  letter-spacing: -0.03em;
-
-  color: #251f1b;
-
-  position: relative;
-  z-index: 1;
+  margin: var(--is-s-2) 0 0 !important;
+  padding: 0 !important;
+  font-size: var(--is-fs-h3) !important;
+  line-height: var(--is-lh-h3) !important;
+  font-weight: var(--is-fw-bold) !important;
+  color: var(--is-text) !important;
 }
+.title::before { display: none; }
 
-/* ─────────────────────────────────────────
-   BODY
-───────────────────────────────────────── */
 .body {
-  margin: 0 auto 22px;
-
-  max-width: 420px;
-
-  font-size: 15px;
-  font-weight: 500;
-
-  line-height: 1.65;
-
-  color: #736760;
-
-  position: relative;
-  z-index: 1;
+  margin: 0;
+  max-width: 36ch;
+  color: var(--is-text-2);
+  font-size: var(--is-fs-body);
+  line-height: var(--is-lh-body);
 }
 
-/* ─────────────────────────────────────────
-   INFO PANEL
-───────────────────────────────────────── */
 .info-panel {
-  margin-bottom: 24px;
-
-  padding: 14px 16px;
-
-  border-radius: 18px;
-
-  background: rgba(215, 132, 51, 0.08);
-
-  border: 1px solid rgba(215, 132, 51, 0.16);
-
-  color: #bb6820;
-
-  font-size: 13px;
-  font-weight: 600;
-
-  line-height: 1.6;
-
-  text-align: left;
-
-  white-space: pre-line;
-
-  backdrop-filter: blur(12px);
-
-  position: relative;
-  z-index: 1;
-}
-
-/* ─────────────────────────────────────────
-   ACTIONS
-───────────────────────────────────────── */
-.actions {
   display: flex;
-  justify-content: center;
-  gap: 14px;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--is-r-sm);
+  border: 1px solid var(--is-border-tint);
+  background: var(--is-tint-purple);
+  color: var(--is-text);
+  font-size: var(--is-fs-sm);
+  text-align: left;
+}
+.info-panel .mat-icon { flex: none; font-size: 18px; width: 18px; height: 18px; color: var(--is-primary); }
 
-  position: relative;
-  z-index: 1;
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--is-s-3);
+  width: 100%;
+  margin-top: var(--is-s-3);
+}
+.actions > * { width: 100%; }
+.success-btn:not(:disabled) {
+  background: var(--is-success) !important;
+  box-shadow: 0 6px 16px rgba(25, 135, 84, 0.28) !important;
 }
 
-/* ─────────────────────────────────────────
-   BUTTON BASE
-───────────────────────────────────────── */
-.actions button {
-  min-width: 120px;
-  height: 46px;
-
-  border-radius: 14px !important;
-
-  font-weight: 700;
-  font-size: 14px;
-
-  letter-spacing: 0.02em;
-
-  transition:
-    transform 0.22s ease,
-    box-shadow 0.22s ease,
-    filter 0.22s ease;
-}
-
-.actions button:hover {
-  transform: translateY(-2px);
-}
-
-/* ─────────────────────────────────────────
-   CANCEL BUTTON
-───────────────────────────────────────── */
-.cancel-btn {
-  background: rgba(255, 253, 250, 0.8) !important;
-
-  border: 1px solid rgba(216, 200, 189, 0.7) !important;
-
-  color: #736760 !important;
-
-  box-shadow: 0 4px 12px rgba(67, 42, 30, 0.05) !important;
-}
-
-.cancel-btn:hover {
-  border-color: rgba(125, 86, 111, 0.30) !important;
-
-  color: #7d566f !important;
-}
-
-/* ─────────────────────────────────────────
-   PRIMARY CONFIRM
-───────────────────────────────────────── */
-.confirm-btn {
-  background: linear-gradient(135deg, #7d566f, #d78433) !important;
-
-  color: white !important;
-
-  box-shadow: 0 10px 24px rgba(125, 86, 111, 0.28) !important;
-}
-
-.confirm-btn:hover {
-  box-shadow: 0 16px 34px rgba(125, 86, 111, 0.36) !important;
-}
-
-/* ─────────────────────────────────────────
-   SUCCESS BUTTON
-───────────────────────────────────────── */
-.success-btn {
-  background: linear-gradient(135deg, #6c9b4c, #4d7d3c) !important;
-
-  color: #fff !important;
-
-  box-shadow: 0 10px 24px rgba(77, 125, 60, 0.28) !important;
-}
-
-.success-btn:hover {
-  box-shadow: 0 16px 34px rgba(77, 125, 60, 0.36) !important;
-}
-
-/* ─────────────────────────────────────────
-   MOBILE
-───────────────────────────────────────── */
-@media (max-width: 640px) {
-  .wrap {
-    padding: 28px 22px 24px;
-    border-radius: 24px;
-  }
-
-  .title {
-    font-size: 21px;
-  }
-
-  .actions {
-    flex-direction: column;
-  }
-
-  .actions button {
-    width: 100%;
-  }
+@media (max-width: 480px) {
+  .wrap { padding: 32px var(--is-s-5) var(--is-s-5); }
+  .actions { grid-template-columns: 1fr; }
 }
