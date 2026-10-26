@@ -1,0 +1,339 @@
+<div class="page" dir="ltr">
+  <div class="page-head">
+    <div>
+      <div class="crumb">Maker / Create Consent</div>
+      <h1 class="ttl">{{ isCreatePage() ? 'Create New Consent' : 'Edit Consent' }}</h1>
+    </div>
+    <div class="actions">
+    </div>
+  </div>
+
+  <div class="autosave">
+    💾 Draft auto-saves every 2 minutes.
+    @if (autosaveBusy()) {
+      <span class="muted">Saving…</span>
+    } @else if (lastSaved()) {
+      <span class="muted">Last saved: {{ lastSaved() }}</span>
+    }
+  </div>
+
+  @if (loadedStatus() === 'PENDING_APPROVAL') {
+    <div class="banner banner--amber">
+      <div>
+        <div class="banner-title">⏳ Pending Checker Approval <span class="dot">● Awaiting</span></div>
+        <p class="banner-text">Your consent is being reviewed by the Checker.</p>
+      </div>
+    </div>
+  }
+
+  @if (loadedStatus() === 'REVISION_REQUESTED') {
+    <div class="banner banner--orange">
+      <div class="banner-title">↩ Revision Requested by Checker</div>
+      @if (revisionMessage()) {
+        <blockquote class="rev-q">"{{ revisionMessage() }}"</blockquote>
+      }
+      <p class="banner-text">Please update and resubmit.</p>
+    </div>
+  }
+
+  <div class="grid-top">
+    <app-consent-details-card
+      class="col-left"
+      [form]="form"
+      [status]="loadedStatus()"
+      [consentIdPreview]="consentIdPreview()"
+      [idLoading]="idLoading()"
+      [submitted]="formSubmitted()"
+    />
+
+    <!-- ← CHANGED: per-language col-right block -->
+    <div class="col-right">
+      <app-ai-content-generator
+        [activeLanguage]="activeEditorLanguage()"
+        [initialSelectedLanguages]="activeLanguages()"
+        [englishContent]="languageContentMap()['en'] || ''"
+        (insertContent)="onAiInsert($event)"
+        (languagesChange)="onLanguagesChange($event)"
+        (activeLanguageChange)="onActiveEditorLanguageChange($event)">
+      </app-ai-content-generator>
+
+      @if (activeLanguages().length > 1) {
+        <div class="editor-language-tabs">
+          @for (lang of activeLanguages(); track lang) {
+            <button
+              type="button"
+              class="editor-lang-tab"
+              [class.editor-lang-tab--active]="activeEditorLanguage() === lang"
+              (click)="onActiveEditorLanguageChange(lang)">
+              {{ lang.toUpperCase() }}
+            </button>
+          }
+        </div>
+      }
+
+      <app-consent-message-card
+        #msgCard
+        [form]="form"
+        [grouped]="grouped"
+        [allTags]="mergeTags"
+        [activeLanguage]="activeEditorLanguage()"
+        [languageContentMap]="languageContentMap()"
+        (languageContentChange)="onLanguageContentChange($event)"
+        (tagsUsedChange)="onTagsFromMessage($event)"
+        (tagAdded)="onTagAdded($event)">
+      </app-consent-message-card>
+    </div>
+  </div>
+
+  <app-delivery-channels-card class="block" [form]="form" [mergeTags]="mergeTags" [renders]="liveRenderMap()"
+  [initialChannel]="flaggedInitialChannel()" [initialLanguage]="flaggedInitialLanguage()" />
+
+  @if (showLinkedCheckbox()) {
+    <div class="block linked-opt">
+      <mat-checkbox
+        [checked]="createLinkedBroadcastRule()"
+        (change)="onLinkedToggle($event.checked)"
+        [disabled]="!editable()">
+        Create paired broadcast rule (submit consent and broadcast rule together for checker approval)
+      </mat-checkbox>
+    </div>
+  }
+
+  @if (showPersistedLinkedPairOptIn()) {
+    <div class="block linked-opt">
+      <mat-checkbox [checked]="true" [disabled]="true">
+        Paired broadcast rule (linked submission — cannot be turned off for this consent)
+      </mat-checkbox>
+    </div>
+  }
+
+  @if (showLinkedRulePanel()) {
+    <div class="block linked-rule-panel">
+      <div class="section-title">Broadcast rule</div>
+      <p class="linked-rule-name-hint">
+        Rule name will match consent name: <strong>{{ form.controls.consentName.value || '…' }}</strong>
+      </p>
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Rule description (optional)</mat-label>
+        <textarea
+          matInput
+          rows="2"
+          name="lrDesc"
+          [(ngModel)]="linkedRuleForm.ruleDescription"
+          [disabled]="linkedFieldsDisabled()"></textarea>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Rule type</mat-label>
+        <mat-select
+          name="lrRt"
+          [(ngModel)]="linkedRuleForm.ruleType"
+          [disabled]="linkedFieldsDisabled()"
+          (ngModelChange)="onLinkedRuleTypeChange($event)">
+          <mat-option value="PREDEFINED_SCENARIO">Predefined scenario</mat-option>
+          <mat-option value="CUSTOM">Custom</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      @if (linkedRuleForm.ruleType === 'PREDEFINED_SCENARIO') {
+        <mat-form-field appearance="outline" class="grow">
+          <mat-label>Scenario</mat-label>
+          <mat-select
+            name="lrSc"
+            [(ngModel)]="linkedRuleForm.predefinedScenario"
+            (ngModelChange)="onLinkedScenarioChange()"
+            [disabled]="linkedFieldsDisabled()">
+            @for (sc of scenarios; track sc) {
+              <mat-option [value]="sc">{{ sc }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      } @else {
+        <mat-form-field appearance="outline" class="grow">
+          <mat-label>Trigger / event</mat-label>
+          <input
+            matInput
+            name="lrTr"
+            [(ngModel)]="linkedRuleForm.triggerEvent"
+            [disabled]="linkedFieldsDisabled()" />
+        </mat-form-field>
+      }
+
+      <div class="section-title">Audience segments</div>
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Audience segments</mat-label>
+        <mat-select
+          name="lrSeg"
+          [(ngModel)]="linkedRuleForm.selectedSegments"
+          (ngModelChange)="refreshDrillDownPreview()"
+          [disabled]="linkedFieldsDisabled()"
+          multiple
+          required>
+          @for (s of selectableSegments(); track s.code) {
+            <mat-option [value]="s.code">{{ s.label }} ({{ segmentDisplayCount(s.code) }})</mat-option>
+          }
+        </mat-select>
+        <mat-hint>
+          @if (audienceTotalLabel(); as total) {
+            {{ total }}.
+          }
+          The first selected segment becomes the primary segment.
+        </mat-hint>
+      </mat-form-field>
+
+      <div class="section-title">Schedule</div>
+      <mat-radio-group
+        class="stack"
+        name="lrSch"
+        [(ngModel)]="linkedRuleForm.scheduleType"
+        [disabled]="linkedFieldsDisabled()"
+        (ngModelChange)="onScheduleTypeChange($event)">
+        <mat-radio-button value="IMMEDIATE">Immediate</mat-radio-button>
+        <mat-radio-button value="SCHEDULED">Scheduled</mat-radio-button>
+        <mat-radio-button value="RECURRING">Recurring</mat-radio-button>
+      </mat-radio-group>
+
+      @if (linkedRuleForm.scheduleType === 'SCHEDULED') {
+        <div class="datetime-picker-card">
+          <div class="datetime-picker-label">Scheduled date &amp; time</div>
+          <div class="datetime-picker-row">
+
+            <mat-form-field appearance="outline" class="date-field">
+              <mat-label>Date</mat-label>
+              <input
+                matInput
+                [matDatepicker]="schedulePicker"
+                [min]="minDate"
+                [disabled]="linkedFieldsDisabled()"
+                [ngModel]="scheduledDate()"
+                (ngModelChange)="onDateChange($event)"
+                name="sat_date"
+                placeholder="DD/MM/YYYY"
+                readonly />
+              <mat-datepicker-toggle
+                matIconSuffix
+                [for]="schedulePicker"
+                [disabled]="linkedFieldsDisabled()">
+              </mat-datepicker-toggle>
+              <mat-datepicker #schedulePicker></mat-datepicker>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="time-field">
+              <mat-label>Time</mat-label>
+              <input
+                matInput
+                name="sat_time"
+                [ngModel]="scheduledTimeInput()"
+                (ngModelChange)="onTimeInputChange($event)"
+                (blur)="onTimeInputBlur()"
+                [matAutocomplete]="timePicker"
+                [disabled]="linkedFieldsDisabled()"
+                placeholder="HH:MM"
+                maxlength="5"
+                autocomplete="off" />
+              <mat-icon matSuffix class="time-icon">schedule</mat-icon>
+              <mat-autocomplete
+                #timePicker="matAutocomplete"
+                (optionSelected)="onTimeOptionSelected($event.option.value)">
+                @for (t of filteredTimeOptions(); track t) {
+                  <mat-option [value]="t">{{ t }}</mat-option>
+                }
+              </mat-autocomplete>
+              @if (timeInputError()) {
+                <mat-error>{{ timeInputError() }}</mat-error>
+              }
+            </mat-form-field>
+
+          </div>
+
+          @if (scheduledDateTimePreview()) {
+            <div class="datetime-preview">
+              <span class="preview-icon">🗓</span>
+              Scheduled for <strong>{{ scheduledDateTimePreview() }}</strong>
+            </div>
+          }
+
+          @if (!scheduledDateTimePreview() && scheduledDate()) {
+            <div class="datetime-hint">Enter a valid time (e.g. 09:30) to complete the schedule.</div>
+          }
+        </div>
+      }
+
+      @if (linkedRuleForm.scheduleType === 'RECURRING') {
+        @if (!recurringScheduleOk()) {
+          <div class="alert warn">Complete the recurring schedule before submitting.</div>
+        }
+        <app-recurring-schedule-editor
+          [recurringCron]="linkedRuleForm.recurringCron || ''"
+          [disabled]="linkedFieldsDisabled()"
+          (recurringCronChange)="linkedRuleForm.recurringCron = $event"
+          (scheduleValidChange)="recurringScheduleValid.set($event)" />
+      }
+
+      <div class="section-title">Broadcast channels</div>
+      <div class="channel-grid">
+        @for (ch of CHANNELS; track ch) {
+          <mat-checkbox
+            [checked]="channelOn(ch)"
+            (change)="toggleChannel(ch, $event.checked)"
+            [disabled]="linkedFieldsDisabled()">{{ ch }}</mat-checkbox>
+        }
+      </div>
+    </div>
+  }
+
+  <app-audit-activity-card class="block" [consentDbId]="consentDbId()" />
+
+  @if (consentDbId(); as cid) {
+    <app-consent-template-records class="block" [consentDbId]="cid" />
+  }
+
+  <div class="sticky-actions">
+    <div class="prog">
+      @let p = progress();
+      <span>{{ p.details ? '●' : '○' }} Details</span>
+      <span>{{ p.message ? '●' : '○' }} Message</span>
+      <span>{{ p.channels ? '●' : '○' }} Channels</span>
+      <span>{{ p.ready ? '●' : '○' }} Ready</span>
+    </div>
+
+    <div class="act">
+      @if (showLinkedActions()) {
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          class="ciq-btn-primary"
+          (click)="submitLinkedForApproval()"
+          [disabled]="!consentSectionReadyForLinked() || !linkedRuleSubmitReady() || linkedBusy() || !editable()">
+          @if (linkedRuleDbId()) {
+            Resubmit linked for approval
+          } @else {
+            Submit linked for approval
+          }
+        </button>
+      }
+
+      @if (showStandaloneDraftSubmit()) {
+        <button
+          mat-stroked-button
+          type="button"
+          class="ciq-btn-secondary"
+          [disabled]="!nameOk() || !editable()"
+          (click)="saveDraft()">
+          💾 Save Draft
+        </button>
+
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          [disabled]="!canSubmit() || !editable()"
+          (click)="submitForApproval()">
+          📤 Submit for Approval
+        </button>
+      }
+    </div>
+  </div>
+</div>

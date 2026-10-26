@@ -1,0 +1,39 @@
+<div class="dlg">
+  <div class="dlg-head">
+    <div class="dlg-head__copy">
+      <span class="dlg-eyebrow">Consent Preview</span>
+      <h2 mat-dialog-title class="dlg-title">Message Preview</h2>
+      <p class="dlg-sub">
+        Review the rendered message with sample merge-tag values before publishing.
+      </p>
+    </div>
+
+    <button
+      type="button"
+      class="dlg-x"
+      mat-dialog-close
+      aria-label="Close preview dialog"
+    >
+      ×
+    </button>
+  </div>
+
+  <mat-dialog-content class="dlg-body">
+    <div class="dlg-info">
+      <span class="dlg-info__icon">i</span>
+      <div class="dlg-info__text">
+        Dynamic fields are shown with sample values for preview only. Actual customer values will be used in production.
+      </div>
+    </div>
+
+    <div class="dlg-preview-wrap">
+      <div class="dlg-preview" [innerHTML]="sanitized"></div>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dlg-actions">
+    <button mat-stroked-button mat-dialog-close class="dlg-btn dlg-btn--secondary">
+      Close
+    </button>
+  </mat-dialog-actions>
+</div>

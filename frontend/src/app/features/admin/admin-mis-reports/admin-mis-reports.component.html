@@ -1,0 +1,76 @@
+<div class="mis-page">
+  <header class="mis-header">
+    <div class="mis-header-text">
+      <p class="mis-eyebrow">Admin · Reports</p>
+      <h1>MIS Reports</h1>
+      <p class="mis-lede">
+        Management information for consent operations, compliance posture, and channel performance.
+      </p>
+    </div>
+  </header>
+
+  <mat-tab-group class="mis-tabs" animationDuration="200ms" dynamicHeight>
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <span class="tab-label"><i class="ti ti-users"></i> Customer Consent</span>
+      </ng-template>
+      <ng-template matTabContent>
+        <app-mis-report-customer-consent-tab />
+      </ng-template>
+    </mat-tab>
+
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <span class="tab-label"><i class="ti ti-file-text"></i> Consent Audit</span>
+      </ng-template>
+      <ng-template matTabContent>
+        <app-mis-report-audit-tab />
+      </ng-template>
+    </mat-tab>
+
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <span class="tab-label"><i class="ti ti-clock-exclamation"></i> Expiry</span>
+      </ng-template>
+      <ng-template matTabContent>
+        <app-mis-report-expiry-tab />
+      </ng-template>
+    </mat-tab>
+
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <span class="tab-label"><i class="ti ti-chart-bar"></i> Operational</span>
+      </ng-template>
+      <ng-template matTabContent>
+        <app-mis-report-operational-tab />
+      </ng-template>
+    </mat-tab>
+
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <span class="tab-label"><i class="ti ti-packages"></i> Consent inventory</span>
+      </ng-template>
+      <ng-template matTabContent>
+        <app-mis-report-consent-inventory-tab />
+      </ng-template>
+    </mat-tab>
+
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <span class="tab-label"><i class="ti ti-layout-grid"></i> Channel deep-dive</span>
+      </ng-template>
+      <ng-template matTabContent>
+        <app-mis-report-channel-deep-dive-tab />
+      </ng-template>
+    </mat-tab>
+
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <span class="tab-label"><i class="ti ti-trophy"></i> Leaderboard</span>
+      </ng-template>
+      <ng-template matTabContent>
+        <app-mis-report-consent-leaderboard-tab />
+      </ng-template>
+    </mat-tab>
+  </mat-tab-group>
+</div>

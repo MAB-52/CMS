@@ -1,0 +1,305 @@
+:host {
+  display: block;
+  --dlg-bg: #ffffff;
+  --dlg-surface: #fcfcff;
+  --dlg-surface-soft: #f7f8fd;
+  --dlg-border: #e6e9f2;
+  --dlg-border-strong: #d9dfeb;
+  --dlg-text: #26233a;
+  --dlg-text-soft: #6f7185;
+  --dlg-text-faint: #9aa0b2;
+  --dlg-plum: #5e48b8;
+  --dlg-plum-strong: #46359a;
+  --dlg-plum-soft: #f4efff;
+  --dlg-orange: #f08b38;
+  --dlg-orange-soft: #fff4e8;
+  --dlg-green: #249266;
+  --dlg-green-soft: #e7f7ee;
+  --dlg-red: #c45656;
+  --dlg-red-soft: #fdecec;
+  --dlg-blue: #2d7ff9;
+  --dlg-blue-soft: #edf4ff;
+  --dlg-shadow-sm: 0 6px 18px rgba(31, 41, 84, 0.06);
+  --dlg-shadow-md: 0 24px 56px rgba(31, 41, 84, 0.14);
+}
+
+.dlg {
+  width: 560px;
+  max-width: 100%;
+  border-radius: 22px;
+  background: var(--dlg-bg);
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(15, 23, 42, 0.04), var(--dlg-shadow-md);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 24px 24px 20px;
+}
+
+.head-copy {
+  min-width: 0;
+}
+
+.icon-wrap {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: var(--dlg-shadow-sm);
+}
+
+.icon-wrap[data-color='warn'] {
+  background: var(--dlg-red-soft);
+}
+
+.icon-wrap[data-color='success'] {
+  background: var(--dlg-green-soft);
+}
+
+.icon-wrap[data-color='warning'] {
+  background: var(--dlg-orange-soft);
+}
+
+.icon-wrap[data-color='primary'] {
+  background: var(--dlg-blue-soft);
+}
+
+.icon-wrap[data-color='accent'] {
+  background: var(--dlg-plum-soft);
+}
+
+.ico {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.ttl {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--dlg-text);
+  line-height: 1.25;
+}
+
+.divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 0 24px;
+}
+
+.content {
+  padding: 20px 24px 4px !important;
+  overflow: visible !important;
+  max-height: unset !important;
+}
+
+.full {
+  width: 100%;
+}
+
+.flag-combo-checkbox {
+  display: block;
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #9b611b;
+}
+
+.err {
+  margin: 6px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #d15d5d;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.err::before {
+  content: '⚠';
+  font-size: 11px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 24px 20px !important;
+  min-height: unset !important;
+  margin-top: 0 !important;
+}
+
+.cancel-btn {
+  height: 40px;
+  padding: 0 20px !important;
+  border-radius: 12px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: var(--dlg-text-soft) !important;
+  letter-spacing: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.cancel-btn:hover {
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+}
+
+.confirm-btn {
+  height: 40px;
+  padding: 0 22px !important;
+  border-radius: 12px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0;
+  color: #ffffff !important;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.confirm-btn:hover {
+  filter: brightness(1.05);
+}
+
+.confirm-btn:active {
+  transform: scale(0.98);
+}
+
+.dlg[data-color='warn'] .confirm-btn {
+  background: #d15d5d !important;
+}
+
+.dlg[data-color='success'] .confirm-btn {
+  background: #249266 !important;
+}
+
+.dlg[data-color='warning'] .confirm-btn {
+  background: #c96f1e !important;
+}
+
+.dlg[data-color='primary'] .confirm-btn {
+  background: #2d7ff9 !important;
+}
+
+.dlg[data-color='accent'] .confirm-btn {
+  background: var(--dlg-plum) !important;
+}
+
+/* Angular Material field overrides */
+:host ::ng-deep .full .mat-mdc-text-field-wrapper {
+  border-radius: 14px !important;
+  background: #f8fafc !important;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+:host ::ng-deep .full .mdc-notched-outline__leading,
+:host ::ng-deep .full .mdc-notched-outline__notch,
+:host ::ng-deep .full .mdc-notched-outline__trailing {
+  border-color: var(--dlg-border) !important;
+  transition: border-color 0.15s ease;
+}
+
+:host ::ng-deep .full .mdc-notched-outline__notch {
+  border-right: none !important;
+}
+
+:host ::ng-deep .full:hover .mdc-notched-outline__leading,
+:host ::ng-deep .full:hover .mdc-notched-outline__notch,
+:host ::ng-deep .full:hover .mdc-notched-outline__trailing {
+  border-color: var(--dlg-border-strong) !important;
+}
+
+:host ::ng-deep .full.mat-focused .mdc-notched-outline__leading,
+:host ::ng-deep .full.mat-focused .mdc-notched-outline__notch,
+:host ::ng-deep .full.mat-focused .mdc-notched-outline__trailing {
+  border-color: var(--dlg-plum) !important;
+  border-width: 1.5px !important;
+}
+
+:host ::ng-deep .full.mat-focused .mat-mdc-text-field-wrapper {
+  background: #ffffff !important;
+  box-shadow: 0 0 0 4px rgba(94, 72, 184, 0.10);
+}
+
+:host ::ng-deep .full .mat-mdc-floating-label {
+  color: var(--dlg-text-soft) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+:host ::ng-deep .full.mat-focused .mat-mdc-floating-label {
+  color: var(--dlg-plum) !important;
+}
+
+:host ::ng-deep .full textarea.mat-mdc-input-element {
+  color: var(--dlg-text) !important;
+  font-size: 14px !important;
+  font-weight: 400;
+  line-height: 1.65 !important;
+  resize: none !important;
+  min-height: 96px !important;
+}
+
+:host ::ng-deep .full textarea.mat-mdc-input-element::placeholder {
+  color: var(--dlg-text-faint) !important;
+}
+
+:host ::ng-deep .full .mat-mdc-form-field-infix {
+  padding-top: 20px !important;
+  padding-bottom: 10px !important;
+}
+
+:host ::ng-deep .full .mat-mdc-form-field-hint {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dlg-text-faint);
+}
+
+:host ::ng-deep .full .mat-mdc-form-field-subscript-wrapper {
+  margin-top: 6px;
+  padding-inline: 2px;
+}
+
+@media (max-width: 560px) {
+  .dlg {
+    width: 100%;
+    border-radius: 18px;
+  }
+
+  .head {
+    padding: 20px 18px 16px;
+  }
+
+  .divider {
+    margin: 0 18px;
+  }
+
+  .content {
+    padding: 16px 18px 4px !important;
+  }
+
+  .actions {
+    padding: 14px 18px 18px !important;
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .cancel-btn,
+  .confirm-btn {
+    width: 100%;
+    height: 44px;
+  }
+
+  .ttl {
+    font-size: 17px;
+  }
+}

@@ -1,0 +1,194 @@
+<div class="page">
+  <div class="subnav">
+    <a mat-stroked-button routerLink="/maker/rules">← Rules</a>
+  </div>
+
+  @if (rule(); as r) {
+  <div class="title-row">
+    <h1>{{ r.ruleName }}</h1>
+    <app-workflow-status-badge [status]="r.status" />
+  </div>
+  } @else {
+  <h1>{{ isNew() ? 'New rule' : 'Edit rule' }}</h1>
+  }
+
+  @if (feedbackBanner(); as fb) {
+  <div class="alert warn">{{ fb }}</div>
+  }
+
+  <div class="layout">
+    <div class="panel main-form">
+      <div class="section-title">Definition</div>
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Rule name</mat-label>
+        <input matInput name="ruleName" [(ngModel)]="form.ruleName" [disabled]="!canEdit()" required />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Remarks</mat-label>
+        <textarea matInput rows="3" name="desc" [(ngModel)]="form.ruleDescription" [disabled]="!canEdit()"></textarea>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Rule type</mat-label>
+        <mat-select name="rt" [(ngModel)]="form.ruleType" (ngModelChange)="onRuleTypeChange()" [disabled]="!canEdit()">
+          <mat-option value="PREDEFINED_SCENARIO">Predefined scenario</mat-option>
+          <mat-option value="CUSTOM">Custom</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      @if (form.ruleType === 'PREDEFINED_SCENARIO') {
+      <mat-form-field appearance="outline" class="grow">
+        <mat-label>Scenario</mat-label>
+        <!-- CHANGED: was (ngModelChange)="refreshDrillDownPreview()" — now clears stale
+             selectedSegments (e.g. leftover 'CONSENT_EXPIRING' from a previous scenario)
+             before refreshing the drill-down preview, so switching scenarios doesn't
+             silently intersect against a segment the maker never picked for this scenario. -->
+        <mat-select name="sc" [(ngModel)]="form.predefinedScenario" (ngModelChange)="onScenarioChange()"
+          [disabled]="!canEdit()">
+          @for (sc of scenarios; track sc) {
+          <mat-option [value]="sc">{{ sc }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      } @else {
+      <mat-form-field appearance="outline" class="grow">
+        <mat-label>Trigger / event</mat-label>
+        <input matInput name="tr" [(ngModel)]="form.triggerEvent" [disabled]="!canEdit()" />
+      </mat-form-field>
+      }
+
+      <div class="section-title">Audience &amp; template</div>
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Audience segments</mat-label>
+        <mat-select name="seg" [(ngModel)]="form.selectedSegments" (ngModelChange)="refreshDrillDownPreview()"
+          [disabled]="!canEdit()" multiple required>
+          @for (s of selectableSegments(); track s.code) {
+          <mat-option [value]="s.code">{{ s.label }} ({{ segmentDisplayCount(s.code) }})</mat-option>
+          }
+        </mat-select>
+        <mat-hint>
+          @if (audienceTotalLabel(); as total) {
+          {{ total }}.
+          }
+          Select one or more segments. Large audiences are processed in batches.
+        </mat-hint>
+        @if ((form.selectedSegments?.length ?? 0) === 0) {
+        <mat-error>At least one segment is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" floatLabel="always" class="full">
+        <mat-label>Approved Consent template *</mat-label>
+        <mat-select name="tpl" [(ngModel)]="form.consentTemplateId" [disabled]="!canEdit()" required
+          #tplField="ngModel">
+          @for (t of templates(); track t.id) {
+          <mat-option [value]="t.id">{{ t.consentName }}</mat-option>
+          }
+        </mat-select>
+        @if (tplField.touched && tplField.invalid) {
+        <mat-error>Consent template is required</mat-error>
+        }
+      </mat-form-field>
+
+      <div class="section-title">Schedule</div>
+      <mat-radio-group class="stack" name="sch" [(ngModel)]="form.scheduleType" [disabled]="!canEdit()"
+        (ngModelChange)="onScheduleTypeChange($event)">
+        <mat-radio-button value="IMMEDIATE">Immediate</mat-radio-button>
+        <mat-radio-button value="SCHEDULED">Scheduled</mat-radio-button>
+        <mat-radio-button value="RECURRING">Recurring</mat-radio-button>
+      </mat-radio-group>
+
+      @if (form.scheduleType === 'SCHEDULED') {
+      <div class="datetime-picker-card">
+        <div class="datetime-picker-label">Scheduled date &amp; time</div>
+        <div class="datetime-picker-row">
+          <!-- Date picker -->
+          <mat-form-field appearance="outline" class="date-field">
+            <mat-label>Date</mat-label>
+            <input matInput [matDatepicker]="schedulePicker" [min]="minDate" [disabled]="!canEdit()"
+              [ngModel]="scheduledDate()" (ngModelChange)="onDateChange($event)" name="sat_date"
+              placeholder="DD/MM/YYYY" readonly />
+            <mat-datepicker-toggle matIconSuffix [for]="schedulePicker" [disabled]="!canEdit()"></mat-datepicker-toggle>
+            <mat-datepicker #schedulePicker></mat-datepicker>
+          </mat-form-field>
+
+          <!-- Time picker: type freely or pick from suggestions -->
+          <mat-form-field appearance="outline" class="time-field">
+            <mat-label>Time</mat-label>
+            <input matInput name="sat_time" [ngModel]="scheduledTimeInput()" (ngModelChange)="onTimeInputChange($event)"
+              (blur)="onTimeInputBlur()" [matAutocomplete]="timePicker" [disabled]="!canEdit()" placeholder="HH:MM"
+              maxlength="5" autocomplete="off" />
+            <mat-icon matSuffix class="time-icon">schedule</mat-icon>
+            <mat-autocomplete #timePicker="matAutocomplete"
+              (optionSelected)="onTimeOptionSelected($event.option.value)">
+              @for (t of filteredTimeOptions(); track t) {
+              <mat-option [value]="t">{{ t }}</mat-option>
+              }
+            </mat-autocomplete>
+            @if (timeInputError()) {
+            <mat-error>{{ timeInputError() }}</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        @if (scheduledDateTimePreview()) {
+        <div class="datetime-preview">
+          <span class="preview-icon">🗓</span>
+          Scheduled for <strong>{{ scheduledDateTimePreview() }}</strong>
+        </div>
+        }
+        @if (!scheduledDateTimePreview() && scheduledDate()) {
+        <div class="datetime-hint">Enter a valid time (e.g. 09:30) to complete the schedule.</div>
+        }
+      </div>
+      }
+
+      @if (form.scheduleType === 'RECURRING') {
+      @if (!recurringScheduleOk()) {
+      <div class="alert warn">Complete the recurring schedule before saving or submitting.</div>
+      }
+      <app-recurring-schedule-editor [recurringCron]="form.recurringCron ?? ''" [disabled]="!canEdit()"
+        (recurringCronChange)="form.recurringCron = $event"
+        (scheduleValidChange)="recurringScheduleValid.set($event)" />
+      }
+
+      <div class="section-title">Channels</div>
+      <div class="channel-grid">
+        @for (ch of CHANNELS; track ch) {
+        <mat-checkbox [checked]="channelOn(ch)" (change)="toggleChannel(ch, $event.checked)" [disabled]="!canEdit()">{{
+          ch }}</mat-checkbox>
+        }
+      </div>
+
+      <div class="actions">
+        <button mat-stroked-button type="button" (click)="saveDraft()"
+          [disabled]="busy() || !canEdit() || !recurringScheduleOk()">Save draft</button>
+        <button mat-flat-button color="primary" type="button" (click)="submitForApproval()"
+          [disabled]="busy() || !canSubmit() || !recurringScheduleOk()">
+          Submit for approval
+        </button>
+      </div>
+    </div>
+
+    <aside class="panel audit">
+      <div class="section-title">Approval &amp; audit</div>
+      @if (!audit().length) {
+      <p class="muted">No audit entries yet.</p>
+      } @else {
+      <ul class="timeline">
+        @for (a of audit(); track a.id) {
+        <li>
+          <div class="t-dot"></div>
+          <div class="t-body">
+            <div class="t-action">{{ a.action }}</div>
+            <div class="t-meta">{{ a.userName }} · {{ a.performedAt }}</div>
+            <div class="t-desc">{{ a.description }}</div>
+          </div>
+        </li>
+        }
+      </ul>
+      }
+    </aside>
+  </div>
+</div>

@@ -1,0 +1,5 @@
+<div class="toast-stack">
+  @for (t of (notifications.toasts | async) ?? []; track t.id) {
+    <app-toast-item [toast]="t" (dismiss)="onDismiss($event)"></app-toast-item>
+  }
+</div>

@@ -1,0 +1,74 @@
+<div class="wrap">
+
+  <!-- Glow -->
+  <div class="bg-glow"></div>
+
+  <!-- Icon -->
+  @if (data.icon) {
+    <div
+      class="icon-wrap"
+      [style.background]="data.iconColor || 'rgba(125,86,111,0.12)'"
+    >
+      <span class="icon">
+        {{ data.icon }}
+      </span>
+    </div>
+  }
+
+  <!-- Title -->
+  <h2 class="title">
+    {{ data.title }}
+  </h2>
+
+  <!-- Body -->
+  <p class="body">
+    {{ data.body }}
+  </p>
+
+  <!-- Info Panel -->
+  @if (data.infoPanel) {
+    <div class="info-panel">
+      {{ data.infoPanel }}
+    </div>
+  }
+
+  <!-- Actions -->
+  <div class="actions">
+
+    <button
+      type="button"
+      mat-stroked-button
+      class="cancel-btn"
+      mat-dialog-close
+    >
+      {{ data.cancelLabel || 'Cancel' }}
+    </button>
+
+    @if (data.confirmColor === 'success') {
+
+      <button
+        type="button"
+        mat-flat-button
+        class="success-btn"
+        [mat-dialog-close]="true"
+      >
+        {{ data.confirmLabel || 'Confirm' }}
+      </button>
+
+    } @else {
+
+      <button
+        type="button"
+        mat-flat-button
+        class="confirm-btn"
+        [color]="matColor()"
+        [mat-dialog-close]="true"
+      >
+        {{ data.confirmLabel || 'Confirm' }}
+      </button>
+
+    }
+
+  </div>
+
+</div>

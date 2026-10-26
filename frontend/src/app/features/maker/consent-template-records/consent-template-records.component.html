@@ -1,0 +1,69 @@
+<!-- <mat-expansion-panel [expanded]="true" class="ccr-panel">
+  <mat-expansion-panel-header>
+    <mat-panel-title>Consent records (per customer)</mat-panel-title>
+    <mat-panel-description>Template ID {{ consentDbId }}</mat-panel-description>
+  </mat-expansion-panel-header>
+
+  @if (loading()) {
+    <div class="ccr-loading">
+      <mat-progress-spinner diameter="36" mode="indeterminate" />
+    </div>
+  } @else {
+    @if (stats(); as st) {
+      <div class="stats-row">
+        <mat-chip-set class="stat-chips">
+          <mat-chip class="chip-total">Total {{ st.totalRecords }}</mat-chip>
+          <mat-chip class="chip-accepted">Accepted {{ st.acceptedCount }}</mat-chip>
+          <mat-chip class="chip-rejected">Rejected {{ st.rejectedCount }}</mat-chip>
+          <mat-chip class="chip-withdrawn">Withdrawn {{ st.withdrawnCount }}</mat-chip>
+          <mat-chip class="chip-pending">Pending {{ st.pendingCount }}</mat-chip>
+          <mat-chip class="chip-expiring">Expiring soon {{ st.expiringSoonCount }}</mat-chip>
+          <mat-chip class="chip-expired">Expired {{ st.expiredCount }}</mat-chip>
+        </mat-chip-set>
+      </div>
+    }
+
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Search</mat-label>
+      <input matInput [value]="filterText()" (input)="applyFilter($any($event.target).value)" placeholder="Customer, status, source…" />
+    </mat-form-field>
+
+    <div class="table-wrap mat-elevation-z1">
+      <table mat-table matSort [dataSource]="dataSource" class="ccr-table">
+        <ng-container matColumnDef="customerId">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header="customerId">Customer ID</th>
+          <td mat-cell *matCellDef="let row">{{ row.customerId }}</td>
+        </ng-container>
+        <ng-container matColumnDef="customerFullName">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header="customerFullName">Customer name</th>
+          <td mat-cell *matCellDef="let row">{{ row.customerFullName || '—' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header="status">Status</th>
+          <td mat-cell *matCellDef="let row">
+            <span [class]="statusClass(row.status)">{{ row.status }}</span>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="respondedAt">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header="respondedAt">Responded at</th>
+          <td mat-cell *matCellDef="let row">{{ row.respondedAt ? (row.respondedAt | date: 'medium') : '—' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="consentValidUntil">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header="consentValidUntil">Valid until</th>
+          <td mat-cell *matCellDef="let row">{{ row.consentValidUntil ? (row.consentValidUntil | date: 'mediumDate') : '—' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="lastInviteSentAt">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header="lastInviteSentAt">Last invite</th>
+          <td mat-cell *matCellDef="let row">{{ row.lastInviteSentAt ? (row.lastInviteSentAt | date: 'medium') : '—' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="source">
+          <th mat-header-cell *matHeaderCellDef>Source</th>
+          <td mat-cell *matCellDef="let row">{{ sourceLabel(row) }}</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+    </div>
+  }
+</mat-expansion-panel> -->

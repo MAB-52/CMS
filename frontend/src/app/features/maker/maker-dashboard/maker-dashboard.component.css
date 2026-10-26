@@ -1,0 +1,333 @@
+/* ── PAGE ── */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px;
+  background: linear-gradient(180deg, #f5f0ee 0%, #eeeaf0 100%);
+  min-height: 100%;
+}
+
+/* ── STATS ── */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.stat-card {
+  position: relative;
+  overflow: hidden;
+  padding: 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(160, 110, 100, 0.13);
+  box-shadow:
+    0 1px 2px rgba(80, 36, 20, 0.04),
+    0 10px 30px rgba(80, 36, 20, 0.06);
+  backdrop-filter: blur(8px);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(80, 36, 20, 0.12);
+  border-color: rgba(160, 110, 100, 0.24);
+}
+
+.stat-card::after {
+  content: '';
+  position: absolute;
+  inset: auto -30px -30px auto;
+  width: 120px;
+  height: 120px;
+  border-radius: 999px;
+  opacity: 0.08;
+  background: currentColor;
+}
+
+.stat-ico {
+  width: 42px;
+  height: 42px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin-bottom: 18px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+}
+
+.stat-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #8d6658;
+  margin-bottom: 8px;
+}
+
+.stat-val {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: #2d1a10;
+}
+
+/* ── STAT COLORS — pulled from sidebar gradient stops ── */
+
+/* matches hsl(275 38% 42%) — purple stop */
+.stat--indigo {
+  color: #6f556b;
+  background: linear-gradient(180deg, rgba(111, 85, 107, 0.10), rgba(255,255,255,0.82));
+}
+
+/* matches --sb-bg-bottom #d67a1f — orange stop */
+.stat--amber {
+  color: #d67a1f;
+  background: linear-gradient(180deg, rgba(214, 122, 31, 0.10), rgba(255,255,255,0.82));
+}
+
+/* neutral green — kept as accent */
+.stat--green {
+  color: #10b981;
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.08), rgba(255,255,255,0.82));
+}
+
+/* matches --sb-bg-mid #8d5b5f — rose stop */
+.stat--orange {
+  color: #8d5b5f;
+  background: linear-gradient(180deg, rgba(141, 91, 95, 0.10), rgba(255,255,255,0.82));
+}
+
+/* ── AUTOMATION STRIP — mirrors sidebar gradient exactly ── */
+.auto-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 28px;
+  border-radius: 24px;
+  background: linear-gradient(
+    160deg,
+    hsl(14 82% 58%) 0%,
+    hsl(350 68% 56%) 22%,
+    hsl(320 50% 48%) 45%,
+    hsl(275 38% 42%) 68%,
+    hsl(235 45% 36%) 100%
+  );
+  color: #fff7f1;
+  box-shadow: 0 16px 40px rgba(111, 85, 107, 0.30);
+}
+
+.auto-title {
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 6px;
+  color: #fff7f1;
+}
+
+.auto-sub {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(255, 244, 238, 0.82);
+}
+
+.auto-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.auto-actions a {
+  background: rgba(20, 5, 30, 0.45);
+  color: #fff7f1 !important;
+  border: 1px solid rgba(255, 244, 238, 0.18);
+}
+
+/* ── REVISION BANNER — warm orange from --sb-bg-bottom ── */
+.rev-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+  border-radius: 20px;
+  background: linear-gradient(
+    135deg,
+    rgba(214, 122, 31, 0.10),
+    rgba(214, 122, 31, 0.04)
+  );
+  border: 1px solid rgba(214, 122, 31, 0.20);
+  color: #7a3a10;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.rev-link {
+  color: #c46010;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.rev-link:hover {
+  text-decoration: underline;
+}
+
+/* ── CARD ── */
+.card {
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(160, 110, 100, 0.13);
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+  box-shadow:
+    0 1px 2px rgba(80, 36, 20, 0.04),
+    0 12px 32px rgba(80, 36, 20, 0.06);
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 28px;
+  border-bottom: 1px solid rgba(160, 110, 100, 0.10);
+}
+
+.card-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #2d1a10;
+}
+
+.card-sub {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #8d6658;
+}
+
+/* ── TABLE ── */
+.table-wrap {
+  overflow-x: auto;
+}
+
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tbl thead th {
+  padding: 16px 28px;
+  background: rgba(245, 238, 234, 0.60);
+  border-bottom: 1px solid rgba(160, 110, 100, 0.10);
+  text-align: left;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8d6658;
+}
+
+.tbl tbody td {
+  padding: 20px 28px;
+  border-bottom: 1px solid rgba(160, 110, 100, 0.08);
+  font-size: 14px;
+  color: #4a2e20;
+}
+
+.tbl tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.tbl tbody tr {
+  transition: background-color 0.18s ease;
+}
+
+.tbl tbody tr:hover {
+  background: rgba(214, 122, 31, 0.04);
+}
+
+.name {
+  font-weight: 700;
+  color: #2d1a10;
+}
+
+.muted {
+  color: #8d6658;
+}
+
+.link {
+  color: #6f556b;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+  color: #8d5b5f;
+}
+
+/* ── EMPTY / SKELETON ── */
+.empty {
+  padding: 48px !important;
+  text-align: center;
+  color: #b89080;
+}
+
+.skel {
+  height: 18px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(214, 122, 31, 0.08),
+    rgba(141, 91, 95, 0.12),
+    rgba(214, 122, 31, 0.08)
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 1200px) {
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: 16px;
+  }
+
+  .stats {
+    grid-template-columns: 1fr;
+  }
+
+  .auto-strip,
+  .card-head,
+  .rev-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .page-title {
+    font-size: 32px;
+  }
+
+  .tbl thead th,
+  .tbl tbody td {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+}

@@ -1,0 +1,131 @@
+<div class="dialog-container">
+  <h2 mat-dialog-title>Add Variable Tag</h2>
+
+  <mat-dialog-content [formGroup]="form">
+
+    <!-- Tag Label -->
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Tag Label *</mat-label>
+      <input matInput formControlName="tagLabel" placeholder="e.g. Customer Status" />
+      <mat-error *ngIf="form.get('tagLabel')?.hasError('required')">
+        Label is required
+      </mat-error>
+    </mat-form-field>
+
+    @if (previewKey) {
+      <p class="key-preview">
+        Tag key will be: <code>{{ previewKey }}</code>
+      </p>
+    }
+
+    <!-- Category -->
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Category *</mat-label>
+      <mat-select formControlName="tagCategory">
+        @for (cat of categories; track cat) {
+          <mat-option [value]="cat">{{ cat }}</mat-option>
+        }
+      </mat-select>
+      <mat-error *ngIf="form.get('tagCategory')?.hasError('required')">
+        Category is required
+      </mat-error>
+    </mat-form-field>
+
+    <!-- Customer Field Mapping -->
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>
+        Maps to Customer Field
+        @if (fieldsLoading) { (loading…) }
+      </mat-label>
+      <mat-select formControlName="customerField"
+                  (selectionChange)="onCustomerFieldChange($event.value)">
+        <mat-option [value]="null">
+          — None (use sample value as static text) —
+        </mat-option>
+        @for (field of customerFields; track field.fieldKey) {
+          <mat-option [value]="field.fieldKey">
+            {{ field.fieldLabel }}
+            <span style="color:#94a3b8; font-size:11px">
+              {{ getFieldTypeLabel(field.fieldType) }}
+            </span>
+          </mat-option>
+        }
+      </mat-select>
+      <mat-hint>
+        @if (isBoolean) {
+          ✅ Boolean field — define what to show for each value below.
+        } @else if (selectedField) {
+          ✅ Each customer sees their own <strong>{{ selectedField.fieldLabel }}</strong>.
+        } @else {
+          ℹ️ No mapping — sample value sent to every customer as-is.
+        }
+      </mat-hint>
+    </mat-form-field>
+
+    <!-- Boolean Label Inputs — only shown when a BOOLEAN field is selected -->
+    @if (isBoolean) {
+      <div class="boolean-labels">
+        <p class="boolean-hint">
+          🔘 Define what to display when the value is true or false:
+        </p>
+        <div class="boolean-row">
+          <mat-form-field appearance="outline" class="half-width">
+            <mat-label>When true (1)</mat-label>
+            <input matInput formControlName="trueLabel"
+                   placeholder="e.g. VIP" />
+            <mat-hint>Shown when field = true/1</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="half-width">
+            <mat-label>When false (0)</mat-label>
+            <input matInput formControlName="falseLabel"
+                   placeholder="e.g. Normal User" />
+            <mat-hint>Shown when field = false/0</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <!-- Live preview -->
+        <div class="boolean-preview">
+          <span>Preview: </span>
+          <span class="preview-true">
+            {{ form.get('trueLabel')?.value || 'Yes' }}
+          </span>
+          <span> / </span>
+          <span class="preview-false">
+            {{ form.get('falseLabel')?.value || 'No' }}
+          </span>
+        </div>
+      </div>
+    }
+
+    <!-- Sample Value -->
+    <mat-form-field appearance="outline" class="full-width" style="margin-top:8px">
+      <mat-label>Sample Value</mat-label>
+      <input matInput formControlName="sampleValue"
+             [placeholder]="isBoolean
+               ? (form.get('trueLabel')?.value || 'Yes')
+               : 'e.g. Mumbai'" />
+      <mat-hint>
+        @if (selectedField && !isBoolean) {
+          Shown in Preview only. Real emails use actual customer data.
+        } @else if (isBoolean) {
+          Shown in Preview mode — typically set to your "When true" label.
+        } @else {
+          This exact text appears in every customer's email.
+        }
+      </mat-hint>
+    </mat-form-field>
+
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button type="button"
+            (click)="cancel()" [disabled]="loading">
+      Cancel
+    </button>
+    <button mat-flat-button color="primary" type="button"
+            (click)="submit()" [disabled]="loading || fieldsLoading">
+      {{ loading ? 'Saving…' : 'Add Tag' }}
+    </button>
+  </mat-dialog-actions>
+</div>

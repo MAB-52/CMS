@@ -1,0 +1,43 @@
+<!-- delivery-channels-card.component.html — full replacement: -->
+<div class="card" [formGroup]="form">
+  <div class="head">
+    <h2 class="title">Delivery Channels &amp; Message Preview</h2>
+    <p class="sub">Select channels and preview how your message will appear to recipients</p>
+  </div>
+
+  <div class="channel-row">
+    @for (ch of channels; track ch.id) {
+    <button type="button" class="ch-card" [class.ch-card--on]="isOn(ch.id)" (click)="toggle(ch.id)">
+      @if (isOn(ch.id)) {
+      <span class="check">✓</span>
+      }
+      <div class="ch-top">
+        <span class="ch-ico">{{ ch.icon }}</span>
+        <div>
+          <div class="ch-name">{{ ch.name }}</div>
+          <div class="ch-desc">{{ ch.desc }}</div>
+        </div>
+      </div>
+      <div class="ch-foot">
+        @if (isOn(ch.id)) {
+        <span class="sel-yes">Selected ✓</span>
+        } @else {
+        <span class="sel-no">Click to select</span>
+        }
+      </div>
+    </button>
+    }
+  </div>
+
+  @if (!selectedChannels.length) {
+  <div class="empty-prev">
+    <div class="empty-ico">📡</div>
+    <p>Select a delivery channel above to preview your message</p>
+  </div>
+  } @else {
+  <app-consent-channel-language-preview [channelEmail]="isOn('EMAIL')" [channelSms]="isOn('SMS')"
+    [channelPush]="isOn('PUSH')" [channelWhatsapp]="isOn('WHATSAPP')" [channelRcs]="isOn('RCS')" [renders]="renders"
+    [mergeTags]="mergeTags" [readOnly]="false" [initialChannel]="initialChannel" [initialLanguage]="initialLanguage">
+  </app-consent-channel-language-preview>
+  }
+</div>

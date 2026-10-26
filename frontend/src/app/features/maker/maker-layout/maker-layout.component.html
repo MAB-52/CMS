@@ -1,0 +1,9 @@
+  <div class="shell">
+      <app-maker-sidebar />
+      <div class="main">
+        <app-maker-topbar [pageTitle]="pageTitle()" [revisionCount]="revisionCount()" />
+        <div class="content">
+          <router-outlet />
+        </div>
+      </div>
+    </div>

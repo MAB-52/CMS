@@ -1,0 +1,205 @@
+<div class="page">
+
+  <!-- ─── HERO ─────────────────────────────────────────────────────────── -->
+  <div class="hero">
+    <div class="hero__content">
+      <div class="hero__eyebrow">Checker queue</div>
+      <h1>Linked consent + rule approvals</h1>
+      <p>
+        Consent and broadcast rule pairs submitted together. Approve, request revision,
+        or reject in one action — both sides follow the consent decision.
+      </p>
+      <div class="hero__stats">
+        <div class="stat-card">
+          <span class="stat-card__value">{{ filteredList().length }}</span>
+          <span class="stat-card__label">Linked pair(s) pending</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__value">{{ list().length }}</span>
+          <span class="stat-card__label">Total in queue</span>
+        </div>
+      </div>
+    </div>
+    <button mat-icon-button type="button" class="refresh-btn" (click)="reload()" title="Refresh" [disabled]="loading()">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </div>
+
+  <!-- ─── SUBNAV ────────────────────────────────────────────────────────── -->
+  <div class="subnav">
+    <a mat-stroked-button routerLink="/checker/pending">
+      <mat-icon>arrow_back</mat-icon>
+      Pending consents (standalone)
+    </a>
+  </div>
+
+  <!-- ─── TOOLBAR: SEARCH + SORT ────────────────────────────────────────── -->
+  <!-- <div class="toolbar">
+    <div class="search-wrap">
+      <mat-icon class="search-icon">search</mat-icon>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Search by name, ID or rule…"
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)"
+      />
+    </div>
+
+    <div class="sort-wrap">
+      <label class="sort-label">Sort</label>
+      <select class="sort-select" [value]="sortBy()" (change)="sortBy.set($any($event.target).value)">
+        <option value="date">Date ↓</option>
+        <option value="name">Name A→Z</option>
+        <option value="type">Type</option>
+      </select>
+    </div>
+
+    <button mat-flat-button class="apply-btn" (click)="applySort()">
+      Apply
+    </button>
+  </div> -->
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <input type="text" class="search-input" placeholder="Search by name, ID or rule…" [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)" />
+    </div>
+
+    <div class="sort-group" role="group" aria-label="Sort options">
+      <span class="sort-lbl">Sort</span>
+      <div class="sort-opts">
+        <button type="button" class="sort-btn" [class.active]="sortBy() === 'date'" (click)="onSortBtnClick('date')"
+          [attr.aria-pressed]="sortBy() === 'date'">
+          <mat-icon>calendar_today</mat-icon>
+          Date
+          <mat-icon class="sort-dir-icon" *ngIf="sortBy() === 'date'">
+            {{ sortAsc() ? 'arrow_upward' : 'arrow_downward' }}
+          </mat-icon>
+        </button>
+
+        <div class="sort-divider"></div>
+
+        <button type="button" class="sort-btn" [class.active]="sortBy() === 'name'" (click)="onSortBtnClick('name')"
+          [attr.aria-pressed]="sortBy() === 'name'">
+          <mat-icon>sort_by_alpha</mat-icon>
+          Name
+        </button>
+
+        <div class="sort-divider"></div>
+
+        <button type="button" class="sort-btn" [class.active]="sortBy() === 'type'" (click)="onSortBtnClick('type')"
+          [attr.aria-pressed]="sortBy() === 'type'">
+          <mat-icon>label</mat-icon>
+          Type
+        </button>
+      </div>
+    </div>
+
+    <button mat-flat-button class="apply-btn" (click)="applySort()">
+      Apply
+    </button>
+  </div>
+
+  <!-- ─── STATES ─────────────────────────────────────────────────────────── -->
+  @if (loading()) {
+  <div class="loading-state">
+    <div class="loading-spinner"></div>
+    <p>Loading pairs…</p>
+  </div>
+  } @else if (!list().length) {
+  <div class="empty">
+    <div class="empty__icon">
+      <mat-icon>check_circle</mat-icon>
+    </div>
+    <h2>All caught up</h2>
+    <p>No linked consent + rule pairs are waiting for review.</p>
+  </div>
+  } @else if (!filteredList().length) {
+  <div class="empty">
+    <div class="empty__icon empty__icon--search">
+      <mat-icon>search_off</mat-icon>
+    </div>
+    <h2>No results found</h2>
+    <p>Try adjusting your search term or sort criteria.</p>
+  </div>
+  } @else {
+
+  <!-- ─── CARDS LIST ──────────────────────────────────────────────────── -->
+  <div class="cards">
+    @for (c of filteredList(); track c.id) {
+    @if (c.linkedRule; as r) {
+
+    <article class="pair-card">
+
+      <!-- ── COMPACT SUMMARY ROW: navigate only when checker can act ───────── -->
+      <header class="summary-row" [class.summary-row--clickable]="c.status === 'PENDING_APPROVAL'"
+        [routerLink]="c.status === 'PENDING_APPROVAL' ? [c.id] : null"
+        [attr.role]="c.status === 'PENDING_APPROVAL' ? 'button' : null"
+        [attr.tabindex]="c.status === 'PENDING_APPROVAL' ? 0 : null">
+        <div class="summary-left">
+          <div class="summary-badges">
+            <span class="type-pill">{{ c.type | consentTypeLabel }}</span>
+            <span class="linked-badge">Linked pair</span>
+            <span class="status-pill" [class.status-pill--revision]="c.status === 'REVISION_REQUESTED'">
+              {{ linkedConsentStatusLabel(c.status) }}
+            </span>
+          </div>
+          <h2 class="summary-name">{{ c.consentName }}</h2>
+          <div class="summary-meta">
+            <span class="mono">{{ c.consentId }}</span>
+            <span class="meta-dot">·</span>
+            <span>Rule: <strong>{{ r.ruleName }}</strong></span>
+            <span class="meta-dot">·</span>
+            <span>{{ c.category }}</span>
+            <span class="meta-dot">·</span>
+            <span>{{ c.submittedAt | date: 'dd MMM yyyy' }}</span>
+            <span class="meta-dot">·</span>
+            <span>by {{ c.createdBy?.fullName || '—' }}</span>
+          </div>
+          <div class="summary-chips">
+            @for (ch of getChannels(c); track ch) {
+            <span class="chip chip--channel">{{ channelChipLabel[ch] }}</span>
+            }
+            <span class="chip chip--validity">{{ c.validityPeriodDays }}d validity</span>
+            @if (c.version) {
+            <span class="chip chip--version">v{{ c.version }}</span>
+            }
+          </div>
+        </div>
+
+        <div class="summary-right">
+          @if (c.status === 'PENDING_APPROVAL') {
+          <span class="pending-badge">
+            <mat-icon>schedule</mat-icon>
+            Awaiting review
+          </span>
+          <a mat-flat-button class="review-btn" [routerLink]="[c.id]"> Review → </a>
+          <mat-icon class="chevron-icon">chevron_right</mat-icon>
+          } @else if (c.status === 'REVISION_REQUESTED') {
+          <span class="pending-badge pending-badge--muted">
+            <mat-icon>edit_note</mat-icon>
+            With maker
+          </span>
+          <a mat-stroked-button class="review-btn review-btn--secondary" [routerLink]="[c.id]"> View </a>
+          } @else {
+          <span class="pending-badge">{{ linkedConsentStatusLabel(c.status) }}</span>
+          }
+        </div>
+      </header>
+
+    </article>
+
+    } @else {
+    <article class="pair-card pair-card--warn">
+      <p>
+        <mat-icon>warning</mat-icon>
+        <strong>{{ c.consentName }}</strong> is missing linked rule data — skip or contact support.
+      </p>
+    </article>
+    }
+    }
+  </div>
+  }
+
+</div>

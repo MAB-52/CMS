@@ -1,0 +1,106 @@
+<div class="recurring-editor">
+  @if (!externalMode) {
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Frequency</mat-label>
+      <mat-select
+        name="recFreq"
+        [(ngModel)]="frequency"
+        [disabled]="disabled"
+        (ngModelChange)="onFrequencyChange()"
+      >
+        <mat-option value="DAILY">Daily</mat-option>
+        <mat-option value="WEEKLY">Weekly</mat-option>
+        <mat-option value="MONTHLY">Monthly</mat-option>
+        <mat-option value="QUARTERLY">Quarterly</mat-option>
+        <mat-option value="YEARLY">Yearly</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <div class="time-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Hour</mat-label>
+        <mat-select name="recHr" [(ngModel)]="hour" [disabled]="disabled" (ngModelChange)="onFieldChanged()">
+          @for (h of hours; track h) {
+            <mat-option [value]="h">{{ h }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Minute</mat-label>
+        <mat-select name="recMin" [(ngModel)]="minute" [disabled]="disabled" (ngModelChange)="onFieldChanged()">
+          @for (m of minutes; track m) {
+            <mat-option [value]="m">{{ m }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    @if (frequency === 'WEEKLY') {
+      <div class="section-label">Days of week</div>
+      <div class="dow-grid">
+        @for (d of weekdayOptions; track d.dow) {
+          <mat-checkbox
+            [checked]="dayChecked(d.dow)"
+            [disabled]="disabled"
+            (change)="toggleDay(d.dow, $event.checked)"
+            >{{ d.label }}</mat-checkbox
+          >
+        }
+      </div>
+    }
+
+    @if (frequency === 'MONTHLY' || frequency === 'QUARTERLY' || frequency === 'YEARLY') {
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Day of month</mat-label>
+        <input
+          matInput
+          type="number"
+          name="recDom"
+          min="1"
+          max="28"
+          [(ngModel)]="dayOfMonth"
+          [disabled]="disabled"
+          (ngModelChange)="onFieldChanged()"
+        />
+        <mat-hint>1–28</mat-hint>
+      </mat-form-field>
+    }
+
+    @if (frequency === 'YEARLY') {
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Month</mat-label>
+        <mat-select name="recMon" [(ngModel)]="month" [disabled]="disabled" (ngModelChange)="onFieldChanged()">
+          @for (m of months; track m.value) {
+            <mat-option [value]="m.value">{{ m.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    }
+
+    @if (frequency === 'QUARTERLY') {
+      <p class="info">
+        This schedule runs on the chosen day in January, April, July, and October.
+      </p>
+    }
+
+    @if (previewText(); as prev) {
+      <p class="preview"><span class="preview-label">This schedule will run:</span> {{ prev }}</p>
+    }
+  } @else {
+    <div class="alert warn">
+      This cron was set externally and cannot be parsed into simple options. Edit the expression below or switch options
+      after clearing it.
+    </div>
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Cron expression</mat-label>
+      <textarea
+        matInput
+        rows="2"
+        name="recExtCron"
+        [(ngModel)]="externalCronRaw"
+        [disabled]="disabled"
+        (ngModelChange)="onExternalCronChange()"
+      ></textarea>
+    </mat-form-field>
+  }
+</div>

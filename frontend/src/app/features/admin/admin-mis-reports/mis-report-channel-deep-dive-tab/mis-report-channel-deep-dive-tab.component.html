@@ -1,0 +1,289 @@
+<!-- <section class="panel">
+  <div class="tab-toolbar">
+    <h2>Channel × template matrix</h2>
+    <div class="exports">
+      <button mat-stroked-button type="button" [disabled]="exporting()" (click)="exportCsv()">
+        <mat-icon>download</mat-icon> CSV
+      </button>
+      <button mat-stroked-button type="button" [disabled]="exporting()" (click)="exportExcel()">
+        <mat-icon>table_chart</mat-icon> Excel
+      </button>
+    </div>
+  </div>
+  <p class="muted">Extends aggregate channel performance with per-consent-template invite outcomes.</p>
+  <div class="filters">
+    <mat-form-field appearance="outline" class="ff">
+      <mat-label>Channel filter</mat-label>
+      <mat-select [(ngModel)]="channelFilter">
+        <mat-option value="">All channels</mat-option>
+        @for (ch of channelOptions(); track ch) {
+          <mat-option [value]="ch">{{ ch }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <button mat-stroked-button type="button" (click)="applyFilter()">Apply</button>
+  </div>
+  @if (loading()) {
+    <div class="sk-table"></div>
+  } @else {
+    <div class="horiz-scroll">
+      <table class="data-table heatmap">
+        <thead>
+          <tr>
+            <th>Channel</th>
+            <th>Template</th>
+            <th>Invites</th>
+            <th>Accepted</th>
+            <th>Non-success</th>
+            <th>Success %</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of matrix(); track r.channel + '-' + r.consentDbId) {
+            <tr>
+              <td>{{ r.channel }}</td>
+              <td>{{ r.consentName }} <span class="muted">({{ r.consentId }})</span></td>
+              <td>{{ r.invitesSent }}</td>
+              <td>{{ r.acceptedCount }}</td>
+              <td>{{ r.declinedOrPendingCount }}</td>
+              <td class="heat" [style.background]="heatBg(r.successRatePercent)">
+                {{ r.successRatePercent | number: '1.0-1' }}%
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6" class="empty">
+                <mat-icon class="ph-icon">analytics</mat-icon>
+                No invite rows match the filter.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
+
+<section class="panel">
+  <h2>Overall channel success (existing MIS)</h2>
+  <div class="hbar-wrap">
+    @for (c of channels(); track c.channel) {
+      <div class="hbar-row">
+        <span class="hbar-name">{{ c.channel }}</span>
+        <div class="hbar-track">
+          <div class="hbar-fill" [style.width]="barWidth(c.totalInvitesSent, channels())"></div>
+        </div>
+        <span class="hbar-meta">{{ c.successRatePercent | number: '1.0-1' }}%</span>
+      </div>
+    } @empty {
+      <p class="empty">No aggregate channel data.</p>
+    }
+  </div>
+</section> -->
+
+<!-- ── Toolbar ─────────────────────────────────────────────────────────── -->
+<div class="tab-toolbar">
+  <div class="toolbar-left">
+    <span class="toolbar-title">Channel Deep-Dive</span>
+    <span class="toolbar-sub">Per-template invite outcomes across delivery channels</span>
+  </div>
+  <div class="exports">
+    <button mat-stroked-button type="button" [disabled]="exporting()" (click)="exportCsv()">
+      <mat-icon>download</mat-icon> CSV
+    </button>
+    <button mat-stroked-button type="button" [disabled]="exporting()" (click)="exportExcel()">
+      <mat-icon>table_chart</mat-icon> Excel
+    </button>
+  </div>
+</div>
+
+<!-- ── Skeleton ─────────────────────────────────────────────────────────── -->
+@if (loading()) {
+<section class="skeleton-panel" aria-hidden="true">
+  <div class="sk-kpi-row">
+    <div class="sk-kpi"></div>
+    <div class="sk-kpi"></div>
+    <div class="sk-kpi"></div>
+    <div class="sk-kpi"></div>
+  </div>
+  <div class="sk-block sk-block--chart"></div>
+  <div class="sk-block sk-block--table"></div>
+</section>
+} @else {
+
+<!-- ── KPI Cards ────────────────────────────────────────────────────────── -->
+@if (channels().length) {
+<div class="kpi-row">
+  <div class="kpi-card kpi-card--blue">
+    <div class="kpi-icon-wrap kpi-icon-wrap--blue">
+      <mat-icon>send</mat-icon>
+    </div>
+    <div class="kpi-body">
+      <span class="kpi-label">Total Invites Sent</span>
+      <span class="kpi-value">{{ totalInvites() | number:'1.0-0' }}</span>
+    </div>
+    <div class="kpi-accent kpi-accent--blue"></div>
+  </div>
+
+  <div class="kpi-card kpi-card--green">
+    <div class="kpi-icon-wrap kpi-icon-wrap--green">
+      <mat-icon>check_circle</mat-icon>
+    </div>
+    <div class="kpi-body">
+      <span class="kpi-label">Avg Success Rate</span>
+      <span class="kpi-value">{{ avgSuccessRate() }}%</span>
+    </div>
+    <div class="kpi-accent kpi-accent--green"></div>
+  </div>
+
+  <div class="kpi-card kpi-card--amber">
+    <div class="kpi-icon-wrap kpi-icon-wrap--amber">
+      <mat-icon>emoji_events</mat-icon>
+    </div>
+    <div class="kpi-body">
+      <span class="kpi-label">Top Channel</span>
+      <span class="kpi-value kpi-value--sm">{{ topChannel() }}</span>
+    </div>
+    <div class="kpi-accent kpi-accent--amber"></div>
+  </div>
+
+  <div class="kpi-card kpi-card--purple">
+    <div class="kpi-icon-wrap kpi-icon-wrap--purple">
+      <mat-icon>layers</mat-icon>
+    </div>
+    <div class="kpi-body">
+      <span class="kpi-label">Active Channels</span>
+      <span class="kpi-value">{{ channelOptions().length }}</span>
+    </div>
+    <div class="kpi-accent kpi-accent--purple"></div>
+  </div>
+</div>
+}
+
+<!-- ── Channel Performance Bars ─────────────────────────────────────────── -->
+<section class="panel">
+  <div class="panel-header">
+    <div class="panel-title-group">
+      <h3 class="panel-title">Overall Channel Performance</h3>
+      <p class="panel-sub">Invite volume with success rate heatmap</p>
+    </div>
+  </div>
+  <div class="channel-bars-grid">
+    @for (c of channels(); track c.channel; let i = $index) {
+    <div class="channel-bar-card" [class.channel-bar-card--active]="hoveredChannel() === c.channel"
+      (mouseenter)="hoveredChannel.set(c.channel)" (mouseleave)="hoveredChannel.set(null)">
+      <div class="cbc-top">
+        <span class="cbc-name">
+          <mat-icon class="cbc-icon">{{ channelIcon(c.channel) }}</mat-icon>
+          {{ c.channel }}
+        </span>
+        <span class="cbc-rate" [style.color]="heatColor(c.successRatePercent)">
+          {{ c.successRatePercent | number:'1.0-1' }}%
+        </span>
+      </div>
+      <div class="cbc-bar-track">
+        <div class="cbc-bar-fill" [style.width]="barWidth(c.totalInvitesSent, channels())"
+          [style.background]="heatGradient(c.successRatePercent)"></div>
+      </div>
+      <div class="cbc-bottom">
+        <span class="cbc-invites">{{ c.totalInvitesSent | number:'1.0-0' }} invites</span>
+        <span class="cbc-badge" [style.background]="heatBg(c.successRatePercent)"
+          [style.color]="heatColor(c.successRatePercent)">
+          {{ rateLabel(c.successRatePercent) }}
+        </span>
+      </div>
+    </div>
+    } @empty {
+    <div class="empty-card">
+      <mat-icon class="ph-icon">bar_chart</mat-icon>
+      <p>No aggregate channel data available.</p>
+    </div>
+    }
+  </div>
+</section>
+
+<!-- ── Channel × Template Matrix ───────────────────────────────────────── -->
+<section class="panel">
+  <div class="panel-header">
+    <div class="panel-title-group">
+      <h3 class="panel-title">Channel × Template Matrix</h3>
+      <p class="panel-sub">Heatmap scales red → green by success rate</p>
+    </div>
+    <div class="filters">
+      <mat-form-field appearance="outline" class="ff">
+        <mat-label>Filter by channel</mat-label>
+        <mat-select [(ngModel)]="channelFilter">
+          <mat-option value="">All channels</mat-option>
+          @for (ch of channelOptions(); track ch) {
+          <mat-option [value]="ch">{{ ch }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <button mat-flat-button color="primary" type="button" (click)="applyFilter()">
+        <mat-icon>filter_list</mat-icon> Apply
+      </button>
+    </div>
+  </div>
+
+  <div class="horiz-scroll">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Channel</th>
+          <th>Template</th>
+          <th class="th-num">Invites</th>
+          <th class="th-num">Accepted</th>
+          <th class="th-num">Non-success</th>
+          <th class="th-num">Success %</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of matrix(); track r.channel + '-' + r.consentDbId; let odd = $odd) {
+        <tr class="data-row" [class.data-row--odd]="odd" [class.data-row--highlighted]="hoveredChannel() === r.channel">
+          <td>
+            <div class="channel-cell">
+              <mat-icon class="ch-cell-icon">{{ channelIcon(r.channel) }}</mat-icon>
+              <span class="channel-badge" [class]="channelBadgeClass(r.channel)">
+                {{ r.channel }}
+              </span>
+            </div>
+          </td>
+          <td class="td-template">
+            <span class="template-name">{{ r.consentName }}</span>
+            <span class="consent-id">{{ r.consentId }}</span>
+          </td>
+          <td class="td-num">{{ r.invitesSent | number:'1.0-0' }}</td>
+          <td class="td-num">
+            <span class="num-accepted">{{ r.acceptedCount | number:'1.0-0' }}</span>
+          </td>
+          <td class="td-num">
+            <span class="num-declined">{{ r.declinedOrPendingCount | number:'1.0-0' }}</span>
+          </td>
+          <td class="td-heat" [style.background]="heatBg(r.successRatePercent)">
+            <div class="heat-cell">
+              <span class="heat-value" [style.color]="heatColor(r.successRatePercent)">
+                {{ r.successRatePercent | number:'1.0-1' }}%
+              </span>
+              <div class="heat-mini-bar">
+                <div class="heat-mini-fill" [style.width.%]="r.successRatePercent"
+                  [style.background]="heatColor(r.successRatePercent)"></div>
+              </div>
+            </div>
+          </td>
+        </tr>
+        } @empty {
+        <tr>
+          <td colspan="6" class="empty-row">
+            <div class="empty-card">
+              <mat-icon class="ph-icon">analytics</mat-icon>
+              <p>No invite rows match the selected filter.</p>
+            </div>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+}

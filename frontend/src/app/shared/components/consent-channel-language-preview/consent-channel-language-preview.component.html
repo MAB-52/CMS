@@ -1,0 +1,115 @@
+<!-- frontend/src/app/shared/components/consent-channel-language-preview/consent-channel-language-preview.component.html -->
+
+<div class="preview-wrap">
+  <div class="preview-head">
+    <div class="preview-head-text">
+      <span class="preview-title">📱 Channel Previews</span>
+      <span class="preview-sub">Click a channel tab to see how the message will appear</span>
+    </div>
+    @if (totalCombinations > 0) {
+      <span class="combo-badge" [class.combo-badge--complete]="viewedCount === totalCombinations">
+        👁 {{ viewedCount }}/{{ totalCombinations }} viewed
+      </span>
+    }
+  </div>
+
+  @if (!activeChannels.length) {
+  <div class="empty-prev">
+    <div class="empty-ico">📡</div>
+    <p>No delivery channels configured for this consent</p>
+  </div>
+  } @else {
+  <mat-tab-group [selectedIndex]="activeChannelTab" (selectedIndexChange)="onChannelTabChange($event)" class="tabs"
+    animationDuration="200ms">
+    @for (id of activeChannels; track id) {
+    <mat-tab [label]="tabLabel(id)"></mat-tab>
+    }
+  </mat-tab-group>
+
+  @if (showLanguageTabs()) {
+  <div class="language-tabs">
+    @for (lang of languagesForChannel(currentChannel()!); track lang; let i = $index) {
+    <button type="button" class="lang-tab" [class.lang-tab--active]="i === activeLanguageTab"
+      (click)="onLanguageTabChange(i)">
+      {{ languageLabel(lang) }}
+    </button>
+    }
+  </div>
+  }
+
+  @if (showTranslationBanner()) {
+  <div class="translation-banner">
+    ⚠️ AI-generated translation — please verify accuracy before {{ readOnly ? 'approving' : 'submitting' }}.
+  </div>
+  }
+
+  <div class="channel-body" [dir]="isCurrentRtl() ? 'rtl' : 'ltr'">
+    @if (currentChannel() === 'EMAIL') {
+    <div class="mock-email">
+      <div class="mock-h">From: noreply&#64;consentiq.com</div>
+      <div class="mock-h">To: john.doe&#64;example.com</div>
+      <div class="mock-h">Subject: Action Required: Consent Request</div>
+      <div class="mock-body">
+        <div class="logo-ph">[Company Logo Area]</div>
+        <div class="html-prev" [innerHTML]="processedEmailHtml()"></div>
+        <div class="foot">ConsentIQ · Unsubscribe · Privacy Policy</div>
+      </div>
+    </div>
+    }
+
+    @if (currentChannel() === 'SMS') {
+    <div class="mock-sms-wrap">
+      <div class="mock-phone">
+        <div class="sms-bubble">
+          <div class="sms-title">ConsentIQ</div>
+          <div class="sms-txt">{{ smsBody() }}</div>
+        </div>
+        <div class="sms-time">9:41 AM</div>
+      </div>
+      <div class="sms-meta">{{ smsLen() }} / 160 characters</div>
+    </div>
+    }
+
+    @if (currentChannel() === 'PUSH') {
+    <div class="mock-push">
+      <div class="push-top">
+        <span>🔔 ConsentIQ</span>
+        <span class="now">now</span>
+      </div>
+      <div class="push-title">Action Required</div>
+      <div class="push-body">{{ pushBody() }}</div>
+    </div>
+    }
+
+    @if (currentChannel() === 'WHATSAPP') {
+    <div class="mock-wa">
+      <div class="wa-head">🟢 ConsentIQ</div>
+      <div class="wa-body">
+        <div class="wa-bubble">
+          @for (imgSrc of waImages(); track imgSrc) {
+          <img [src]="imgSrc" alt="consent image" class="wa-img" />
+          }
+          {{ currentContent() }}
+          <span class="wa-meta">9:41 ✓✓</span>
+        </div>
+      </div>
+    </div>
+    }
+
+    @if (currentChannel() === 'RCS') {
+    <div class="mock-rcs">
+      <div class="rcs-head">🌐 ConsentIQ</div>
+      <div class="rcs-body">
+        <div class="rcs-bubble">
+          @for (imgSrc of waImages(); track imgSrc) {
+          <img [src]="imgSrc" alt="consent image" class="rcs-img" />
+          }
+          {{ currentContent() }}
+          <span class="rcs-meta">9:41 ✓✓</span>
+        </div>
+      </div>
+    </div>
+    }
+  </div>
+  }
+</div>

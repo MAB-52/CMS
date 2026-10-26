@@ -1,0 +1,132 @@
+    <div class="queue-page">
+      <div class="queue-hero">
+        <div class="queue-hero__content">
+          <div class="queue-hero__eyebrow">
+            <mat-icon>fact_check</mat-icon>
+            Checker Workspace
+          </div>
+
+          <h1>Rules Pending Approval</h1>
+
+          <p>
+            Review consent rules submitted by makers,
+            validate compliance, and approve or request revisions.
+          </p>
+
+          <div class="queue-stats">
+            <div class="queue-stat">
+              <span class="queue-stat__value">
+                {{ rows().length }}
+              </span>
+
+              <span class="queue-stat__label">
+                Pending Reviews
+              </span>
+            </div>
+
+            <div class="queue-stat">
+              <span class="queue-stat__value">
+                {{ rows().length ? 'Active' : 'Idle' }}
+              </span>
+
+              <span class="queue-stat__label">
+                Queue Status
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="queue-hero__actions">
+          <a
+            mat-flat-button
+            color="primary"
+            routerLink="/checker/dashboard"
+          >
+            <mat-icon>dashboard</mat-icon>
+            Dashboard
+          </a>
+        </div>
+      </div>
+
+      @if (!rows().length) {
+
+        <div class="empty-state">
+          <div class="empty-state__icon">
+            <mat-icon>task_alt</mat-icon>
+          </div>
+
+          <h2>All caught up</h2>
+
+          <p>
+            There are currently no consent rules awaiting approval.
+          </p>
+
+          <a
+            mat-stroked-button
+            color="primary"
+            routerLink="/checker/dashboard"
+          >
+            Back to Dashboard
+          </a>
+        </div>
+      } @else {
+
+        <div class="rules-grid">
+          @for (r of rows(); track r.id) {
+            <a
+              class="rule-card"
+              matRipple
+              [routerLink]="['/checker/rules', r.id, 'review']"
+            >
+
+              <div class="rule-card__top">
+                <div class="rule-title-wrap">
+                  <div class="rule-icon">
+                    <mat-icon>rule</mat-icon>
+                  </div>
+
+                  <div class="rule-card__content">
+                    <h3>
+                      {{ r.ruleName }}
+                    </h3>
+                  </div>
+                </div>
+
+                <app-workflow-status-badge
+                  [status]="r.status"
+                />
+              </div>
+
+              <div class="rule-meta-inline">
+                <span class="meta-chip">
+                  <mat-icon>person</mat-icon>
+                  {{ r.createdByName }}
+                </span>
+
+                <span class="meta-divider">•</span>
+
+                <span class="meta-chip">
+                  <mat-icon>calendar_today</mat-icon>
+                  {{ r.submittedAt | date:'dd MMM yyyy' }}
+                </span>
+                <span class="meta-divider">•</span>
+
+                <span class="meta-chip">
+                  <mat-icon>schedule</mat-icon>
+                  {{ r.submittedAt | date:'hh:mm a' }}
+                </span>
+              </div>
+
+              <div class="rule-card__footer">
+                <span class="review-link">
+                  Open Review
+                  <mat-icon>
+                    arrow_forward
+                  </mat-icon>
+                </span>
+              </div>
+            </a>
+          }
+        </div>
+      }
+    </div>

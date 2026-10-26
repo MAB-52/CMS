@@ -1,0 +1,67 @@
+:host {
+  display: block;
+  --shell-bg: #f5f6fb;
+  --shell-surface: #ffffff;
+  --shell-surface-soft: #f7f8fd;
+  --shell-border: #e6e9f2;
+  --shell-text: #26233a;
+  --shell-text-soft: #6f7185;
+  --shell-sidebar-width: 260px;
+  --shell-sidebar-width-mobile: 0px;
+}
+
+.shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--shell-bg);
+}
+
+.main {
+  margin-left: var(--shell-sidebar-width);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 100vh;
+  height: 100vh;
+  background: var(--shell-bg);
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  padding: 24px 28px 48px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(94, 72, 184, 0.05), transparent 24%),
+    radial-gradient(circle at bottom right, rgba(240, 139, 56, 0.05), transparent 22%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.46) 0%, rgba(245, 246, 251, 0.00) 100%);
+}
+
+/* smoother page scrolling */
+.content {
+  scroll-behavior: smooth;
+}
+
+/* optional top spacing consistency for page sections */
+.content > *:first-child {
+  margin-top: 0;
+}
+
+/* Responsive */
+@media (max-width: 991px) {
+  .main {
+    margin-left: 0;
+  }
+
+  .content {
+    padding: 20px 18px 36px;
+  }
+}
+
+@media (max-width: 640px) {
+  .content {
+    padding: 16px 14px 28px;
+  }
+}

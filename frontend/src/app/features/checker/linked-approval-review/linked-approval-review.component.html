@@ -1,0 +1,275 @@
+<div class="page">
+
+  <!-- ─── BACK ─────────────────────────────────────────────────────────── -->
+  <div class="subnav">
+    <button mat-stroked-button type="button" class="back-link" (click)="back()">
+      <mat-icon>arrow_back</mat-icon>
+      Back to linked approvals
+    </button>
+  </div>
+
+  <!-- ─── STATES ────────────────────────────────────────────────────────── -->
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="loading-spinner"></div>
+      <p>Loading pair…</p>
+    </div>
+  } @else if (notFound() || !consent()) {
+    <div class="empty">
+      <div class="empty__icon empty__icon--search">
+        <mat-icon>search_off</mat-icon>
+      </div>
+      <h2>Pair not found</h2>
+      <p>This linked consent + rule pair is no longer pending or could not be loaded.</p>
+      <button mat-flat-button class="back-cta" type="button" (click)="back()">Back to queue</button>
+    </div>
+  } @else {
+    <!-- @let unwraps the signal once — valid in any block, no "as" needed -->
+    @let c = consent()!;
+    @let r = c.linkedRule;
+
+    @if (r) {
+
+      <!-- ─── HERO ──────────────────────────────────────────────────────── -->
+      <div class="review-hero">
+        <div class="review-hero__top">
+          <div class="summary-badges">
+            <span class="type-pill">{{ c.type | consentTypeLabel }}</span>
+            <span class="linked-badge">Linked pair</span>
+            <span class="status-pill" [class.status-pill--revision]="c.status === 'REVISION_REQUESTED'">
+              {{ c.status === 'PENDING_APPROVAL' ? 'Pending approval' : (c.status === 'REVISION_REQUESTED' ? 'Revision requested' : c.status) }}
+            </span>
+          </div>
+          @if (c.status === 'PENDING_APPROVAL') {
+            <span class="pending-badge">
+              <mat-icon>schedule</mat-icon>
+              Awaiting review
+            </span>
+          } @else if (c.status === 'REVISION_REQUESTED') {
+            <span class="pending-badge pending-badge--muted">
+              <mat-icon>edit_note</mat-icon>
+              With maker
+            </span>
+          } @else {
+            <span class="pending-badge">{{ c.status }}</span>
+          }
+        </div>
+        <h1>{{ c.consentName }}</h1>
+        <div class="summary-meta">
+          <span class="mono">{{ c.consentId }}</span>
+          <span class="meta-dot">·</span>
+          <span>Rule: <strong>{{ r.ruleName }}</strong></span>
+          <span class="meta-dot">·</span>
+          <span>{{ c.category }}</span>
+          <span class="meta-dot">·</span>
+          <span>{{ c.submittedAt | date: 'dd MMM yyyy' }}</span>
+          <span class="meta-dot">·</span>
+          <span>by {{ c.createdBy?.fullName || '—' }}</span>
+        </div>
+      </div>
+
+      <div class="detail-inner">
+
+        <!-- Consent section -->
+        <section class="block consent-block">
+          <h3 class="block__label">
+            <mat-icon>description</mat-icon>
+            Consent details
+          </h3>
+          <div class="grid">
+            <div class="field">
+              <span class="k">Name</span>
+              <span class="v">{{ c.consentName }}</span>
+            </div>
+            <div class="field">
+              <span class="k">Consent ID</span>
+              <span class="v mono">{{ c.consentId }}</span>
+            </div>
+            <div class="field">
+              <span class="k">Category</span>
+              <span class="v">{{ c.category }}</span>
+            </div>
+            <div class="field">
+              <span class="k">Validity period</span>
+              <span class="v">{{ c.validityPeriodDays }} days</span>
+            </div>
+            <div class="field full">
+              <span class="k">Tags</span>
+              <span class="v">{{ (c.tagsUsed || []).join(', ') || '—' }}</span>
+            </div>
+            <div class="field">
+              <span class="k">Created by</span>
+              <span class="v">{{ c.createdBy?.fullName || '—' }}</span>
+            </div>
+            <div class="field">
+              <span class="k">Submitted at</span>
+              <span class="v timestamp-field">
+                <span>{{ c.submittedAt | date: 'dd MMM yyyy' }}</span>
+                <span class="time-chip">{{ c.submittedAt | date: 'hh:mm a' }}</span>
+              </span>
+            </div>
+            <div class="field full">
+              <span class="k">Delivery channels</span>
+              <div class="chip-row">
+                @for (ch of getChannels(c); track ch) {
+                  <span class="chip chip--channel">{{ channelChipLabel[ch] }}</span>
+                }
+                @if (!getChannels(c).length) {
+                  <span class="muted-inline">—</span>
+                }
+              </div>
+            </div>
+          </div>
+
+          <app-consent-channel-language-preview
+            [channelEmail]="c.channelEmail"
+            [channelSms]="c.channelSms"
+            [channelPush]="c.channelPush"
+            [channelWhatsapp]="c.channelWhatsapp"
+            [channelRcs]="c.channelRcs"
+            [renders]="renderMap()"
+            [mergeTags]="mergeTags"
+            [readOnly]="true"
+            [viewedCount]="viewedCount()"
+            [totalCombinations]="totalCombinations()"
+            (combinationViewed)="onCombinationViewed($event)">
+          </app-consent-channel-language-preview>
+        </section>
+
+        <div class="divider" aria-hidden="true"></div>
+
+        <!-- Rule section -->
+        <section class="block rule-block">
+          <h3 class="block__label">
+            <mat-icon>broadcast_on_personal</mat-icon>
+            Paired broadcast rule
+          </h3>
+          <div class="grid">
+            <div class="field">
+              <span class="k">Rule name</span>
+              <span class="v">{{ r.ruleName }}</span>
+            </div>
+            <div class="field">
+              <span class="k">Rule ID</span>
+              <span class="v mono">{{ r.id }}</span>
+            </div>
+            <div class="field">
+              <span class="k">Rule type</span>
+              <span class="v">{{ r.ruleType }}</span>
+            </div>
+            <div class="field">
+              <span class="k">Scenario</span>
+              <span class="v">{{ scenarioLine(r.ruleType, r.predefinedScenario) }}</span>
+            </div>
+            <div class="field full">
+              <span class="k">Audience segments</span>
+              <div class="chip-row">
+                <span class="chip chip--primary">
+                  {{ audienceSegmentLabel(r.primarySegment) }}
+                  <span class="chip__tag">primary</span>
+                </span>
+                @for (seg of r.additionalSegmentCodes || []; track seg) {
+                  <span class="chip chip--secondary">{{ audienceSegmentLabel(seg) }}</span>
+                }
+                @if (!(r.additionalSegmentCodes || []).length) {
+                  <span class="muted-inline">No additional segments</span>
+                }
+              </div>
+            </div>
+            <div class="field">
+              <span class="k">Schedule</span>
+              <span class="v">{{ ruleScheduleLabel(r.scheduleType) }}</span>
+            </div>
+            @if (r.scheduleType === 'SCHEDULED' && r.scheduledAt) {
+              <div class="field">
+                <span class="k">Scheduled at</span>
+                <span class="v">{{ r.scheduledAt | date: 'dd MMM yyyy · hh:mm a' }}</span>
+              </div>
+            }
+            @if (r.scheduleType === 'RECURRING' && r.recurringCron) {
+              <div class="field full">
+                <span class="k">Cron</span>
+                <span class="v mono">{{ r.recurringCron }}</span>
+              </div>
+            }
+            <div class="field full">
+              <span class="k">Broadcast channels</span>
+              <div class="chip-row">
+                @for (ch of r.broadcastChannels || []; track ch) {
+                  <span class="chip chip--channel">{{ channelLabel(ch) }}</span>
+                }
+                @if (!(r.broadcastChannels || []).length) {
+                  <span class="muted-inline">—</span>
+                }
+              </div>
+            </div>
+            <div class="field full">
+              <span class="k">Description</span>
+              <span class="v notes">{{ r.ruleDescription || '—' }}</span>
+            </div>
+          </div>
+        </section>
+
+      </div><!-- /detail-inner -->
+
+      @if (canDecide(c)) {
+        <!-- ─── DECISION BAR ────────────────────────────────────────────────── -->
+        <footer class="decision" [class.dim]="!canDecide(c)">
+          <div class="decision__info">
+            <div class="d-title">Decision for this pair</div>
+            <div class="d-sub">
+              Consent <strong>{{ c.consentName }}</strong> v{{ c.version }}
+              · Rule <strong>{{ r.ruleName }}</strong>
+            </div>
+            <div class="reviewed-tracker">{{ viewedCount() }}/{{ totalCombinations() }} combinations viewed</div>
+          </div>
+          <div class="d-btns">
+            <button
+              class="ciq-btn ciq-btn--approve"
+              type="button"
+              [disabled]="!canDecide(c) || actingBusy() || viewedCount() < totalCombinations()"
+              (click)="approve(c)"
+            >
+              <mat-icon>check_circle</mat-icon>
+              Approve
+            </button>
+            <button
+              class="ciq-btn ciq-btn--revision"
+              type="button"
+              [disabled]="!canDecide(c) || actingBusy()"
+              (click)="requestRevision(c)"
+            >
+              <mat-icon>undo</mat-icon>
+              Request revision
+            </button>
+            <button
+              class="ciq-btn ciq-btn--reject"
+              type="button"
+              [disabled]="!canDecide(c) || actingBusy()"
+              (click)="reject(c)"
+            >
+              <mat-icon>cancel</mat-icon>
+              Reject
+            </button>
+          </div>
+        </footer>
+      } @else if (c.status === 'REVISION_REQUESTED') {
+        <footer class="decision decision--readonly">
+          <div class="decision__info">
+            <div class="d-title">Awaiting maker</div>
+            <div class="d-sub">This pair was sent back for revision. No checker action until the maker resubmits.</div>
+          </div>
+        </footer>
+      }
+
+    } @else {
+      <article class="pair-card pair-card--warn">
+        <p>
+          <mat-icon>warning</mat-icon>
+          <strong>{{ c.consentName }}</strong> is missing linked rule data — skip or contact support.
+        </p>
+      </article>
+    }
+  }
+
+</div>

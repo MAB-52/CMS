@@ -1,0 +1,611 @@
+package com.consentiq.seed;
+
+import com.consentiq.enums.ConsentCategory;
+import com.consentiq.enums.ConsentStatus;
+import com.consentiq.enums.ConsentType;
+import com.consentiq.enums.CustomerConsentStatus;
+import com.consentiq.enums.UserRole;
+import com.consentiq.model.entity.*;
+import com.consentiq.repository.*;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+@Component
+@RequiredArgsConstructor
+public class DataInitializer implements CommandLineRunner {
+
+    private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
+
+    private static String currentUser() {
+        return SecurityContextHolder.getContext().getAuthentication() != null
+                ? SecurityContextHolder.getContext().getAuthentication().getName()
+                : "anonymous";
+    }
+
+    private final UserRepository userRepository;
+    private final MergeTagRepository mergeTagRepository;
+    private final ConsentRepository consentRepository;
+    private final ConsentVersionRepository consentVersionRepository;
+    private final AuditLogRepository auditLogRepository;
+    private final CustomerRepository customerRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    @Override
+    @Transactional
+    public void run(String... args) {
+        String cu = currentUser();
+        log.debug("Entering run | params: argCount={}", args != null ? args.length : 0);
+        log.info("User={} | action=run | entity=DataInitializer | id=n/a", cu);
+        log.debug("Transaction started | method=run | id=n/a");
+        log.info("Executing DB query | method=count | param=User");
+        long existingUsers = userRepository.count();
+        log.info("Query returned count={} | method=count | param=User", existingUsers);
+        if (existingUsers > 0) {
+            log.info("Branch taken | method=run | condition=seeded | value=true");
+            log.info("Database already seeded, skipping user/consent seed");
+        } else {
+            log.info("Branch taken | method=run | condition=seeded | value=false");
+            log.info("Seeding ConsentIQ database...");
+
+            User admin =
+                    userRepository.save(
+                            User.builder()
+                                    .fullName("Admin User")
+                                    .email("admin@consentiq.com")
+                                    .password(passwordEncoder.encode("12345678"))
+                                    .role(UserRole.ADMIN)
+                                    .active(true)
+                                    .build());
+            User rahul =
+                    userRepository.save(
+                            User.builder()
+                                    .fullName("Rahul Kumar")
+                                    .email("rahul.kumar@consentiq.com")
+                                    .password(passwordEncoder.encode("12345678"))
+                                    .role(UserRole.MAKER)
+                                    .active(true)
+                                    .build());
+            User anita =
+                    userRepository.save(
+                            User.builder()
+                                    .fullName("Anita Patel")
+                                    .email("anita.patel@consentiq.com")
+                                    .password(passwordEncoder.encode("12345678"))
+                                    .role(UserRole.CHECKER)
+                                    .active(true)
+                                    .build());
+            User amit =
+                    userRepository.save(
+                            User.builder()
+                                    .fullName("Amit Sharma")
+                                    .email("amit.sharma@consentiq.com")
+                                    .password(passwordEncoder.encode("12345678"))
+                                    .role(UserRole.MAKER)
+                                    .active(true)
+                                    .build());
+
+            seedMergeTags();
+            Instant now = Instant.now();
+
+            String msg1 =
+                    """
+                    <p>Dear {{CUSTOMER_NAME}},</p>\
+                    <p>We at {{COMPANY_NAME}} are committed to keeping you informed about products and offers you may find valuable. \
+                    This marketing communication is sent in accordance with your preferences.</p>\
+                    <p>Your consent remains valid until <strong>{{VALIDITY_DATE}}</strong>. \
+                    If you wish to stop receiving these messages, please use our secure opt-out link: {{OPT_OUT_LINK}}.</p>\
+                    <p>Thank you for trusting {{COMPANY_NAME}}.</p>\
+                    """;
+
+            // c1 — EMAIL + SMS
+            Consent c1 =
+                    consentRepository.save(
+                            Consent.builder()
+                                    .consentId("CNS-2026-0001")
+                                    .consentName("Marketing Communications v1.0")
+                                    .description("Primary marketing consent template for retail customers.")
+                                    .category(ConsentCategory.MARKETING)
+                                    .validityPeriodDays(365)
+                                    .consentMessage(msg1)
+                                    .status(ConsentStatus.PUBLISHED)
+                                    .channelEmail(true)
+                                    .channelSms(true)
+                                    .channelPush(false)
+                                    .channelWhatsapp(false)
+                                    .channelRcs(false)
+                                    .tagsUsed(List.of("{{CUSTOMER_NAME}}", "{{COMPANY_NAME}}", "{{VALIDITY_DATE}}", "{{OPT_OUT_LINK}}"))
+                                    .searchTags("marketing, retail, communications")
+                                    .createdBy(rahul)
+                                    .submittedAt(now.minus(45, ChronoUnit.DAYS))
+                                    .reviewedBy(anita)
+                                    .reviewedAt(now.minus(44, ChronoUnit.DAYS))
+                                    .publishedAt(now.minus(43, ChronoUnit.DAYS))
+                                    .build());
+
+            String msg2 =
+                    """
+                    <p>Hello {{CUSTOMER_NAME}},</p>\
+                    <p>{{COMPANY_NAME}} is updating how we communicate promotional offers. This version clarifies {{VALIDITY_PERIOD}} \
+                    validity and includes additional channels.</p>\
+                    <p>As of {{DATE}}, you can manage preferences through {{OPT_OUT_LINK}}.</p>\
+                    """;
+
+            // c2 — EMAIL + SMS + WHATSAPP
+            Consent c2 =
+                    consentRepository.save(
+                            Consent.builder()
+                                    .consentId("CNS-2026-0078")
+                                    .consentName("Marketing Communications v2.1")
+                                    .description("Version update adding WhatsApp and clarifying marketing scope.")
+                                    .category(ConsentCategory.MARKETING)
+                                    .validityPeriodDays(365)
+                                    .consentMessage(msg2)
+                                    .status(ConsentStatus.PENDING_APPROVAL)
+                                    .channelEmail(true)
+                                    .channelSms(true)
+                                    .channelPush(false)
+                                    .channelWhatsapp(true)
+                                    .channelRcs(false)
+                                    .tagsUsed(
+                                            List.of(
+                                                    "{{CUSTOMER_NAME}}",
+                                                    "{{COMPANY_NAME}}",
+                                                    "{{VALIDITY_PERIOD}}",
+                                                    "{{DATE}}",
+                                                    "{{OPT_OUT_LINK}}"))
+                                    .searchTags("marketing, v2.1, whatsapp")
+                                    .createdBy(rahul)
+                                    .submittedAt(now.minus(10, ChronoUnit.MINUTES))
+                                    .build());
+
+            Map<String, Map<String, String>> c2diff = new LinkedHashMap<>();
+            c2diff.put("category", Map.of("old", "GENERAL", "new", "MARKETING"));
+            c2diff.put(
+                    "channelWhatsapp",
+                    Map.of("old", "false", "new", "true"));
+            consentVersionRepository.save(
+                    ConsentVersion.builder()
+                            .consent(c2)
+                            .versionNumber(2)
+                            .consentMessageSnapshot(msg1)
+                            .changedFields(c2diff)
+                            .changedBy(rahul)
+                            .changedAt(now.minus(12, ChronoUnit.MINUTES))
+                            .build());
+
+            String msg3 =
+                    """
+                    <p>Dear {{CUSTOMER_NAME}},</p>\
+                    <p>For account <strong>{{ACCOUNT_NUMBER}}</strong> we require explicit consent to process personal data including \
+                    {{EMAIL_ADDRESS}} and {{MOBILE_NUMBER}}.</p>\
+                    <p>Please review and accept using {{CONSENT_LINK}} before {{VALIDITY_DATE}}.</p>\
+                    """;
+
+            // c3 — EMAIL + PUSH
+            Consent c3 =
+                    consentRepository.save(
+                            Consent.builder()
+                                    .consentId("CNS-2026-0079")
+                                    .consentName("Data Processing Consent")
+                                    .description("Transactional consent for data processing activities.")
+                                    .category(ConsentCategory.TRANSACTIONAL)
+                                    .validityPeriodDays(730)
+                                    .consentMessage(msg3)
+                                    .status(ConsentStatus.PENDING_APPROVAL)
+                                    .channelEmail(true)
+                                    .channelSms(false)
+                                    .channelPush(true)
+                                    .channelWhatsapp(false)
+                                    .channelRcs(false)
+                                    .tagsUsed(
+                                            List.of(
+                                                    "{{CUSTOMER_NAME}}",
+                                                    "{{EMAIL_ADDRESS}}",
+                                                    "{{MOBILE_NUMBER}}",
+                                                    "{{ACCOUNT_NUMBER}}",
+                                                    "{{VALIDITY_DATE}}",
+                                                    "{{CONSENT_LINK}}"))
+                                    .searchTags("data, processing, transactional")
+                                    .createdBy(amit)
+                                    .submittedAt(now.minus(2, ChronoUnit.HOURS))
+                                    .build());
+
+            String msg4 =
+                    "<p>Service terms consent for ongoing service delivery and policy acknowledgements.</p>";
+
+            // c4 — EMAIL only
+            Consent c4 =
+                    consentRepository.save(
+                            Consent.builder()
+                                    .consentId("CNS-2026-0065")
+                                    .consentName("Service Terms Consent v1.2")
+                                    .description("Updated service terms requiring customer acknowledgement.")
+                                    .category(ConsentCategory.SERVICE)
+                                    .validityPeriodDays(180)
+                                    .consentMessage(msg4)
+                                    .status(ConsentStatus.REVISION_REQUESTED)
+                                    .channelEmail(true)
+                                    .channelSms(false)
+                                    .channelPush(false)
+                                    .channelWhatsapp(false)
+                                    .channelRcs(false)
+                                    .tagsUsed(List.of())
+                                    .searchTags("service, terms")
+                                    .createdBy(rahul)
+                                    .submittedAt(now.minus(5, ChronoUnit.DAYS))
+                                    .reviewedBy(anita)
+                                    .reviewedAt(now.minus(4, ChronoUnit.DAYS))
+                                    .revisionMessage(
+                                            "Please update the opt-out language to fully comply with DPDP Act 2023 Section 6(3).")
+                                    .build());
+
+            String msg5 = "<p>Draft: KYC data collection for onboarding workflows. Further legal review pending.</p>";
+
+            // c5 — EMAIL + SMS + PUSH
+            consentRepository.save(
+                    Consent.builder()
+                            .consentId("CNS-2026-0082")
+                            .consentName("KYC Data Collection Consent")
+                            .description("Draft consent for KYC-related personal data.")
+                            .category(ConsentCategory.TRANSACTIONAL)
+                            .validityPeriodDays(365)
+                            .consentMessage(msg5)
+                            .status(ConsentStatus.DRAFT)
+                            .channelEmail(true)
+                            .channelSms(true)
+                            .channelPush(true)
+                            .channelWhatsapp(false)
+                            .channelRcs(false)
+                            .tagsUsed(List.of("{{CUSTOMER_NAME}}"))
+                            .searchTags("kyc, draft")
+                            .createdBy(rahul)
+                            .build());
+
+            seedAudit(admin, rahul, anita, amit, c1, c2, c3, c4, now);
+            log.info("Seeding completed successfully");
+        }
+        seedCustomersIfEmpty();
+        log.debug("Transaction completing | method=run | id=n/a");
+        log.debug("Exiting run | completed successfully");
+    }
+
+    private void seedCustomersIfEmpty() {
+        if (customerRepository.count() > 0) {
+            return;
+        }
+        log.info("Seeding customers for admin module...");
+        Instant now = Instant.now();
+        LocalDate today = LocalDate.now();
+        List<Customer> customers =
+                List.of(
+                        cust(
+                                "CUST-1001",
+                                "Priya Nair",
+                                "+919876543201",
+                                "priya.nair@example.com",
+                                CustomerConsentStatus.ACTIVE,
+                                now,
+                                true,
+                                today.plusDays(20),
+                                null,
+                                now.minus(20, ChronoUnit.DAYS),
+                                null,
+                                null),
+                        cust(
+                                "CUST-1002",
+                                "Vikram Singh",
+                                "+919876543202",
+                                "vikram.singh@example.com",
+                                CustomerConsentStatus.PENDING,
+                                now,
+                                false,
+                                null,
+                                now.minus(5, ChronoUnit.DAYS),
+                                null,
+                                null,
+                                null),
+                        cust(
+                                "CUST-1003",
+                                "Neha Gupta",
+                                "+919876543203",
+                                "neha.gupta@example.com",
+                                CustomerConsentStatus.DECLINED,
+                                now,
+                                false,
+                                null,
+                                null,
+                                null,
+                                now.minus(40, ChronoUnit.DAYS),
+                                null),
+                        cust(
+                                "CUST-1004",
+                                "Arjun Mehta",
+                                "+919876543204",
+                                "arjun.mehta@example.com",
+                                CustomerConsentStatus.ACTIVE,
+                                now,
+                                false,
+                                today.plusDays(10),
+                                null,
+                                now.minus(2, ChronoUnit.DAYS),
+                                null,
+                                null),
+                        cust(
+                                "CUST-1005",
+                                "Sneha Rao",
+                                "+919876543205",
+                                "sneha.rao@example.com",
+                                CustomerConsentStatus.PENDING,
+                                now,
+                                false,
+                                null,
+                                now.minus(10, ChronoUnit.DAYS),
+                                null,
+                                null,
+                                null),
+                        cust(
+                                "CUST-1006",
+                                "Karan Desai",
+                                "+919876543206",
+                                "karan.desai@example.com",
+                                CustomerConsentStatus.ACTIVE,
+                                now,
+                                true,
+                                today.plusDays(200),
+                                null,
+                                now.minus(1, ChronoUnit.DAYS),
+                                null,
+                                null),
+                        cust(
+                                "CUST-1007",
+                                "Divya Iyer",
+                                "+919876543207",
+                                "divya.iyer@example.com",
+                                CustomerConsentStatus.DECLINED,
+                                now,
+                                false,
+                                null,
+                                null,
+                                null,
+                                now.minus(2, ChronoUnit.DAYS),
+                                null),
+                        cust(
+                                "CUST-1008",
+                                "Rohan Kapoor",
+                                "+919876543208",
+                                "rohan.kapoor@example.com",
+                                CustomerConsentStatus.PENDING,
+                                now,
+                                false,
+                                null,
+                                now.minus(100, ChronoUnit.DAYS),
+                                null,
+                                null,
+                                null),
+                        cust(
+                                "CUST-1009",
+                                "Meera Joshi",
+                                "+919876543209",
+                                "meera.joshi@example.com",
+                                CustomerConsentStatus.ACTIVE,
+                                now,
+                                false,
+                                today.minusDays(5),
+                                null,
+                                now.minus(30, ChronoUnit.DAYS),
+                                null,
+                                null),
+                        cust(
+                                "CUST-1010",
+                                "Aditya Bose",
+                                "+919876543210",
+                                "aditya.bose@example.com",
+                                CustomerConsentStatus.ACTIVE,
+                                now,
+                                false,
+                                today.plusDays(3),
+                                null,
+                                now.minus(10, ChronoUnit.DAYS),
+                                null,
+                                now.minus(5, ChronoUnit.DAYS)));
+        customerRepository.saveAll(customers);
+        log.info("Customers seeded | count={}", customers.size());
+    }
+
+    private Customer cust(
+            String customerId,
+            String fullName,
+            String mobile,
+            String email,
+            CustomerConsentStatus status,
+            Instant updatedAt,
+            boolean vipFlag,
+            LocalDate consentValidUntil,
+            Instant lastConsentInviteSentAt,
+            Instant lastConsentResponseAt,
+            Instant reEngagementEligibleAfter,
+            Instant createdAtOverride) {
+        Instant createdAt =
+                createdAtOverride != null ? createdAtOverride : updatedAt.minus(45, ChronoUnit.DAYS);
+        return Customer.builder()
+                .customerId(customerId)
+                .fullName(fullName)
+                .mobileNumber(mobile)
+                .email(email)
+//                .consentStatus(status)
+                .vipFlag(vipFlag)
+                .consentValidUntil(consentValidUntil)
+                .lastConsentInviteSentAt(lastConsentInviteSentAt)
+                .lastConsentResponseAt(lastConsentResponseAt)
+                .reEngagementEligibleAfter(reEngagementEligibleAfter)
+                .createdAt(createdAt)
+                .updatedAt(updatedAt)
+                .build();
+    }
+
+    private void seedMergeTags() {
+        List<MergeTag> tags =
+                List.of(
+                        tag("{{CUSTOMER_NAME}}", "Customer Name", "Customer", "John Doe"),
+                        tag("{{CUSTOMER_ID}}", "Customer ID", "Customer", "CUST-0012"),
+                        tag("{{MOBILE_NUMBER}}", "Mobile Number", "Customer", "+91 98765 43210"),
+                        tag("{{EMAIL_ADDRESS}}", "Email Address", "Customer", "john@example.com"),
+                        tag("{{ACCOUNT_NUMBER}}", "Account Number", "Customer", "XXXX-1234"),
+                        tag("{{COMPANY_NAME}}", "Company Name", "Company", "Acme Corp Ltd"),
+                        tag("{{DATE}}", "Current Date", "Date", "29 Apr 2026"),
+                        tag("{{VALIDITY_DATE}}", "Validity Date", "Date", "31 Dec 2026"),
+                        tag("{{VALIDITY_PERIOD}}", "Validity Period", "Date", "1 Year"),
+                        tag("{{CONSENT_LINK}}", "Consent Link", "Links", "https://consent.example.com/accept"),
+                        tag("{{OPT_OUT_LINK}}", "Opt-Out Link", "Links", "https://consent.example.com/optout"));
+        mergeTagRepository.saveAll(tags);
+    }
+
+    private MergeTag tag(String key, String label, String category, String sample) {
+        return MergeTag.builder().tagKey(key).tagLabel(label).tagCategory(category).sampleValue(sample).build();
+    }
+
+    private void seedAudit(
+            User admin,
+            User rahul,
+            User anita,
+            User amit,
+            Consent c1,
+            Consent c2,
+            Consent c3,
+            Consent c4,
+            Instant now) {
+        List<AuditLog> logs = new ArrayList<>();
+        logs.add(
+                audit(
+                        rahul,
+                        "CONSENT_CREATED",
+                        c1.getId(),
+                        c1.getConsentName(),
+                        "Marketing Communications v1.0 created",
+                        now.minus(46, ChronoUnit.DAYS)));
+        logs.add(
+                audit(
+                        rahul,
+                        "CONSENT_SUBMITTED",
+                        c1.getId(),
+                        c1.getConsentName(),
+                        "Submitted for approval",
+                        now.minus(45, ChronoUnit.DAYS)));
+        logs.add(
+                audit(
+                        anita,
+                        "CONSENT_APPROVED",
+                        c1.getId(),
+                        c1.getConsentName(),
+                        "Approved by checker",
+                        now.minus(44, ChronoUnit.DAYS)));
+        logs.add(
+                audit(
+                        anita,
+                        "CONSENT_PUBLISHED",
+                        c1.getId(),
+                        c1.getConsentName(),
+                        "Published to production",
+                        now.minus(43, ChronoUnit.DAYS)));
+
+        logs.add(
+                audit(
+                        rahul,
+                        "CONSENT_CREATED",
+                        c2.getId(),
+                        c2.getConsentName(),
+                        "Version update initiated",
+                        now.minus(3, ChronoUnit.DAYS)));
+        logs.add(
+                audit(
+                        rahul,
+                        "CONSENT_SUBMITTED",
+                        c2.getId(),
+                        c2.getConsentName(),
+                        "Resubmitted after edits",
+                        now.minus(10, ChronoUnit.MINUTES)));
+
+        logs.add(
+                audit(
+                        amit,
+                        "CONSENT_CREATED",
+                        c3.getId(),
+                        c3.getConsentName(),
+                        "New transactional consent created",
+                        now.minus(1, ChronoUnit.DAYS)));
+        logs.add(
+                audit(
+                        amit,
+                        "CONSENT_SUBMITTED",
+                        c3.getId(),
+                        c3.getConsentName(),
+                        "Submitted for checker review",
+                        now.minus(2, ChronoUnit.HOURS)));
+
+        logs.add(
+                audit(
+                        rahul,
+                        "CONSENT_CREATED",
+                        c4.getId(),
+                        c4.getConsentName(),
+                        "Service terms consent created",
+                        now.minus(10, ChronoUnit.DAYS)));
+        logs.add(
+                audit(
+                        rahul,
+                        "CONSENT_SUBMITTED",
+                        c4.getId(),
+                        c4.getConsentName(),
+                        "Submitted for approval",
+                        now.minus(6, ChronoUnit.DAYS)));
+        logs.add(
+                audit(
+                        anita,
+                        "CONSENT_REVISION_REQUESTED",
+                        c4.getId(),
+                        c4.getConsentName(),
+                        "Checker requested revision on opt-out language",
+                        now.minus(4, ChronoUnit.DAYS)));
+
+        logs.add(
+                AuditLog.builder()
+                        .user(admin)
+                        .action("SYSTEM_BOOTSTRAP")
+                        .entityType("SYSTEM")
+                        .entityId(null)
+                        .entityName("SYSTEM")
+                        .description("Initial system audit baseline")
+                        .ipAddress("127.0.0.1")
+                        .performedAt(now.minus(60, ChronoUnit.DAYS))
+                        .build());
+
+        auditLogRepository.saveAll(logs);
+    }
+
+    private AuditLog audit(User user, String action, Long entityId, String entityName, String description, Instant at) {
+        return AuditLog.builder()
+                .user(user)
+                .action(action)
+                .entityType("CONSENT")
+                .entityId(entityId)
+                .entityName(entityName)
+                .description(description)
+                .ipAddress("127.0.0.1")
+                .performedAt(at)
+                .build();
+    }
+}

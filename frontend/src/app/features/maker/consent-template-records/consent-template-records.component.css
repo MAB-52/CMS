@@ -1,0 +1,289 @@
+/* ─────────────────────────────────────────────
+   PANEL
+───────────────────────────────────────────── */
+
+.ccr-panel {
+  overflow: hidden !important;
+  border-radius: 28px !important;
+  border: 1px solid #e4e7f0 !important;
+  background: linear-gradient(180deg, #ffffff 0%, #fcfcff 100%) !important;
+  box-shadow:
+    0 2px 8px rgba(44, 36, 78, 0.03),
+    0 12px 32px rgba(44, 36, 78, 0.05) !important;
+}
+
+.ccr-panel.mat-expansion-panel {
+  box-shadow: none !important;
+}
+
+/* ─────────────────────────────────────────────
+   HEADER
+───────────────────────────────────────────── */
+
+.ccr-panel .mat-expansion-panel-header {
+  height: auto !important;
+  padding: 22px 28px !important;
+  border-bottom: 1px solid #edf0f6;
+  background: linear-gradient(180deg, #ffffff 0%, #fcfcff 100%);
+}
+
+.ccr-panel .mat-expansion-panel-header-title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #2d2942;
+}
+
+.ccr-panel .mat-expansion-panel-header-description {
+  justify-content: flex-end;
+  font-size: 13px;
+  font-weight: 700;
+  color: #7b4fc7;
+}
+
+/* ─────────────────────────────────────────────
+   LOADING
+───────────────────────────────────────────── */
+
+.ccr-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 0;
+}
+
+/* ─────────────────────────────────────────────
+   STATS
+───────────────────────────────────────────── */
+
+.stats-row {
+  padding: 24px 28px 10px;
+}
+
+.stat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.stat-chips .mat-mdc-chip {
+  height: 36px !important;
+  padding: 0 14px !important;
+  border-radius: 999px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em;
+  border: none !important;
+  box-shadow: 0 4px 10px rgba(44, 36, 78, 0.05);
+}
+
+.chip-total {
+  background: rgba(123, 79, 199, 0.12) !important;
+  color: #7b4fc7 !important;
+}
+
+.chip-accepted {
+  background: rgba(67, 166, 125, 0.12) !important;
+  color: #2f8f69 !important;
+}
+
+.chip-rejected {
+  background: rgba(209, 93, 93, 0.12) !important;
+  color: #c05656 !important;
+}
+
+.chip-withdrawn {
+  background: rgba(240, 139, 56, 0.12) !important;
+  color: #de7b2c !important;
+}
+
+.chip-pending {
+  background: rgba(240, 161, 62, 0.14) !important;
+  color: #d18b2f !important;
+}
+
+.chip-expiring {
+  background: rgba(176, 92, 187, 0.12) !important;
+  color: #9a4fb0 !important;
+}
+
+.chip-expired {
+  background: rgba(138, 144, 163, 0.14) !important;
+  color: #6f7388 !important;
+}
+
+/* ─────────────────────────────────────────────
+   FILTER
+───────────────────────────────────────────── */
+
+.filter-field {
+  width: 100%;
+  padding: 6px 28px 0;
+}
+
+.filter-field .mat-mdc-text-field-wrapper {
+  border-radius: 18px !important;
+  background: #f8f9fc !important;
+}
+
+.filter-field .mdc-notched-outline__leading,
+.filter-field .mdc-notched-outline__notch,
+.filter-field .mdc-notched-outline__trailing {
+  border-color: #e4e7f0 !important;
+}
+
+.filter-field.mat-focused .mdc-notched-outline__leading,
+.filter-field.mat-focused .mdc-notched-outline__notch,
+.filter-field.mat-focused .mdc-notched-outline__trailing {
+  border-color: #7b4fc7 !important;
+}
+
+/* ─────────────────────────────────────────────
+   TABLE WRAPPER
+───────────────────────────────────────────── */
+
+.table-wrap {
+  margin: 22px 28px 28px;
+  overflow: hidden;
+  border-radius: 22px;
+  border: 1px solid #edf0f6;
+  background: #ffffff;
+  box-shadow: none !important;
+}
+
+/* ─────────────────────────────────────────────
+   TABLE
+───────────────────────────────────────────── */
+
+.ccr-table {
+  width: 100%;
+  background: transparent;
+}
+
+.ccr-table .mat-mdc-header-row {
+  background: #f7f8fc;
+}
+
+.ccr-table .mat-mdc-header-cell {
+  padding: 18px 22px !important;
+  border-bottom: 1px solid #edf0f6;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8a90a3;
+}
+
+.ccr-table .mat-mdc-row {
+  transition:
+    background-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.ccr-table .mat-mdc-row:hover {
+  background: #fafbff;
+}
+
+.ccr-table .mat-mdc-cell {
+  padding: 18px 22px !important;
+  border-bottom: 1px solid #f1f3f8;
+  font-size: 14px;
+  color: #5b6276;
+}
+
+.ccr-table .mat-mdc-row:last-child .mat-mdc-cell {
+  border-bottom: none;
+}
+
+/* ─────────────────────────────────────────────
+   STATUS PILLS
+───────────────────────────────────────────── */
+
+.status-accepted,
+.status-rejected,
+.status-pending,
+.status-withdrawn,
+.status-expired {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 110px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.status-accepted {
+  background: rgba(67, 166, 125, 0.12);
+  color: #2f8f69;
+}
+
+.status-rejected {
+  background: rgba(209, 93, 93, 0.12);
+  color: #c05656;
+}
+
+.status-pending {
+  background: rgba(240, 161, 62, 0.14);
+  color: #d18b2f;
+}
+
+.status-withdrawn {
+  background: rgba(240, 139, 56, 0.12);
+  color: #de7b2c;
+}
+
+.status-expired {
+  background: rgba(138, 144, 163, 0.14);
+  color: #6f7388;
+}
+
+/* ─────────────────────────────────────────────
+   SCROLLBAR
+───────────────────────────────────────────── */
+
+.table-wrap::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.table-wrap::-webkit-scrollbar-thumb {
+  background: #d9deea;
+  border-radius: 999px;
+}
+
+/* ─────────────────────────────────────────────
+   MOBILE
+───────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .ccr-panel .mat-expansion-panel-header {
+    padding: 18px 20px !important;
+  }
+
+  .stats-row,
+  .filter-field {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .table-wrap {
+    margin: 20px;
+  }
+
+  .ccr-table .mat-mdc-header-cell,
+  .ccr-table .mat-mdc-cell {
+    padding: 16px !important;
+  }
+
+  .stat-chips {
+    gap: 10px;
+  }
+}

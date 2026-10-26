@@ -1,0 +1,51 @@
+<div class="dlg" [attr.data-color]="data.confirmColor">
+  <div class="head">
+    @if (data.icon) {
+      <div class="icon-wrap" [attr.data-color]="data.confirmColor">
+        <span class="ico">{{ data.icon }}</span>
+      </div>
+    }
+
+    <div class="head-copy">
+      <h2 class="ttl">{{ data.title }}</h2>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <mat-dialog-content class="content">
+    <mat-form-field appearance="outline" floatLabel="always" class="full">
+      <mat-label>{{ data.textareaLabel }}</mat-label>
+      <textarea
+        matInput
+        rows="4"
+        [formControl]="text"
+        [placeholder]="data.placeholder"
+      ></textarea>
+      <mat-hint align="end">
+        {{ (text.value || '').length }} / min {{ data.minLength }}
+      </mat-hint>
+    </mat-form-field>
+
+    @if (data.showFlagCombo && data.currentChannel && data.currentLanguage) {
+      <mat-checkbox class="flag-combo-checkbox" [formControl]="flagCombo">
+        Flag current combination:
+        {{ data.currentChannel }} / {{ languageLabel(data.currentLanguage) }}
+      </mat-checkbox>
+    }
+
+    @if (submitted && text.invalid) {
+      <p class="err">Please enter at least {{ data.minLength }} characters.</p>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="actions">
+    <button type="button" mat-button class="cancel-btn" mat-dialog-close>
+      Cancel
+    </button>
+
+    <button type="button" mat-flat-button class="confirm-btn" (click)="submit()">
+      {{ data.confirmLabel }}
+    </button>
+  </mat-dialog-actions>
+</div>

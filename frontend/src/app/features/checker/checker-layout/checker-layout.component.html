@@ -1,0 +1,9 @@
+ <div class="shell">
+      <app-checker-sidebar [pendingCount]="pendingCount()" />
+      <div class="main">
+        <app-checker-topbar [pageTitle]="pageTitle()" [pendingCount]="pendingCount()" />
+        <div class="content">
+          <router-outlet />
+        </div>
+      </div>
+    </div>

@@ -1,0 +1,7 @@
+<div class="wrap">
+  @if (loading()) {
+    <mat-spinner diameter="48" />
+  } @else if (errorMessage()) {
+    <p class="err" role="alert">{{ errorMessage() }}</p>
+  }
+</div>

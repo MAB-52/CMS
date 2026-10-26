@@ -1,0 +1,72 @@
+<div class="tab-toolbar">
+  <div class="exports">
+    <button mat-stroked-button type="button" [disabled]="exporting()" (click)="exportCsv()">
+      <mat-icon>download</mat-icon> CSV
+    </button>
+    <button mat-stroked-button type="button" [disabled]="exporting()" (click)="exportExcel()">
+      <mat-icon>table_chart</mat-icon> Excel
+    </button>
+  </div>
+</div>
+
+<mat-button-toggle-group [(ngModel)]="mode" (change)="apply()" class="mode-toggle">
+  <mat-button-toggle value="EXPIRING">Expiring soon</mat-button-toggle>
+  <mat-button-toggle value="EXPIRED">Expired</mat-button-toggle>
+</mat-button-toggle-group>
+
+@if (mode === 'EXPIRING') {
+  <div class="radio-row">
+    <label><input type="radio" name="wd" [(ngModel)]="withinDays" [value]="30" (change)="apply()" /> 30 days</label>
+    <label><input type="radio" name="wd" [(ngModel)]="withinDays" [value]="60" (change)="apply()" /> 60 days</label>
+    <label><input type="radio" name="wd" [(ngModel)]="withinDays" [value]="90" (change)="apply()" /> 90 days</label>
+  </div>
+}
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Customer ID</th>
+        <th>Name</th>
+        <th>Mobile</th>
+        <th>Email</th>
+        <th>Status</th>
+        <th>Valid until</th>
+        <th>Last invite</th>
+        <th>Days until expiry</th>
+        <th>VIP</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (r of rows(); track r.customerId) {
+        <tr>
+          <td>{{ r.customerId }}</td>
+          <td>{{ r.customerName }}</td>
+          <td>{{ r.mobileNumber }}</td>
+          <td>{{ r.email || '—' }}</td>
+          <td>{{ label(r.consentStatus) }}</td>
+          <td>{{ r.consentValidUntil || '—' }}</td>
+          <td>{{ r.lastConsentInviteSentAt ? (r.lastConsentInviteSentAt | date: 'medium') : '—' }}</td>
+          <td>{{ r.daysUntilExpiry ?? '—' }}</td>
+          <td>{{ r.vipFlag ? 'Yes' : 'No' }}</td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="9" class="empty">{{ loading() ? 'Loading…' : 'No rows.' }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<div class="pager">
+  <span>Page {{ currentPage() + 1 }} / {{ totalPages() || 1 }}</span>
+  <div>
+    <button mat-stroked-button type="button" [disabled]="currentPage() <= 0 || loading()" (click)="prev()">Previous</button>
+    <button mat-stroked-button type="button" [disabled]="currentPage() >= totalPages() - 1 || loading()" (click)="next()">Next</button>
+  </div>
+</div>

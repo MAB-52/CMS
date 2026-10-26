@@ -1,0 +1,225 @@
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 272px;
+  right: 0;
+  z-index: 999;
+  height: 78px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  background: linear-gradient(180deg, #fdf9f7 0%, #f7f2ee 100%);
+  border-bottom: 1px solid rgba(180, 130, 100, 0.14);
+  box-shadow: 0 2px 12px rgba(120, 70, 40, 0.06);
+}
+
+
+.left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.crumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #a07060;
+  margin-bottom: 0;
+}
+
+.crumb::before {
+  content: 'Maker Workspace';
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(160, 90, 60, 0.10);
+  color: #a0522d;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.crumb strong {
+  color: #5c3a28;
+  font-weight: 700;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: #2d1a10;
+}
+
+ .brand-logo {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  opacity: 0.88;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ── BELL ── */
+.bell {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  border: 1px solid rgba(160, 100, 60, 0.18);
+  background: rgba(255, 255, 255, 0.70);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #7a4a30;
+  backdrop-filter: blur(4px);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.bell:hover {
+  transform: translateY(-1px);
+  border-color: rgba(160, 100, 60, 0.32);
+  box-shadow: 0 6px 16px rgba(120, 70, 40, 0.12);
+}
+
+.badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #d67a1f;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fdf9f7;
+}
+
+/* ── PROFILE CARD ── */
+.profile-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px 6px 6px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.60);
+  border: 1px solid rgba(160, 100, 60, 0.16);
+  min-width: 160px;
+  backdrop-filter: blur(4px);
+}
+
+.avatar-sm {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #d67a1f, #8d5b5f);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  box-shadow: 0 4px 10px rgba(160, 80, 40, 0.28);
+}
+
+.profile-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.role {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #b08060;
+  text-transform: uppercase;
+  margin-bottom: 1px;
+}
+
+.name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #2d1a10;
+  line-height: 1.1;
+}
+
+/* ── LOGOUT ── */
+.btn-out {
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(160, 100, 60, 0.18);
+  background: rgba(255, 255, 255, 0.70);
+  color: #5c3a28;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  backdrop-filter: blur(4px);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.btn-out:hover {
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, #c0392b, #a93226);
+  color: #fff;
+  border-color: #c0392b;
+  box-shadow: 0 8px 18px rgba(192, 57, 43, 0.24);
+}
+
+/* ── MOBILE ── */
+
+@media (max-width: 900px) {
+  .topbar {
+    left: 88px; /* collapsed sidebar width */
+    height: auto;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+
+  .right {
+    flex-wrap: wrap;
+  }
+
+  .page-title {
+    font-size: 18px;
+  }
+
+  .profile-card {
+    min-width: unset;
+    width: 100%;
+  }
+
+ 
+}
