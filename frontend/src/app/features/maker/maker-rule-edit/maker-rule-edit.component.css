@@ -102,6 +102,24 @@ h1 {
 }
 .fld-error { color: var(--is-danger-text); font-weight: var(--is-fw-semibold); }
 
+/* "Preview consent message" link-style button under the template picker */
+.tpl-preview {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--is-primary);
+  font-family: var(--is-font);
+  font-size: var(--is-fs-sm);
+  font-weight: var(--is-fw-bold);
+  cursor: pointer;
+}
+.tpl-preview:hover:not(:disabled) { text-decoration: underline; }
+.tpl-preview:disabled { color: var(--is-text-2); opacity: 0.6; cursor: not-allowed; }
+
 .fld ::ng-deep :is(.p-inputtext, .p-textarea, .p-select, .p-multiselect) {
   min-height: 46px;
   border-radius: var(--is-r-sm);

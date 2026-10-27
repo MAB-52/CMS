@@ -1,8 +1,8 @@
-<div class="card" dir="ltr">
+<div class="card" dir="ltr" [formGroup]="form">
   <div class="head">
-    <span class="head-ico" aria-hidden="true"><mat-icon>description</mat-icon></span>
-    <div class="head-text">
-      <h2 class="title">Consent Details</h2>
+    <span class="head__ico" aria-hidden="true"><i class="pi pi-file-edit"></i></span>
+    <div class="head__text">
+      <h2 class="title">Consent details</h2>
       <p class="sub">Basic information about this consent</p>
     </div>
     @if (status) {
@@ -10,103 +10,104 @@
     }
   </div>
 
-  <!-- ADD floatLabel="always" to EVERY mat-form-field -->
-  <mat-form-field appearance="outline" floatLabel="always" class="full mono id-field">
-    <mat-label>Consent ID</mat-label>
-    <mat-icon matPrefix class="pfx">lock</mat-icon>
-    <input matInput readonly [value]="idLoading ? 'Generating…' : consentIdPreview" />
-    <mat-hint>Auto-generated unique identifier</mat-hint>
-  </mat-form-field>
-
-  <div [formGroup]="form">
-    @if (validationErrors().length) {
-    <div class="val-summary">
-      <strong><mat-icon aria-hidden="true">error_outline</mat-icon>Please fix the following errors:</strong>
+  @if (validationErrors().length) {
+  <p-message severity="error" icon="pi pi-exclamation-circle" styleClass="val-summary">
+    <div class="val-summary__body">
+      <strong>Please fix the following:</strong>
       <ul>
-        @for (e of validationErrors(); track e) {
-        <li>{{ e }}</li>
-        }
+        @for (e of validationErrors(); track e) { <li>{{ e }}</li> }
       </ul>
     </div>
-    }
+  </p-message>
+  }
 
-    <mat-form-field appearance="outline" floatLabel="always" class="full">
-      <mat-label>Consent Name *</mat-label>
-      <input matInput formControlName="consentName" maxlength="200" placeholder="e.g. Marketing Communications v2.0" />
-      <mat-hint align="end">
-        {{ form.controls['consentName'].value?.length || 0 }} / 200
-      </mat-hint>
-      @if (form.controls['consentName'].touched &&
-      form.controls['consentName'].hasError('required')) {
-      <mat-error>Required</mat-error>
-      }
-    </mat-form-field>
+  <div class="field">
+    <label class="field__label" for="cd-id">Consent ID</label>
+    <p-iconfield class="field__control field__control--id" pTooltip="Generated automatically and cannot be changed"
+      tooltipPosition="top">
+      <p-inputicon styleClass="pi pi-lock" />
+      <input pInputText id="cd-id" readonly [value]="idLoading ? 'Generating…' : consentIdPreview" fluid />
+    </p-iconfield>
+    <small class="field__hint">Auto-generated unique identifier</small>
+  </div>
 
-    <mat-form-field appearance="outline" floatLabel="always" class="full">
-      <mat-label>Description *</mat-label>
-      <textarea matInput rows="4" formControlName="description" maxlength="1000"
-        placeholder="Describe the purpose…"></textarea>
-      <mat-hint align="end">
-        {{ form.controls['description'].value?.length || 0 }} / 1000
-      </mat-hint>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" floatLabel="always" class="full">
-      <mat-label>Category *</mat-label>
-      <mat-select formControlName="category">
-        @for (c of categories; track c.value) {
-        <mat-option [value]="c.value">{{ c.icon }} {{ c.label }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" floatLabel="always" class="full">
-      <mat-label>Validity Period *</mat-label>
-      <mat-select formControlName="validityPreset">
-        @for (p of presets; track p.value) {
-        <mat-option [value]="p.value">{{ p.label }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-
-    <!-- @if (form.controls['validityPreset'].value === 'custom') {
-      <div class="row-dates">
-        <mat-form-field appearance="outline" floatLabel="always" class="half">
-          <mat-label>Start Date</mat-label>
-          <input matInput type="date" formControlName="validityStartDate" />
-        </mat-form-field>
-        <mat-form-field appearance="outline" floatLabel="always" class="half">
-          <mat-label>End Date</mat-label>
-          <input matInput type="date" formControlName="validityEndDate" />
-        </mat-form-field>
-      </div>
-    } -->
-    @if (form.controls['validityPreset'].value === 'custom') {
-    <div class="row-dates">
-      <mat-form-field appearance="outline" floatLabel="always" class="half">
-        <mat-label>Start Date **</mat-label>
-        <input matInput readonly [matDatepicker]="startPicker"
-          [value]="parseDateStr(form.controls['validityStartDate'].value)" [min]="startMinDate()"
-          (dateChange)="onStartDateChange($event)" placeholder="DD/MM/YYYY" />
-        <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
-        <mat-datepicker #startPicker></mat-datepicker>
-        @if (submitted && !form.controls['validityStartDate'].value) {
-        <mat-error>Start date is required</mat-error>
-        }
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" floatLabel="always" class="half">
-        <mat-label>End Date **</mat-label>
-        <input matInput readonly [matDatepicker]="endPicker"
-          [value]="parseDateStr(form.controls['validityEndDate'].value)" [min]="endMinDate()"
-          (dateChange)="onEndDateChange($event)" placeholder="DD/MM/YYYY" />
-        <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
-        <mat-datepicker #endPicker></mat-datepicker>
-        @if (submitted && !form.controls['validityEndDate'].value) {
-        <mat-error>End date is required</mat-error>
-        }
-      </mat-form-field>
+  <div class="field">
+    <div class="field__row">
+      <label class="field__label" for="cd-name">Consent name <span class="req">*</span></label>
+      <small class="field__count" [class.field__count--near]="length('consentName') > 180">{{ length('consentName') }} / 200</small>
     </div>
+    <p-iconfield class="field__control">
+      <p-inputicon styleClass="pi pi-pencil" />
+      <input pInputText id="cd-name" formControlName="consentName" maxlength="200" dir="auto"
+        placeholder="e.g. Marketing Communications v2.0" [invalid]="invalid('consentName')" fluid />
+    </p-iconfield>
+    @if (invalid('consentName')) {
+    <small class="field__error"><i class="pi pi-exclamation-circle"></i>Consent name is required</small>
     }
   </div>
+
+  <div class="field">
+    <div class="field__row">
+      <label class="field__label" for="cd-desc">Description <span class="req">*</span></label>
+      <small class="field__count" [class.field__count--near]="length('description') > 900">{{ length('description') }} / 1000</small>
+    </div>
+    <textarea pTextarea id="cd-desc" formControlName="description" rows="4" maxlength="1000" [autoResize]="true" dir="auto"
+      placeholder="Describe what customers are consenting to and why…" [invalid]="invalid('description')"
+      class="field__textarea"></textarea>
+    @if (invalid('description')) {
+    <small class="field__error"><i class="pi pi-exclamation-circle"></i>Description is required</small>
+    }
+  </div>
+
+  <div class="field__grid">
+    <div class="field">
+      <label class="field__label" for="cd-cat">Category <span class="req">*</span></label>
+      <p-select inputId="cd-cat" formControlName="category" [options]="categories" optionLabel="label"
+        optionValue="value" placeholder="Choose a category" appendTo="body" styleClass="field__select"
+        [invalid]="invalid('category')">
+        <ng-template #selectedItem let-o>
+          <span class="opt"><i [class]="o.icon" [style.color]="o.color"></i>{{ o.label }}</span>
+        </ng-template>
+        <ng-template #item let-o>
+          <span class="opt opt--rich"><i [class]="o.icon" [style.color]="o.color"></i>
+            <span><strong>{{ o.label }}</strong><small>{{ o.hint }}</small></span></span>
+        </ng-template>
+      </p-select>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="cd-valid">Validity period <span class="req">*</span></label>
+      <p-select inputId="cd-valid" formControlName="validityPreset" [options]="presets" optionLabel="label"
+        optionValue="value" appendTo="body" styleClass="field__select">
+        <ng-template #selectedItem let-o>
+          <span class="opt"><i class="pi pi-calendar" style="color: var(--is-primary)"></i>{{ o.label }}</span>
+        </ng-template>
+      </p-select>
+    </div>
+  </div>
+
+  @if (form.controls['validityPreset'].value === 'custom') {
+  <div class="field__grid custom-range">
+    <div class="field">
+      <label class="field__label" for="cd-start">Start date <span class="req">*</span></label>
+      <p-datepicker inputId="cd-start" [ngModel]="startDate"
+        [ngModelOptions]="{ standalone: true }" (ngModelChange)="onStartDateChange($event)" [minDate]="todayDate"
+        dateFormat="dd/mm/yy" placeholder="DD/MM/YYYY" [showIcon]="true" iconDisplay="input" [readonlyInput]="true"
+        appendTo="body" styleClass="field__date" />
+      @if (submitted && !form.controls['validityStartDate'].value) {
+      <small class="field__error"><i class="pi pi-exclamation-circle"></i>Start date is required</small>
+      }
+    </div>
+    <div class="field">
+      <label class="field__label" for="cd-end">End date <span class="req">*</span></label>
+      <p-datepicker inputId="cd-end" [ngModel]="endDate"
+        [ngModelOptions]="{ standalone: true }" (ngModelChange)="onEndDateChange($event)" [minDate]="endMin"
+        dateFormat="dd/mm/yy" placeholder="DD/MM/YYYY" [showIcon]="true" iconDisplay="input" [readonlyInput]="true"
+        appendTo="body" styleClass="field__date" />
+      @if (submitted && !form.controls['validityEndDate'].value) {
+      <small class="field__error"><i class="pi pi-exclamation-circle"></i>End date is required</small>
+      }
+    </div>
+  </div>
+  }
 </div>

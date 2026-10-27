@@ -38,6 +38,10 @@ export class PublicConsentVerifyComponent implements OnInit {
       },
       error: (err: HttpErrorResponse) => {
         this.loading.set(false);
+        if (err.status === 400 && err.error?.error === 'INVALID_LINK') {
+          this.errorMessage.set('Invalid link. Please use the link from your consent email.');
+          return;
+        }
         if (err.status === 400 && err.error?.error === 'LINK_EXPIRED') {
           this.errorMessage.set('This link has expired or has already been used.');
           return;

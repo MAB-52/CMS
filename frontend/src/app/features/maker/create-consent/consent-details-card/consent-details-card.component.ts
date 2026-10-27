@@ -1,76 +1,131 @@
-import { Component, Input } from '@angular/core';
-import { FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatIconModule } from '@angular/material/icon';
-import { MatDatepickerModule, MatDatepickerInputEvent } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MAT_DATE_LOCALE } from '@angular/material/core';
+import { Component, DestroyRef, Input, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { DatePickerModule } from 'primeng/datepicker';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
+import { InputTextModule } from 'primeng/inputtext';
+import { MessageModule } from 'primeng/message';
+import { SelectModule } from 'primeng/select';
+import { TextareaModule } from 'primeng/textarea';
+import { TooltipModule } from 'primeng/tooltip';
 import { ConsentCategory, ConsentStatus } from '../../../../core/models/consent.model';
 import { StatusBadgeComponent } from '../../../../shared/components/status-badge/status-badge.component';
+
+/** Validity must be 1–3650 days; a custom range needs both dates and end strictly after start. */
+export function validityError(preset: string, start: string | null | undefined, end: string | null | undefined): string | null {
+  if (preset !== 'custom') {
+    return null;
+  }
+  if (!start || !end) {
+    return 'Custom validity requires start and end dates';
+  }
+  const days = Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / 86400000);
+  if (!Number.isFinite(days) || days < 1) {
+    return 'Validity end date must be after the start date';
+  }
+  if (days > 3650) {
+    return 'Validity can be at most 3650 days (10 years)';
+  }
+  return null;
+}
 
 @Component({
   selector: 'app-consent-details-card',
   standalone: true,
   imports: [
+    FormsModule,
     ReactiveFormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatIconModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
+    DatePickerModule,
+    IconFieldModule,
+    InputIconModule,
+    InputTextModule,
+    MessageModule,
+    SelectModule,
+    TextareaModule,
+    TooltipModule,
     StatusBadgeComponent,
   ],
-  // Scoped to this component only — does not affect any other date pickers in the app
-  providers: [{ provide: MAT_DATE_LOCALE, useValue: 'en-GB' }],
   templateUrl: './consent-details-card.component.html',
   styleUrl: './consent-details-card.component.css',
 })
-export class ConsentDetailsCardComponent {
+export class ConsentDetailsCardComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   @Input({ required: true }) form!: FormGroup;
   @Input() status: ConsentStatus | null = null;
   @Input() consentIdPreview = '';
   @Input() idLoading = false;
   @Input() submitted = false;
 
-  readonly categories: { value: ConsentCategory; label: string; icon: string }[] = [
-    { value: 'MARKETING', label: 'Marketing', icon: '🎯' },
-    { value: 'TRANSACTIONAL', label: 'Transactional', icon: '💳' },
-    { value: 'SERVICE', label: 'Service', icon: '🔧' },
+  readonly categories: { value: ConsentCategory; label: string; icon: string; color: string; hint: string }[] = [
+    { value: 'MARKETING', label: 'Marketing', icon: 'pi pi-megaphone', color: 'var(--is-secondary)', hint: 'Promotions, offers and newsletters' },
+    { value: 'TRANSACTIONAL', label: 'Transactional', icon: 'pi pi-credit-card', color: 'var(--is-blue)', hint: 'Account, payment and order messages' },
+    { value: 'SERVICE', label: 'Service', icon: 'pi pi-cog', color: 'var(--is-teal)', hint: 'Service updates and notifications' },
   ];
 
   readonly presets: { value: string; label: string }[] = [
-    { value: '15', label: '15 Days' },
-    { value: '30', label: '30 Days' },
-    { value: '60', label: '60 Days' },
-    { value: '90', label: '90 Days' },
-    { value: '180', label: '6 Months' },
-    { value: '365', label: '1 Year' },
-    { value: '730', label: '2 Years' },
-    { value: 'custom', label: 'Custom Range' },
+    { value: '15', label: '15 days' },
+    { value: '30', label: '30 days' },
+    { value: '60', label: '60 days' },
+    { value: '90', label: '90 days' },
+    { value: '180', label: '6 months' },
+    { value: '365', label: '1 year' },
+    { value: '730', label: '2 years' },
+    { value: 'custom', label: 'Custom range' },
   ];
 
-  /** Today at midnight — used as the floor for the Start Date picker. */
   readonly todayDate: Date = (() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
     return d;
   })();
 
-  // ---- Datepicker helpers (string control <-> Date for the calendar UI) ----
+  length(name: string): number {
+    return (this.form.controls[name].value as string | null)?.length ?? 0;
+  }
 
-  /** Converts the control's 'YYYY-MM-DD' string into a Date for display in the picker. */
+  invalid(name: string): boolean {
+    const c = this.form.controls[name];
+    return c.invalid && (c.touched || this.submitted);
+  }
+
+  startDate: Date | null = null;
+  endDate: Date | null = null;
+  endMin: Date = this.todayDate;
+
+  ngOnInit(): void {
+    this.syncFromForm();
+    for (const name of ['validityStartDate', 'validityEndDate']) {
+      this.form.controls[name].valueChanges
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(() => this.syncFromForm());
+    }
+  }
+
+  private syncFromForm(): void {
+    const start = this.parseDateStr(this.form.controls['validityStartDate'].value);
+    const end = this.parseDateStr(this.form.controls['validityEndDate'].value);
+    if (!this.sameDay(start, this.startDate)) this.startDate = start;
+    if (!this.sameDay(end, this.endDate)) this.endDate = end;
+    const min = start ?? this.todayDate;
+    if (!this.sameDay(min, this.endMin)) this.endMin = min;
+  }
+
+  private sameDay(a: Date | null, b: Date | null): boolean {
+    if (!a || !b) return a === b;
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  }
+
   parseDateStr(value: string | null | undefined): Date | null {
     if (!value) {
       return null;
     }
-    const d = new Date(value);
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+    const d = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(value);
     return Number.isNaN(d.getTime()) ? null : d;
   }
 
-  /** Converts a Date back to 'YYYY-MM-DD' so the form control keeps the same string format it always had. */
   private formatDateStr(d: Date | null): string {
     if (!d) {
       return '';
@@ -79,31 +134,26 @@ export class ConsentDetailsCardComponent {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   }
 
-  /** Start Date can never be before today. */
-  startMinDate(): Date {
-    return this.todayDate;
+  onStartDateChange(value: Date | null): void {
+    this.setDate('validityStartDate', value);
+    if (value && this.endDate && this.endDate < value) {
+      this.setDate('validityEndDate', null);
+    }
   }
 
-  /** End Date can never be before the chosen Start Date (falls back to today if Start isn't set yet). */
-  endMinDate(): Date {
-    return this.parseDateStr(this.form.controls['validityStartDate'].value) ?? this.todayDate;
+  onEndDateChange(value: Date | null): void {
+    this.setDate('validityEndDate', value);
   }
 
-  onStartDateChange(event: MatDatepickerInputEvent<Date>): void {
-    const ctrl = this.form.controls['validityStartDate'];
-    ctrl.setValue(this.formatDateStr(event.value));
+  private setDate(name: string, value: Date | null): void {
+    const ctrl = this.form.controls[name];
+    const next = this.formatDateStr(value);
+    if (ctrl.value !== next) {
+      ctrl.setValue(next);
+    }
     ctrl.markAsTouched();
     ctrl.markAsDirty();
   }
-
-  onEndDateChange(event: MatDatepickerInputEvent<Date>): void {
-    const ctrl = this.form.controls['validityEndDate'];
-    ctrl.setValue(this.formatDateStr(event.value));
-    ctrl.markAsTouched();
-    ctrl.markAsDirty();
-  }
-
-  // ---- everything below is unchanged ----
 
   addTag(raw: string): void {
     const v = raw.replace(/,/g, '').trim();
@@ -127,10 +177,10 @@ export class ConsentDetailsCardComponent {
     const n = this.form.controls['consentName'];
     if (n.touched || this.submitted) {
       if (n.hasError('required')) {
-        errs.push('Consent Name is required');
+        errs.push('Consent name is required');
       }
       if (n.hasError('maxlength')) {
-        errs.push('Consent Name must be at most 200 characters');
+        errs.push('Consent name must be at most 200 characters');
       }
     }
     const d = this.form.controls['description'];
@@ -148,12 +198,12 @@ export class ConsentDetailsCardComponent {
         errs.push('Category must be selected');
       }
     }
-    const p = this.form.controls['validityPreset'];
-    if (p.value === 'custom') {
-      const s = this.form.controls['validityStartDate'].value;
-      const e = this.form.controls['validityEndDate'].value;
-      if (this.submitted && (!s || !e)) {
-        errs.push('Custom validity requires start and end dates');
+    const s = this.form.controls['validityStartDate'];
+    const e = this.form.controls['validityEndDate'];
+    if (s.touched || e.touched || this.submitted) {
+      const vErr = validityError(this.form.controls['validityPreset'].value, s.value, e.value);
+      if (vErr) {
+        errs.push(vErr);
       }
     }
     return errs;

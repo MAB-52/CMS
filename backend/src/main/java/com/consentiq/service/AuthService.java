@@ -179,6 +179,19 @@ public class AuthService {
         return result;
     }
 
+    /**
+     * Revokes every token issued so far for this user (same mechanism as a login elsewhere),
+     * so a token copied before logout stops working immediately.
+     */
+    @Transactional
+    public void logout(Long userId) {
+        userRepository.findById(userId).ifPresent(user -> {
+            user.setTokenVersion(user.getTokenVersion() + 1);
+            userRepository.save(user);
+            log.info("Status updated | entity=User | id={} | tokenVersion={} | reason=logout", userId, user.getTokenVersion());
+        });
+    }
+
     private String extractClientIp(HttpServletRequest request) {
         String xff = request.getHeader("X-Forwarded-For");
         return (xff != null && !xff.isBlank()) ? xff.split(",")[0].trim() : request.getRemoteAddr();

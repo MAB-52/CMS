@@ -5,6 +5,7 @@ import lombok.*;
 import java.time.Instant;
 
 @Entity
+@org.hibernate.annotations.Immutable
 @Table(name = "audit_logs")
 @Data
 @Builder

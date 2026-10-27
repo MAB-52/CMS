@@ -1,30 +1,20 @@
 :host {
   display: block;
+  min-width: 0;
   font-family: var(--is-font);
 }
 
 .card {
-  position: relative;
   display: grid;
-  gap: var(--is-s-2);
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  min-width: 0;
   padding: var(--is-card-pad);
   background: var(--is-surface);
 }
-.card::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 4px;
-  background: var(--is-grad-banner);
-}
 
-.head {
-  display: flex;
-  align-items: center;
-  gap: var(--is-s-3);
-  margin-bottom: var(--is-s-3);
-}
-.head-ico {
+.head { display: flex; align-items: center; gap: var(--is-s-3); min-width: 0; }
+.head__ico {
   flex: none;
   display: grid;
   place-items: center;
@@ -34,95 +24,74 @@
   background: var(--is-tint-purple);
   color: var(--is-primary);
 }
-.head-text { flex: 1; min-width: 0; }
-.title {
-  margin: 0;
-  font-size: var(--is-fs-lg);
-  line-height: 26px;
-  font-weight: var(--is-fw-bold);
-  color: var(--is-text);
-}
+.head__text { flex: 1; min-width: 0; }
+.title { margin: 0; font-size: var(--is-fs-lg); line-height: 26px; font-weight: var(--is-fw-bold); color: var(--is-text); }
 .sub { margin: 2px 0 0; font-size: var(--is-fs-sm); color: var(--is-text-2); }
 
-.full { width: 100%; }
-mat-form-field { display: block; margin-bottom: var(--is-s-2); }
-.row-dates {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--is-s-3);
-}
-.half { width: 100%; }
+:host ::ng-deep .val-summary { width: 100%; animation: is-fade-in var(--is-dur) ease both; }
+.val-summary__body { display: grid; gap: 4px; font-size: var(--is-fs-sm); }
+.val-summary__body ul { margin: 0; padding-left: 18px; }
 
-.id-field { margin-bottom: var(--is-s-3); }
-.pfx {
-  margin: 0 4px 0 12px;
-  font-size: 18px;
-  width: 18px;
-  height: 18px;
-  color: var(--is-text-3);
-}
-.mono input {
-  font-family: var(--is-font-mono);
-  font-weight: var(--is-fw-semibold);
-  letter-spacing: 0.02em;
-  color: var(--is-primary);
-}
-:host ::ng-deep .id-field .mdc-text-field--outlined { background: var(--is-surface-2) !important; }
-
-.val-summary {
-  margin-bottom: var(--is-s-4);
-  padding: 12px 14px;
+.field { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; min-width: 0; }
+:host ::ng-deep .field > * { min-width: 0; }
+.field__row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.field__label { font-size: var(--is-fs-title); line-height: var(--is-lh-title); font-weight: var(--is-fw-bold); color: var(--is-text); }
+.req { color: var(--is-danger); }
+.field__hint { font-size: var(--is-fs-xs); color: var(--is-text-2); }
+.field__count { font-size: var(--is-fs-xs); color: var(--is-text-3); font-variant-numeric: tabular-nums; transition: color var(--is-dur) ease; }
+.field__count--near { color: var(--is-warning-text); font-weight: var(--is-fw-bold); }
+.field__error { display: inline-flex; align-items: center; gap: 6px; font-size: var(--is-fs-xs); font-weight: var(--is-fw-semibold); color: var(--is-danger-text); animation: is-fade-in var(--is-dur) ease both; }
+.field__error .pi { font-size: 11px; }
+.field__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--is-s-4); }
+.custom-range {
+  padding: var(--is-s-4);
+  border: 1px dashed var(--is-border-tint);
   border-radius: var(--is-r-sm);
-  border: 1px solid var(--is-danger-border);
-  border-left: 4px solid var(--is-danger);
-  background: var(--is-danger-bg);
-  color: var(--is-danger-text);
-  animation: is-fade-up var(--is-dur) var(--is-ease) both;
+  background: color-mix(in srgb, var(--is-tint-purple) 45%, white);
+  animation: is-fade-up var(--is-dur-slow) var(--is-ease) both;
 }
-.val-summary strong {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--is-fs-sm);
-}
-.val-summary strong .mat-icon { font-size: 18px; width: 18px; height: 18px; }
-.val-summary ul { margin: 6px 0 0; padding-left: 26px; }
-.val-summary li { font-size: var(--is-fs-sm); line-height: 1.6; }
 
-/* Tag chips (if rendered) */
-.tags-block { margin-top: var(--is-s-3); }
-.lbl {
-  display: block;
-  margin-bottom: 6px;
-  font-size: var(--is-fs-xs);
-  font-weight: var(--is-fw-bold);
-  color: var(--is-text);
+:host ::ng-deep .field__control,
+:host ::ng-deep .field__control input,
+:host ::ng-deep .field__select,
+:host ::ng-deep .field__date,
+.field__textarea { width: 100%; font-family: var(--is-font); }
+:host ::ng-deep .field__control input,
+:host ::ng-deep .field__select.p-select,
+:host ::ng-deep .field__date .p-datepicker-input {
+  min-height: 44px;
+  border-radius: var(--is-r-field);
+  font-size: var(--is-fs-body);
 }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 6px 4px 12px;
-  border-radius: var(--is-r-pill);
-  background: var(--is-tint-purple);
+:host ::ng-deep p-datepicker,
+:host ::ng-deep .field__date.p-datepicker { display: flex; width: 100%; min-width: 0; }
+:host ::ng-deep .field__date .p-datepicker-input { flex: 1 1 auto; width: 100%; min-width: 0; }
+.field__textarea { min-height: 110px; border-radius: var(--is-r-field); font-size: var(--is-fs-body); line-height: 22px; resize: vertical; }
+:host ::ng-deep .field__control input:focus,
+.field__textarea:focus,
+:host ::ng-deep .field__select.p-select.p-focus,
+:host ::ng-deep .field__date .p-datepicker-input:focus {
+  border-color: var(--is-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--is-primary) 14%, transparent);
+}
+:host ::ng-deep .field__control:focus-within .p-inputicon { color: var(--is-primary); }
+:host ::ng-deep .field__control--id input {
+  background: var(--is-canvas);
   color: var(--is-primary);
-  font-size: var(--is-fs-xs);
+  font-family: var(--is-font-mono);
   font-weight: var(--is-fw-bold);
+  letter-spacing: 0.02em;
+  cursor: default;
 }
-.chip-x {
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-}
-.chip-x:hover { background: rgba(69, 50, 158, 0.12); }
+:host ::ng-deep .field__select .p-select-label { display: flex; align-items: center; }
 
-@media (max-width: 600px) {
-  .row-dates { grid-template-columns: 1fr; }
+.opt { display: inline-flex; align-items: center; gap: 8px; }
+.opt .pi { font-size: 13px; }
+.opt--rich { align-items: flex-start; }
+.opt--rich .pi { margin-top: 3px; }
+.opt--rich > span { display: grid; gap: 1px; }
+.opt--rich small { font-size: var(--is-fs-2xs); color: var(--is-text-2); }
+
+@media (max-width: 640px) {
+  .field__grid { grid-template-columns: minmax(0, 1fr); }
 }

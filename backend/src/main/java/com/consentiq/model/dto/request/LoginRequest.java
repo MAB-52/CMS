@@ -14,7 +14,8 @@ import lombok.NoArgsConstructor;
 public class LoginRequest {
 
     @NotBlank
-    @Email
+    // Require a domain with a TLD; plain @Email accepts "abc@abc"
+    @Email(regexp = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*\\.[A-Za-z]{2,}$")
     private String email;
 
     @NotBlank

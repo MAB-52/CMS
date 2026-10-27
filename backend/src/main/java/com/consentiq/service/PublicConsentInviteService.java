@@ -1,9 +1,11 @@
 package com.consentiq.service;
 
+import com.consentiq.enums.ConsentStatus;
 import com.consentiq.enums.CustomerConsentRecordStatus;
 import com.consentiq.enums.CustomerConsentStatus;
 import com.consentiq.enums.InviteTokenResponseStatus;
 import com.consentiq.model.dto.request.PublicConsentRespondRequest;
+import com.consentiq.model.dto.response.CustomerChannelPreferenceResponse;
 import com.consentiq.model.dto.response.PublicConsentInviteDetailResponse;
 import com.consentiq.model.entity.Consent;
 import com.consentiq.model.entity.ConsentInviteToken;
@@ -13,6 +15,9 @@ import com.consentiq.repository.ConsentRepository;
 import com.consentiq.repository.CustomerRepository;
 import com.consentiq.util.DeliveryChannelCatalog;
 import com.consentiq.util.HtmlTextUtil;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +56,10 @@ public class PublicConsentInviteService {
 	private final CustomerRepository customerRepository;
 	private final CustomerConsentRecordService customerConsentRecordService;
 	private final TemplateResolverService templateResolverService;
+	private final CustomerChannelPreferenceService customerChannelPreferenceService;
+
+	@PersistenceContext
+	private EntityManager entityManager;
 
 	@Transactional(readOnly = true)
 	public PublicConsentInviteDetailResponse getInviteDetails(String token) {
@@ -124,6 +133,9 @@ public class PublicConsentInviteService {
 				invite != null && invite.getId() != null ? String.valueOf(invite.getId()) : "n/a");
 		log.debug("Transaction started | method=respondWithLoadedInvite | id={}",
 				invite != null && invite.getId() != null ? invite.getId() : "n/a");
+		ConsentInviteToken locked = entityManager.find(ConsentInviteToken.class, invite.getId());
+		entityManager.refresh(locked, LockModeType.PESSIMISTIC_WRITE);
+		invite = locked;
 		Instant now = Instant.now();
 		if (now.isAfter(invite.getExpiresAt())) {
 			throw new IllegalArgumentException("This consent link has expired. Please contact us for a new request.");
@@ -141,11 +153,19 @@ public class PublicConsentInviteService {
 		Consent consent = consentRepository.findById(invite.getConsentDbId())
 				.orElseThrow(() -> new IllegalStateException("Consent template is no longer available."));
 		log.info("DB query completed | method=findById | present=true");
+		if (consent.getStatus() != ConsentStatus.PUBLISHED) {
+			throw new IllegalArgumentException(
+					"This consent request is no longer available. No response has been recorded.");
+		}
+		if (validityEnded(consent)) {
+			throw new IllegalArgumentException("This consent request has expired. No response has been recorded.");
+		}
 
 		ZoneId zone = ZoneId.systemDefault();
 		LocalDate acceptanceDate = LocalDate.now(zone);
 
 		if ("ACCEPT".equals(decision)) {
+			assertChannelSelected(customer.getCustomerId(), consent);
 			invite.setResponseStatus(InviteTokenResponseStatus.ACCEPTED);
 			customer.setLastConsentResponseAt(now);
 			customer.setReEngagementEligibleAfter(null);
@@ -204,6 +224,23 @@ public class PublicConsentInviteService {
 		return result;
 	}
 
+	private static boolean validityEnded(Consent consent) {
+		return consent.getValidityEndDate() != null
+				&& consent.getValidityEndDate().isBefore(LocalDate.now(ZoneId.systemDefault()));
+	}
+
+	private void assertChannelSelected(String customerId, Consent consent) {
+		if (DeliveryChannelCatalog.fromConsentEntity(consent).isEmpty()) {
+			return;
+		}
+		CustomerChannelPreferenceResponse pref =
+				customerChannelPreferenceService.getPreferenceForAdmin(customerId, consent.getId());
+		if (!(pref.isPrefEmail() || pref.isPrefSms() || pref.isPrefPush() || pref.isPrefWhatsapp()
+				|| pref.isPrefRcs())) {
+			throw new IllegalArgumentException("Please select at least one channel before accepting.");
+		}
+	}
+
 	private PublicConsentInviteDetailResponse notFound() {
 		return PublicConsentInviteDetailResponse.builder().state("NOT_FOUND").consentTitle("").descriptionPreview("")
 				.messagePreview("").customerDisplayName("").deliveryChannelsSummary("").build();
@@ -226,10 +263,23 @@ public class PublicConsentInviteService {
 			state = "WITHDRAWN";
 		} else if (invite.getResponseStatus() == InviteTokenResponseStatus.REJECTED) {
 			state = "REJECTED";
-		} else if (now.isAfter(invite.getExpiresAt())) {
+		} else if (consent.getStatus() != ConsentStatus.PUBLISHED) {
+			state = "UNAVAILABLE";
+		} else if (now.isAfter(invite.getExpiresAt()) || validityEnded(consent)) {
 			state = "EXPIRED";
 		} else {
 			state = "READY";
+		}
+		if ("UNAVAILABLE".equals(state)) {
+			return PublicConsentInviteDetailResponse.builder()
+					.state(state)
+					.consentTitle(consent.getConsentName())
+					.descriptionPreview("")
+					.messagePreview("")
+					.customerDisplayName(customer.getFullName())
+					.deliveryChannelsSummary("")
+					.consentDbId(invite.getConsentDbId())
+					.build();
 		}
 		String desc = HtmlTextUtil.stripToPlain(consent.getDescription(), 900);
 		String resolvedMessage = templateResolverService.resolve(consent.getConsentMessage(), customer, consent);

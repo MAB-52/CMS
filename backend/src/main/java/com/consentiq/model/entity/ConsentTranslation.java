@@ -7,6 +7,8 @@ import java.util.List;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import com.consentiq.util.HtmlTextUtil;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -17,6 +19,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
@@ -61,5 +65,11 @@ public class ConsentTranslation {
     @OneToMany(mappedBy = "translation", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<ConsentChannelRender> renders = new ArrayList<>();
-    
+
+    /** Strip script/event handlers on every save path so stored translation HTML is always safe to render. */
+    @PrePersist
+    @PreUpdate
+    void sanitizeContent() {
+        content = HtmlTextUtil.sanitizeRichHtml(content);
+    }
 }

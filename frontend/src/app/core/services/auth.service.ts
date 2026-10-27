@@ -69,14 +69,23 @@ export class AuthService {
     return;
   }
   this.#isLoggingOut = true;
+  const reason = options?.reason ?? (options?.sessionExpired ? 'session_expired' : undefined);
+  const token = this.getToken();
+  if (!reason && token && !this.isTokenExpired(token)) {
+    // User-initiated logout: revoke the token on the server too, so it can't be reused afterwards.
+    // Header set explicitly because the token is removed from storage below.
+    this.http
+      .post(`${environment.apiUrl}/auth/logout`, {}, { headers: { Authorization: `Bearer ${token}` } })
+      .subscribe({ error: () => this.logger.warn('AuthService', 'Server logout failed') });
+  }
   localStorage.removeItem(this.tokenKey);
   localStorage.removeItem(this.userKey);
   this.logger.info('AuthService', 'Logout successful');
- 
-  const reason = options?.reason ?? (options?.sessionExpired ? 'session_expired' : undefined);
+
+  // replaceUrl: Back from the login page must not return to the page the user just left
   const nav = reason
-    ? this.router.navigate(['/login'], { queryParams: { reason } })
-    : this.router.navigateByUrl('/login');
+    ? this.router.navigate(['/login'], { queryParams: { reason }, replaceUrl: true })
+    : this.router.navigateByUrl('/login', { replaceUrl: true });
  
   void nav.then(
     () => { this.#isLoggingOut = false; },

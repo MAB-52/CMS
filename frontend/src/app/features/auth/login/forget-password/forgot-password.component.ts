@@ -12,6 +12,14 @@ import { Subscription, interval } from 'rxjs';
 import { PasswordResetService } from '../../../../core/services/password-reset.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { LoggerService } from '../../../../core/services/logger.service';
+import { EMAIL_PATTERN, notBlank } from '../../../../core/validators/form-validators';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
+/** Confirm-password validator: compares against the sibling newPassword control. */
+function matchNewPassword(control: AbstractControl): ValidationErrors | null {
+  const newPassword = control.parent?.get('newPassword')?.value;
+  return control.value && control.value !== newPassword ? { mismatch: true } : null;
+}
 
 @Component({
   selector: 'app-forgot-password',
@@ -48,6 +56,13 @@ export class ForgotPasswordComponent implements OnDestroy {
   // Resend OTP cooldown
   readonly resendCooldown = signal(false);
   readonly resendTimer = signal(0);
+
+  // Set when the server cancels the OTP (too many wrong attempts / expired); cleared by Resend
+  readonly otpLocked = signal(false);
+
+  // Mirrors the backend limit so unregistered emails lock exactly like registered ones
+  private static readonly MAX_OTP_ATTEMPTS = 5;
+  private wrongOtpAttempts = 0;
   private resendSubscription?: Subscription;
   
   // Store email for OTP step
@@ -55,7 +70,7 @@ export class ForgotPasswordComponent implements OnDestroy {
 
   // Forms
   readonly emailForm = this.fb.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]]
+    email: ['', [Validators.required, notBlank, Validators.pattern(EMAIL_PATTERN)]]
   });
 
   readonly otpForm = this.fb.nonNullable.group({
@@ -71,12 +86,18 @@ export class ForgotPasswordComponent implements OnDestroy {
     newPassword: ['', [
       Validators.required,
       Validators.minLength(6),
-      Validators.pattern(/^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\S+$).{6,}$/)
+      Validators.pattern(/^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9])(?=\S+$).{6,}$/)
     ]],
-    confirmPassword: ['', [Validators.required]]
-  }, { validators: this.passwordMatchValidator });
+    // On the control itself (not the group) so mat-error can show the mismatch inline
+    confirmPassword: ['', [Validators.required, matchNewPassword]]
+  });
 
-  constructor() {}
+  constructor() {
+    // Editing the first field must re-check the confirmation
+    this.passwordForm.controls.newPassword.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.passwordForm.controls.confirmPassword.updateValueAndValidity({ emitEvent: false }));
+  }
 
   ngOnDestroy(): void {
     if (this.resendSubscription) {
@@ -84,15 +105,19 @@ export class ForgotPasswordComponent implements OnDestroy {
     }
   }
 
-  private passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
-    const newPassword = control.get('newPassword')?.value;
-    const confirmPassword = control.get('confirmPassword')?.value;
-    return newPassword === confirmPassword ? null : { mismatch: true };
+  get passwordsMismatch(): boolean {
+    return this.passwordForm.controls.confirmPassword.hasError('mismatch');
   }
 
-  get passwordsMismatch(): boolean {
-    const errors = this.passwordForm.errors;
-    return errors ? errors['mismatch'] === true : false;
+  /** First password rule the value breaks, or null when it satisfies all of them. */
+  passwordRuleError(value: string): string | null {
+    if (value.length < 6) return 'at least 6 characters';
+    if (!/[A-Z]/.test(value)) return 'one uppercase letter';
+    if (!/[a-z]/.test(value)) return 'one lowercase letter';
+    if (!/[0-9]/.test(value)) return 'one number';
+    if (!/[^A-Za-z0-9]/.test(value)) return 'one special character (e.g. ! @ # $ %)';
+    if (/\s/.test(value)) return 'no spaces';
+    return null;
   }
 
   // Get user-friendly error message
@@ -144,7 +169,7 @@ private getErrorMessage(error: any): string {
   }
   
   if (message.toLowerCase().includes('password must contain')) {
-    return '🔒 Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@#$%^&+=).';
+    return '🔒 Password must contain at least one uppercase letter, one lowercase letter, one number, one special character, and no spaces.';
   }
   
   if (message.toLowerCase().includes('user not found')) {
@@ -166,11 +191,17 @@ private getErrorMessage(error: any): string {
   sendOtp(): void {
     this.errorMessage.set(null);
     this.successMessage.set(null);
-    
+
+    // Go Back + Send OTP must not bypass the resend cooldown for the same email
+    if (this.resendCooldown() && this.emailForm.getRawValue().email.trim() === this.userEmail) {
+      this.errorMessage.set(`⏳ Please wait ${this.resendTimer()}s before requesting another OTP.`);
+      return;
+    }
+
     if (this.emailForm.invalid) {
       if (this.emailForm.controls.email.hasError('required')) {
         this.errorMessage.set('📧 Email address is required.');
-      } else if (this.emailForm.controls.email.hasError('email')) {
+      } else if (this.emailForm.controls.email.hasError('pattern')) {
         this.errorMessage.set('📧 Please enter a valid email address (e.g., name@example.com).');
       }
       this.emailForm.markAllAsTouched();
@@ -178,13 +209,13 @@ private getErrorMessage(error: any): string {
     }
 
     this.loading.set(true);
-    this.userEmail = this.emailForm.getRawValue().email;
+    this.userEmail = this.emailForm.getRawValue().email.trim();
 
     this.passwordResetService.forgotPassword(this.userEmail).subscribe({
       next: (response) => {
         this.loading.set(false);
         if (response.success) {
-          this.successMessage.set('✅ OTP sent successfully! Please check your email inbox (and spam folder).');
+          this.successMessage.set('✅ If this email is registered, an OTP has been sent. Please check your inbox (and spam folder).');
           this.currentStep.set(2);
           this.startResendCooldown();
           this.logger.info('ForgotPasswordComponent', 'OTP sent to email');
@@ -202,6 +233,9 @@ private getErrorMessage(error: any): string {
   // Step 2: Verify OTP
   // Step 2: Verify OTP
 verifyOtp(): void {
+  if (this.otpLocked()) {
+    return;
+  }
   this.errorMessage.set(null);
   this.successMessage.set(null);
 
@@ -244,9 +278,17 @@ verifyOtp(): void {
         errorMessage = `❌ ${err.error}`;
       } else if (err.error && err.error.message) {
         const msg = err.error.message;
-        if (msg.toLowerCase().includes('expired')) {
+        const lower = msg.toLowerCase();
+        if (lower.includes('invalid otp') || lower.includes('no active otp')) {
+          this.wrongOtpAttempts++;
+        }
+        if (lower.includes('too many') || this.wrongOtpAttempts >= ForgotPasswordComponent.MAX_OTP_ATTEMPTS) {
+          errorMessage = '🔒 Too many incorrect attempts. This OTP is no longer valid — click "Resend OTP" to get a new one.';
+          this.lockOtp();
+        } else if (lower.includes('expired')) {
           errorMessage = '⏰ OTP has expired. Please request a new OTP using "Resend OTP".';
-        } else if (msg.toLowerCase().includes('used')) {
+          this.lockOtp();
+        } else if (lower.includes('used')) {
           errorMessage = '❌ This OTP has already been used. Please request a new OTP.';
         } else {
           errorMessage = `❌ ${msg}`;
@@ -267,10 +309,9 @@ verifyOtp(): void {
     if (this.passwordForm.invalid) {
       if (this.passwordForm.controls.newPassword.hasError('required')) {
         this.errorMessage.set('🔒 New password is required.');
-      } else if (this.passwordForm.controls.newPassword.hasError('minlength')) {
-        this.errorMessage.set('🔒 Password must be at least 6 characters long.');
-      } else if (this.passwordForm.controls.newPassword.hasError('pattern')) {
-        this.errorMessage.set('🔒 Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@#$%^&+=).');
+      } else if (this.passwordForm.controls.newPassword.invalid) {
+        const rule = this.passwordRuleError(this.passwordForm.controls.newPassword.value);
+        this.errorMessage.set(`🔒 Password needs ${rule}.`);
       } else if (this.passwordForm.controls.confirmPassword.hasError('required')) {
         this.errorMessage.set('🔒 Please confirm your new password.');
       } else if (this.passwordsMismatch) {
@@ -319,7 +360,8 @@ verifyOtp(): void {
       next: (response) => {
         this.loading.set(false);
         if (response.success) {
-          this.successMessage.set('✅ OTP resent successfully! Please check your email.');
+          this.successMessage.set('✅ If this email is registered, a new OTP has been sent. Please check your inbox (and spam folder).');
+          this.unlockOtp();
           this.startResendCooldown();
         } else {
           this.errorMessage.set(this.getErrorMessage(response));
@@ -330,6 +372,18 @@ verifyOtp(): void {
         this.errorMessage.set(this.getErrorMessage(err));
       }
     });
+  }
+
+  private lockOtp(): void {
+    this.otpLocked.set(true);
+    this.otpForm.controls.otp.disable();
+  }
+
+  private unlockOtp(): void {
+    this.otpLocked.set(false);
+    this.wrongOtpAttempts = 0;
+    this.otpForm.reset();
+    this.otpForm.controls.otp.enable();
   }
 
   private startResendCooldown(): void {
@@ -360,7 +414,7 @@ verifyOtp(): void {
       this.currentStep.set(1);
       this.errorMessage.set(null);
       this.successMessage.set(null);
-      this.otpForm.reset();
+      this.unlockOtp();
     } else if (this.currentStep() === 3) {
       this.currentStep.set(2);
       this.errorMessage.set(null);

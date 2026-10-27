@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -37,6 +39,7 @@ public class CustomerConsentStatusRefreshJob {
 
 //    @Scheduled(cron = "0 */1 * * * ?") //Runs every Minute
     @Scheduled(cron = "0 0 4 * * ?", zone = "Asia/Kolkata") // Runs everyday at 4 AM
+    @EventListener(ApplicationReadyEvent.class)
     @Transactional
     public void refreshConsentStatuses() {
         String cu = currentUser();

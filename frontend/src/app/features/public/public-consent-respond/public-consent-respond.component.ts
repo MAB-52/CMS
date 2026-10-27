@@ -11,13 +11,14 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { MessageModule } from 'primeng/message';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Subscription, combineLatest, forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 import { PublicConsentInviteDetail } from '../../../core/models/public-consent-invite.model';
 import { PublicConsentInviteService } from '../../../core/services/public-consent-invite.service';
 import { LoggerService } from '../../../core/services/logger.service';
 import { environment } from '../../../environments/environment';
 import { PublicConsentRespondResolve } from '../public-consent-request.solver';
 import { CHANNEL_META, ChannelId, ChannelMeta } from '../../../core/utils/channel.util';
+import { sanitizeRichHtml } from '../../../core/utils/safe-html.util';
 
 @Component({
   selector: 'app-public-consent-respond',
@@ -127,7 +128,9 @@ export class PublicConsentRespondComponent implements OnInit, OnDestroy {
         this.langSaved.set(true);
       }
       const d = resolved.detail;
-      if (d.state === 'EXPIRED') {
+      if (d.state === 'UNAVAILABLE') {
+        this.inlineNotice.set('This consent request is no longer available. No response is needed from you.');
+      } else if (d.state === 'EXPIRED') {
         this.inlineNotice.set('This link has expired. Please contact us if you still need to respond.');
       } else if (d.state === 'ACCEPTED' || d.state === 'REJECTED' || d.state === 'WITHDRAWN') {
         this.inlineNotice.set('Thank you — your response is already on file. No further action is needed.');
@@ -140,7 +143,7 @@ export class PublicConsentRespondComponent implements OnInit, OnDestroy {
   }
 
   safeResolvedHtml(html: string | null | undefined): SafeHtml {
-    return this.sanitizer.bypassSecurityTrustHtml(html ?? '');
+    return this.sanitizer.bypassSecurityTrustHtml(sanitizeRichHtml(html));
   }
 
   toggleLang(value: string): void {
@@ -256,22 +259,21 @@ export class PublicConsentRespondComponent implements OnInit, OnDestroy {
 
       // Build save observables; skip channel save if no channels are available
       const channelSave$ = hasChannels && consentDbId != null
-        ? this._buildChannelSaveRequest(consentDbId).pipe(catchError(() => of(null)))
-        : of(null);
+        ? this._buildChannelSaveRequest(consentDbId).pipe(map(() => true), catchError(() => of(false)))
+        : of(true);
 
       const langSave$ = consentDbId != null
-        ? this._buildLangSaveRequest(consentDbId).pipe(catchError(() => of(null)))
-        : of(null);
+        ? this._buildLangSaveRequest(consentDbId).pipe(map(() => true), catchError(() => of(false)))
+        : of(true);
 
       // Save both preferences in parallel, then submit the consent decision
-      forkJoin([channelSave$, langSave$]).subscribe({
-        next: () => {
-          this._recordDecision(decision);
-        },
-        error: () => {
-          // forkJoin errors are swallowed by catchError above; this is a safety net
-          this._recordDecision(decision);
-        },
+      forkJoin([channelSave$, langSave$]).subscribe(([channelSaved, langSaved]) => {
+        if (!channelSaved) {
+          this.submitting.set(false);
+          this.channelPrefError.set('We could not save your channel choice. Please try again.');
+          return;
+        }
+        this._recordDecision(decision, langSaved);
       });
 
       return;
@@ -301,7 +303,7 @@ export class PublicConsentRespondComponent implements OnInit, OnDestroy {
     return this.http.post(`${this.consentPrefsBase}/language-preference`, null, { params, withCredentials: true });
   }
 
-  private _recordDecision(decision: 'ACCEPT' | 'DECLINE' | 'WITHDRAW'): void {
+  private _recordDecision(decision: 'ACCEPT' | 'DECLINE' | 'WITHDRAW', langSaved = true): void {
     this.api.respond(decision).subscribe({
       next: (res) => {
         this.submitting.set(false);
@@ -313,7 +315,8 @@ export class PublicConsentRespondComponent implements OnInit, OnDestroy {
         this.recordedNow.set(decision);
         this.inlineNotice.set(
           decision === 'ACCEPT'
-            ? 'Thank you. Your consent has been recorded successfully.'
+            ? 'Thank you. Your consent has been recorded successfully.' +
+              (langSaved ? '' : " We couldn't save your language choice right now, so messages will be sent in English.")
             : decision === 'WITHDRAW'
               ? 'Your consent has been withdrawn as requested.'
               : 'Your choice has been recorded. You will not be contacted under this request.',

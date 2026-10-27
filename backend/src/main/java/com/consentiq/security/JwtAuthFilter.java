@@ -53,6 +53,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 log.info("Processing request | entity=User | id=****");
                 UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
+                if (!userDetails.isEnabled()) {
+                    log.warn("JWT rejected | reason=account_inactive | user={}", email);
+                    request.setAttribute("accountInactive", Boolean.TRUE);
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
                 if (userDetails instanceof UserDetailsImpl impl
                         && !impl.getTokenVersion().equals(tokenVersionInJwt)) {
                     log.warn("JWT rejected | reason=stale_token_version | user={}", email);

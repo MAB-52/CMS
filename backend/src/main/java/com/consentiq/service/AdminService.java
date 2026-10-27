@@ -12,6 +12,7 @@ import com.consentiq.model.entity.*;
 import com.consentiq.repository.*;
 import com.consentiq.util.DeliveryChannelCatalog;
 import com.consentiq.util.HtmlTextUtil;
+import com.consentiq.util.MisReportExportUtil;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Subquery;
 import lombok.RequiredArgsConstructor;
@@ -406,7 +407,7 @@ public class AdminService {
         try {
             log.info("Executing DB query | method=findByStatusInOrderByConsentNameAsc | param=PUBLISHED,APPROVED");
             List<Consent> list = consentRepository
-                    .findByStatusInOrderByConsentNameAsc(List.of(ConsentStatus.PUBLISHED, ConsentStatus.APPROVED));
+                    .findByStatusInOrderByConsentNameAsc(List.of(ConsentStatus.PUBLISHED));
             log.info("DB query completed | method=findByStatusInOrderByConsentNameAsc | size={}", list.size());
             List<AdminConsentTemplateResponse> res = list.stream()
                     .map(c -> AdminConsentTemplateResponse.builder()
@@ -431,6 +432,45 @@ public class AdminService {
 
     // ── Send capture link ─────────────────────────────────────────────────────
 
+    private static void assertTemplateValidityNotEnded(Consent template) {
+        if (template.getValidityEndDate() != null
+                && template.getValidityEndDate().isBefore(LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")))) {
+            throw new IllegalArgumentException("This consent template's validity period has ended.");
+        }
+    }
+
+    private void assertNotAlreadyAccepted(String customerId, Long consentDbId) {
+        recordRepository.findByCustomerIdAndConsentDbId(customerId, consentDbId).ifPresent(r -> {
+            LocalDate today = LocalDate.now(java.time.ZoneId.of("Asia/Kolkata"));
+            LocalDate validUntil = r.getConsentValidUntil();
+            if (r.getStatus() == CustomerConsentRecordStatus.ACCEPTED
+                    && (validUntil == null || !validUntil.isBefore(today))) {
+                throw new IllegalArgumentException("Customer has already accepted this consent"
+                        + (validUntil != null ? " (valid until " + validUntil + ")" : "") + ".");
+            }
+        });
+    }
+
+    private void expirePendingInvites(String customerId, Long consentDbId, Instant now) {
+        List<ConsentInviteToken> pending = inviteTokenRepository.findByCustomerId(customerId).stream()
+                .filter(t -> consentDbId.equals(t.getConsentDbId()))
+                .filter(t -> t.getResponseStatus() == null || t.getResponseStatus() == InviteTokenResponseStatus.PENDING)
+                .filter(t -> t.getExpiresAt() != null && t.getExpiresAt().isAfter(now))
+                .toList();
+        if (pending.isEmpty()) {
+            return;
+        }
+        pending.forEach(t -> t.setExpiresAt(now));
+        inviteTokenRepository.saveAll(pending);
+        List<ConsentOneTimeCode> codes = consentOneTimeCodeRepository
+                .findByConsentRequestIdIn(pending.stream().map(ConsentInviteToken::getId).toList());
+        codes.forEach(c -> {
+            c.setUsed(true);
+            c.setExpiresAt(now);
+        });
+        consentOneTimeCodeRepository.saveAll(codes);
+    }
+
     @Transactional
     public SendConsentLinkResponse sendCaptureLink(SendConsentLinkRequest req, Long adminUserId) {
         String cu = currentUser();
@@ -450,9 +490,10 @@ public class AdminService {
             Consent template = consentRepository.findById(req.getConsentTemplateId())
                     .orElseThrow(() -> new IllegalArgumentException("Consent template not found"));
             log.info("DB query completed | method=findById | present=true");
-            if (template.getStatus() != ConsentStatus.PUBLISHED && template.getStatus() != ConsentStatus.APPROVED) {
-                throw new IllegalArgumentException("Selected consent is not available as a template");
+            if (template.getStatus() != ConsentStatus.PUBLISHED) {
+                throw new IllegalArgumentException("Only published consent templates can be sent.");
             }
+            assertTemplateValidityNotEnded(template);
             List<String> configured = buildChannelList(template);
             if (configured.isEmpty()) {
                 throw new IllegalArgumentException(
@@ -480,9 +521,11 @@ public class AdminService {
                                     + allowedReadable + ".");
                 }
             }
+            assertNotAlreadyAccepted(customer.getCustomerId(), template.getId());
             String summaryPlain = DeliveryChannelCatalog.formatForCustomer(selectedNorm);
             String token = UUID.randomUUID().toString().replace("-", "");
             Instant now = Instant.now();
+            expirePendingInvites(customer.getCustomerId(), template.getId(), now);
             ConsentInviteToken entity = ConsentInviteToken.builder()
                     .token(token)
                     .customerId(customer.getCustomerId())
@@ -502,7 +545,7 @@ public class AdminService {
                     .code(opaqueCode)
                     .consentRequestId(entity.getId())
                     .createdAt(now)
-                    .expiresAt(now.plus(15, ChronoUnit.MINUTES))
+                    .expiresAt(now.plus(24, ChronoUnit.HOURS))
                     .used(false)
                     .build());
             log.info("DB query completed | method=save | result=completed");
@@ -712,11 +755,11 @@ public class AdminService {
                              "Consent template not found: id=" + req.getConsentTemplateId()));
              log.info("DB query completed | method=findById | present=true");
 
-             if (template.getStatus() != ConsentStatus.PUBLISHED
-                     && template.getStatus() != ConsentStatus.APPROVED) {
+             if (template.getStatus() != ConsentStatus.PUBLISHED) {
                  throw new IllegalArgumentException(
-                         "Selected consent template is not PUBLISHED or APPROVED.");
+                         "Only published consent templates can be recorded.");
              }
+             assertTemplateValidityNotEnded(template);
 
              log.info("Executing DB query | method=save | param=OnBehalfConsentRecord");
              OnBehalfConsentRecord savedRec = onBehalfConsentRecordRepository.save(
@@ -857,10 +900,7 @@ public class AdminService {
     }
 
     private static String csvEscape(String v) {
-        if (v == null) return "";
-        boolean needsQuote = v.contains(",") || v.contains("\"") || v.contains("\n");
-        String escaped = v.replace("\"", "\"\"");
-        return needsQuote ? "\"" + escaped + "\"" : escaped;
+        return MisReportExportUtil.csvEscape(v);
     }
 
     /**

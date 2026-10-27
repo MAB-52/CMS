@@ -127,6 +127,26 @@ public class MisReportService {
         return records.get(0).getStatus().name();
     }
 
+    private Map<String, String> deriveStatuses(List<Customer> customers) {
+        List<String> ids = customers.stream().map(Customer::getCustomerId).distinct().toList();
+        Map<String, CustomerConsentRecord> latest = new HashMap<>();
+        for (int i = 0; i < ids.size(); i += 1000) {
+            List<String> chunk = ids.subList(i, Math.min(i + 1000, ids.size()));
+            for (CustomerConsentRecord r : recordRepository.findByCustomerIdIn(chunk)) {
+                latest.merge(r.getCustomerId(), r, (a, b) -> isNewer(b, a) ? b : a);
+            }
+        }
+        Map<String, String> out = new HashMap<>();
+        latest.forEach((id, r) -> out.put(id, r.getStatus() == null ? null : r.getStatus().name()));
+        return out;
+    }
+
+    private static boolean isNewer(CustomerConsentRecord candidate, CustomerConsentRecord current) {
+        if (candidate.getUpdatedAt() == null) return false;
+        if (current.getUpdatedAt() == null) return true;
+        return candidate.getUpdatedAt().isAfter(current.getUpdatedAt());
+    }
+
     private static long toLongCount(Object o) {
         if (o == null) return 0L;
         if (o instanceof Number n) return n.longValue();
@@ -248,11 +268,13 @@ public class MisReportService {
         double averageApprovalHours = avgH.isPresent() ? Math.round(avgH.getAsDouble() * 10.0) / 10.0 : 0.0;
 
         long slaNumerator = reviewed.stream()
-                .filter(c -> c.getStatus() == ConsentStatus.APPROVED)
+                .filter(c -> c.getStatus() == ConsentStatus.APPROVED || c.getStatus() == ConsentStatus.PUBLISHED)
                 .filter(c -> c.getSubmittedAt() != null && c.getReviewedAt() != null)
                 .filter(c -> ChronoUnit.HOURS.between(c.getSubmittedAt(), c.getReviewedAt()) <= 48)
                 .count();
-        long slaDenom = reviewed.stream().filter(c -> c.getStatus() == ConsentStatus.APPROVED).count();
+        long slaDenom = reviewed.stream()
+                .filter(c -> c.getStatus() == ConsentStatus.APPROVED || c.getStatus() == ConsentStatus.PUBLISHED)
+                .count();
         double sla48 = slaDenom == 0 ? 0.0 : Math.round(1000.0 * slaNumerator / slaDenom) / 10.0;
 
         MisMakerCheckerSnapshot mc = MisMakerCheckerSnapshot.builder()
@@ -371,25 +393,24 @@ public class MisReportService {
         log.info("Executing DB query | method=findAll | param=Customer spec export");
         List<Customer> all = customerRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "updatedAt"));
         log.info("DB query completed | method=findAll | size={}", all.size());
-        try (java.io.OutputStreamWriter w = new java.io.OutputStreamWriter(
-                outputStream, java.nio.charset.StandardCharsets.UTF_8)) {
-            w.write("Customer ID,Customer Name,Mobile Number,Email,Consent Status," +
-                    "Consent Valid Until,Last Invite Sent,Last Response,Re-engagement Eligible After,VIP\n");
-            for (Customer c : all) {
-                String status = deriveStatus(c.getCustomerId());
-                w.write(MisReportExportUtil.csvEscape(c.getCustomerId())); w.write(',');
-                w.write(MisReportExportUtil.csvEscape(c.getFullName())); w.write(',');
-                w.write(MisReportExportUtil.csvEscape(c.getMobileNumber())); w.write(',');
-                w.write(MisReportExportUtil.csvEscape(c.getEmail() == null ? "" : c.getEmail())); w.write(',');
-                w.write(MisReportExportUtil.csvEscape(status == null ? "" : status)); w.write(',');
-                w.write(MisReportExportUtil.csvEscape(c.getConsentValidUntil() == null ? "" : c.getConsentValidUntil().toString())); w.write(',');
-                w.write(MisReportExportUtil.csvEscape(c.getLastConsentInviteSentAt() == null ? "" : c.getLastConsentInviteSentAt().toString())); w.write(',');
-                w.write(MisReportExportUtil.csvEscape(c.getLastConsentResponseAt() == null ? "" : c.getLastConsentResponseAt().toString())); w.write(',');
-                w.write(MisReportExportUtil.csvEscape(c.getReEngagementEligibleAfter() == null ? "" : c.getReEngagementEligibleAfter().toString())); w.write(',');
-                w.write(c.isVipFlag() ? "Y" : "N"); w.write('\n');
-            }
-            w.flush();
+        Map<String, String> statusById = deriveStatuses(all);
+        List<String[]> rows = new ArrayList<>(all.size());
+        for (Customer c : all) {
+            String status = statusById.get(c.getCustomerId());
+            rows.add(new String[]{
+                    c.getCustomerId(), c.getFullName(), c.getMobileNumber(),
+                    c.getEmail() == null ? "" : c.getEmail(),
+                    status == null ? "" : status,
+                    c.getConsentValidUntil() == null ? "" : c.getConsentValidUntil().toString(),
+                    c.getLastConsentInviteSentAt() == null ? "" : c.getLastConsentInviteSentAt().toString(),
+                    c.getLastConsentResponseAt() == null ? "" : c.getLastConsentResponseAt().toString(),
+                    c.getReEngagementEligibleAfter() == null ? "" : c.getReEngagementEligibleAfter().toString(),
+                    c.isVipFlag() ? "Y" : "N"});
         }
+        byte[] csv = MisReportExportUtil.writeCsv("Customer ID,Customer Name,Mobile Number,Email,Consent Status,"
+                + "Consent Valid Until,Last Invite Sent,Last Response,Re-engagement Eligible After,VIP", rows);
+        outputStream.write(csv);
+        outputStream.flush();
         log.debug("Transaction completing | method=exportCustomerConsentCsv | id=n/a");
         log.debug("Exiting exportCustomerConsentCsv | completed successfully");
     }
@@ -408,9 +429,10 @@ public class MisReportService {
         List<String> headers = List.of("Customer ID","Customer Name","Mobile Number","Email",
                 "Consent Status","Consent Valid Until","Last Invite Sent","Last Response",
                 "Re-engagement Eligible After","VIP");
+        Map<String, String> statusById = deriveStatuses(all);
         List<List<String>> rows = new ArrayList<>();
         for (Customer c : all) {
-            String status = deriveStatus(c.getCustomerId());
+            String status = statusById.get(c.getCustomerId());
             rows.add(List.of(
                     c.getCustomerId(), c.getFullName(), c.getMobileNumber(),
                     c.getEmail() == null ? "" : c.getEmail(),
@@ -857,8 +879,9 @@ public class MisReportService {
         List<Customer> all = customerRepository.findAll(revocationSpec(from, to, vip),
                 Sort.by(Sort.Direction.DESC, "lastConsentResponseAt"));
         log.info("DB query completed | method=findAll | size={}", all.size());
+        Map<String, String> statusById = deriveStatuses(all);
         List<String[]> rows = all.stream().map(c -> {
-            String status = deriveStatus(c.getCustomerId());
+            String status = statusById.get(c.getCustomerId());
             return new String[]{
                     c.getCustomerId(), c.getFullName(), c.getMobileNumber(),
                     c.getEmail() == null ? "" : c.getEmail(),
@@ -886,8 +909,9 @@ public class MisReportService {
         log.info("DB query completed | method=findAll | size={}", all.size());
         List<String> headers = List.of("Customer ID","Name","Mobile","Email","Status",
                 "Last Response","Re-engagement Eligible After","VIP");
+        Map<String, String> statusById = deriveStatuses(all);
         List<List<String>> rows = all.stream().map(c -> {
-            String status = deriveStatus(c.getCustomerId());
+            String status = statusById.get(c.getCustomerId());
             return List.of(c.getCustomerId(), c.getFullName(), c.getMobileNumber(),
                     c.getEmail() == null ? "" : c.getEmail(),
                     status == null ? "" : status,

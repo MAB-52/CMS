@@ -31,12 +31,17 @@ export class CheckerRulesQueueComponent implements OnInit {
 
   private readonly api = inject(ConsentRulesService);
   readonly rows = signal<ConsentRule[]>([]);
+  readonly loading = signal(true);
 
   ngOnInit(): void {
-    this.api.listPending().subscribe((res) => {
-      if (res.success && res.data) {
-        this.rows.set(res.data);
-      }
+    this.api.listPending().subscribe({
+      next: (res) => {
+        this.loading.set(false);
+        if (res.success && res.data) {
+          this.rows.set(res.data);
+        }
+      },
+      error: () => this.loading.set(false),
     });
   }
 }

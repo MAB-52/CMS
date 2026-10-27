@@ -17,7 +17,13 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
     Optional<PasswordResetToken> findByOtpAndEmail(String otp, String email);
     
     Optional<PasswordResetToken> findByEmail(String email);
-    
+
+    Optional<PasswordResetToken> findTopByEmailAndUsedFalseOrderByIdDesc(String email);
+
+    Optional<PasswordResetToken> findTopByEmailOrderByIdDesc(String email);
+
+    boolean existsByOtp(String otp);
+
     @Modifying
     @Transactional
     @Query("UPDATE PasswordResetToken t SET t.used = true WHERE t.email = :email AND t.used = false")

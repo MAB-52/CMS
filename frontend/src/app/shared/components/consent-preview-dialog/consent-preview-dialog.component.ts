@@ -1,9 +1,10 @@
 import { Component, inject } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
+import { ButtonModule } from 'primeng/button';
+import { TooltipModule } from 'primeng/tooltip';
 import { MergeTag } from '../../../core/models/consent.model';
+import { sanitizeRichHtml } from '../../../core/utils/safe-html.util';
 
 export interface ConsentPreviewDialogData {
   html: string;
@@ -13,7 +14,7 @@ export interface ConsentPreviewDialogData {
 @Component({
   selector: 'app-consent-preview-dialog',
   standalone: true,
-  imports: [MatDialogModule, MatButtonModule, MatIconModule],
+  imports: [MatDialogModule, ButtonModule, TooltipModule],
   templateUrl: './consent-preview-dialog.component.html',
   styleUrls: ['./consent-preview-dialog.component.css'],
 })
@@ -31,7 +32,7 @@ export class ConsentPreviewDialogComponent {
       html = html.replace(re, span);
     }
 
-    return this.sanitizer.bypassSecurityTrustHtml(html);
+    return this.sanitizer.bypassSecurityTrustHtml(sanitizeRichHtml(html));
   }
 
   private escape(s: string): string {

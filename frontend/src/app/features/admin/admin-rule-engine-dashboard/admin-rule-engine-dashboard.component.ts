@@ -22,6 +22,7 @@ import { ConfirmDialogData } from '../../../shared/components/confirm-dialog/con
 import { RuleEngineRuleDetailDialogComponent, RuleEngineRuleDetailDialogData } from '../rule-engine-rule-detail-dialog/rule-engine-rule-detail-dialog.component';
 import { WorkflowStatusBadgeComponent } from '../../../shared/components/workflow-status-badge/workflow-status-badge.component';
 import { ConfirmDialogService } from '../../../shared/components/confirm-dialog/confirm-dialog.service';
+import { NotificationService } from '../../../core/services/notification.service';
 
 const ALL_SCHEDULE_TYPES = ['IMMEDIATE', 'SCHEDULED', 'RECURRING'];
 
@@ -51,6 +52,7 @@ export class AdminRuleEngineDashboardComponent implements OnInit, OnDestroy {
   private readonly api = inject(AdminRuleEngineService);
   private readonly dialogs = inject(DialogService);
   private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly notify = inject(NotificationService);
   private readonly destroy$ = new Subject<void>();
 
   readonly min = Math.min;
@@ -186,7 +188,15 @@ export class AdminRuleEngineDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
+  canManualRun(rule: ConsentRule): boolean {
+    return rule.status === 'LIVE' && !!rule.executionActive;
+  }
+
   manualRun(rule: ConsentRule): void {
+    if (!this.canManualRun(rule)) {
+      this.notify.error('Execution', 'Only LIVE (active) rules can be run. Activate this rule first.');
+      return;
+    }
     const tplId = rule.consentTemplateId;
     const run = (n: number, infoPanel?: string) => {
       this.confirmDialog.open({

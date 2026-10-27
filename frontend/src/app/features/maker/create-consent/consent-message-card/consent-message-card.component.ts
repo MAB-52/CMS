@@ -5,8 +5,9 @@ import {
 } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { ButtonModule } from 'primeng/button';
+import { TooltipModule } from 'primeng/tooltip';
 import { Subscription } from 'rxjs';
 import { Editor } from '@tiptap/core';
 import Document from '@tiptap/extension-document';
@@ -43,7 +44,7 @@ import { AiInsertEvent } from './ai-content-generator/ai-content-generator.compo
 @Component({
   selector: 'app-consent-message-card',
   standalone: true,
-  imports: [ReactiveFormsModule, MatButtonModule, MatDialogModule],
+  imports: [ReactiveFormsModule, MatDialogModule, ButtonModule, TooltipModule],
   templateUrl: './consent-message-card.component.html',
   styleUrl: './consent-message-card.component.css',
   providers: [VoiceInputService],
@@ -77,6 +78,9 @@ export class ConsentMessageCardComponent implements OnInit, AfterViewInit, OnCha
   @Input() languageContentMap: Record<string, string> = {};
   @Output() readonly languageContentChange = new EventEmitter<{ languageCode: string; content: string }>();
 
+  /** View-only consents (pending, approved, …): the editor, toolbar and tag buttons are locked. */
+  @Input() readOnly = false;
+
   @ViewChild('editorEl')   editorEl!:   ElementRef<HTMLDivElement>;
   @ViewChild('imageInput') imageInput!: ElementRef<HTMLInputElement>;
 
@@ -94,9 +98,13 @@ export class ConsentMessageCardComponent implements OnInit, AfterViewInit, OnCha
 
   categoryIcon(cat: string): string {
     const icons: Record<string, string> = {
-      Customer: '👤', Company: '🏢', Date: '📅', Links: '🔗',
+      Customer: 'pi pi-user', Company: 'pi pi-building', Date: 'pi pi-calendar', Links: 'pi pi-link',
     };
-    return icons[cat] ?? '📎';
+    return icons[cat] ?? 'pi pi-tag';
+  }
+
+  tagHint(key: string): string {
+    return `Inserts {{${key}}} at the cursor`;
   }
 
   isEditorReady(): boolean {
@@ -155,6 +163,7 @@ export class ConsentMessageCardComponent implements OnInit, AfterViewInit, OnCha
         }),
       ],
       content: initialValue,
+      editable: !this.readOnly,
       onBlur: () => {
         this.saveSelection();
       },
@@ -199,6 +208,13 @@ export class ConsentMessageCardComponent implements OnInit, AfterViewInit, OnCha
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    // Status is loaded after the editor is created, so apply read-only changes to the live editor
+    if (changes['readOnly'] && this.editor && !this.editor.isDestroyed) {
+      if (this.readOnly && this.isListening) {
+        this.voiceService.stop();
+      }
+      this.editor.setEditable(!this.readOnly);
+    }
     if (changes['activeLanguage'] && !changes['activeLanguage'].firstChange) {
       this.loadActiveLanguageContent();
     }

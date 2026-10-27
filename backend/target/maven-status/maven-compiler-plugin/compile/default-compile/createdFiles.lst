@@ -11,7 +11,6 @@ com\consentiq\controller\CustomerConsentRecordController.class
 com\consentiq\service\ConsentRuleExecutionService.class
 com\consentiq\model\dto\response\ConsentTranslationDto$ConsentTranslationDtoBuilder.class
 com\consentiq\model\dto\response\mis\MisActiveConsentsTimelineResponse.class
-com\consentiq\service\AdminService.class
 com\consentiq\enums\BroadcastExecutionStatus.class
 com\consentiq\model\dto\response\AdminDashboardStatsResponse$AdminDashboardStatsResponseBuilder.class
 com\consentiq\model\dto\response\mis\MisTimeSeriesCountPoint$MisTimeSeriesCountPointBuilder.class
@@ -200,7 +199,6 @@ com\consentiq\model\dto\request\ConsentRuleUpsertRequest$ConsentRuleUpsertReques
 com\consentiq\model\dto\response\mis\MisTatConsentRowResponse$MisTatConsentRowResponseBuilder.class
 com\consentiq\model\dto\response\mis\MisLeaderboardChannelSplitResponse$MisLeaderboardChannelSplitResponseBuilder.class
 com\consentiq\model\dto\request\PublicConsentExchangeRequest.class
-com\consentiq\controller\AdminController.class
 com\consentiq\model\entity\CustomerLanguagePreference.class
 com\consentiq\model\dto\response\mis\MisDemographicVipSplitResponse$MisDemographicVipSplitResponseBuilder.class
 com\consentiq\repository\CustomerChannelPreferenceRepository.class

@@ -113,7 +113,7 @@ public class ConsentRule {
     @Column(name = "published_at")
     private Instant publishedAt;
 
-    /** When true, Admin (or legacy publish-live) has enabled this rule for the execution engine. */
+    /** When true, Admin (or Checker approval) has enabled this rule for the execution engine. */
     @Column(name = "execution_active", nullable = false)
     @Builder.Default
     private boolean executionActive = false;

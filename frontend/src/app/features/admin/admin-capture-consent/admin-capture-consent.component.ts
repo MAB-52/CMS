@@ -348,6 +348,10 @@ export class AdminCaptureConsentComponent implements OnInit {
     const tid  = this.leftTemplateId();
     const selected = this.selectedCaptureChannels();
     if (!cust)          { this.notify.warning('Send', 'Search and select a customer first.'); return; }
+    if (!cust.email?.trim()) {
+      this.notify.warning('Send', "This customer has no registered email address. Use 'Take consent on behalf' instead.");
+      return;
+    }
     if (tid == null)    { this.notify.warning('Send', 'Select a consent template.'); return; }
     if (!selected.length) { this.notify.warning('Send', 'Select at least one delivery channel.'); return; }
     if (!this.selectionIncludesEmail()) {
@@ -384,8 +388,14 @@ export class AdminCaptureConsentComponent implements OnInit {
     const status = this.rightConsentStatus();
 
     if (!cust) { this.notify.warning('Record', 'Search for a customer first.'); return; }
-    if (tid == null || !mode || !source || !status) {
-      this.notify.warning('Record', 'Select consent type, mode, source channel, and consent status.'); return;
+    const missing: string[] = [];
+    if (tid == null) missing.push('Consent type');
+    if (!mode) missing.push('Mode');
+    if (!source) missing.push('Source channel');
+    if (!status) missing.push('Consent status');
+    if (missing.length) {
+      this.notify.warning('Record', `Please select: ${missing.join(', ')}.`);
+      return;
     }
 
     this.recordBusy.set(true);

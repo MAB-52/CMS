@@ -1,6 +1,7 @@
 
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -75,13 +76,7 @@ export class ConsentReviewComponent implements OnInit {
       next: (t) => (this.mergeTags = t),
       error: () => {},
     });
-    this.api.getConsentById(id).subscribe({
-      next: (res) => {
-        if (res.success && res.data) {
-          this.consent.set(res.data);
-        }
-      },
-    });
+    this.loadConsent(id);
     this.api.getConsentDiff(id).subscribe({
       next: (res) => {
         if (res.success && res.data?.differences) {
@@ -96,6 +91,23 @@ export class ConsentReviewComponent implements OnInit {
         }
       },
     });
+  }
+
+  private loadConsent(id: number): void {
+    this.api.getConsentById(id).subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.consent.set(res.data);
+        }
+      },
+    });
+  }
+
+  private onDecisionError(id: number, err: HttpErrorResponse): void {
+    this.busy.set(false);
+    if (err.status === 409) {
+      this.loadConsent(id);
+    }
   }
 
   onCombinationViewed(event: { channel: string; languageCode: string }): void {
@@ -147,7 +159,7 @@ export class ConsentReviewComponent implements OnInit {
               setTimeout(() => void this.router.navigateByUrl('/checker/pending'), 1500);
             }
           },
-          error: () => this.busy.set(false),
+          error: (err: HttpErrorResponse) => this.onDecisionError(c.id, err),
         });
     });
   }
@@ -186,7 +198,7 @@ export class ConsentReviewComponent implements OnInit {
               setTimeout(() => void this.router.navigateByUrl('/checker/pending'), 1200);
             }
           },
-          error: () => this.busy.set(false),
+          error: (err: HttpErrorResponse) => this.onDecisionError(c.id, err),
         });
     });
   }
@@ -221,7 +233,7 @@ export class ConsentReviewComponent implements OnInit {
               setTimeout(() => void this.router.navigateByUrl('/checker/pending'), 1200);
             }
           },
-          error: () => this.busy.set(false),
+          error: (err: HttpErrorResponse) => this.onDecisionError(c.id, err),
         });
     });
   }

@@ -243,7 +243,9 @@ public interface CustomerConsentRecordRepository extends JpaRepository<CustomerC
 	List<CustomerConsentRecord> findByConsentDbIdAndStatus(Long consentDbId, CustomerConsentRecordStatus status);
  
 	List<CustomerConsentRecord> findByCustomerIdOrderByUpdatedAtDesc(String customerId);
- 
+
+	List<CustomerConsentRecord> findByCustomerIdIn(Collection<String> customerIds);
+
 	List<CustomerConsentRecord> findByConsentDbIdOrderByUpdatedAtDesc(Long consentDbId);
  
 	@Query("SELECT r.customerId FROM CustomerConsentRecord r WHERE r.consentDbId = :consentDbId AND r.status = :status")

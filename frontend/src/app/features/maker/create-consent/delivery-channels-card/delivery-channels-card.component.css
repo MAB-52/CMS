@@ -102,6 +102,16 @@
   background: var(--ch);
 }
 :host ::ng-deep .ch-check:not(.p-checkbox-checked):hover .p-checkbox-box { border-color: var(--ch); }
+/* Keep the tick white and the box at full colour when the form is read-only (disabled). */
+:host ::ng-deep .ch-check.p-checkbox-checked .p-checkbox-icon { color: #fff !important; }
+:host ::ng-deep .ch-check.p-checkbox-checked.p-disabled,
+:host ::ng-deep .ch-check.p-checkbox-checked.p-checkbox-disabled { opacity: 1; }
+:host ::ng-deep .ch-check.p-checkbox-checked.p-disabled .p-checkbox-box,
+:host ::ng-deep .ch-check.p-checkbox-checked.p-checkbox-disabled .p-checkbox-box {
+  border-color: var(--ch);
+  background: var(--ch);
+  opacity: 1;
+}
 
 .ch-foot { padding-top: var(--is-s-2); border-top: 1px dashed var(--is-border); }
 .sel-yes,

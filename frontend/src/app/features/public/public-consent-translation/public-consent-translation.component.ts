@@ -6,6 +6,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
 import { PublicConsentTranslationService } from '../../../core/services/public-consent-translation.service';
 import { LoggerService } from '../../../core/services/logger.service';
+import { sanitizeRichHtml } from '../../../core/utils/safe-html.util';
 
 @Component({
   selector: 'app-public-consent-translation',
@@ -56,7 +57,7 @@ export class PublicConsentTranslationComponent implements OnInit {
         this.consentTitle.set(res.data.consentTitle ?? '');
         this.customerDisplayName.set(res.data.customerDisplayName ?? '');
         const raw = res.data.translatedHtml ?? '';
-        this.safeHtml.set(this.sanitizer.bypassSecurityTrustHtml(raw));
+        this.safeHtml.set(this.sanitizer.bypassSecurityTrustHtml(sanitizeRichHtml(raw)));
       },
       error: (err: HttpErrorResponse) => {
         this.loading.set(false);

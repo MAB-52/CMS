@@ -6,6 +6,9 @@ import java.util.List;
 import com.consentiq.enums.ConsentCategory;
 import com.consentiq.enums.ConsentType;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -65,4 +68,10 @@ public class ConsentCreateRequest {
 	
 	
 	private List<ConsentTranslationInputDto> translations;
+
+	@JsonIgnore
+	@AssertTrue(message = "Validity end date must be after the start date")
+	public boolean isValidityRangeValid() {
+		return validityStartDate == null || validityEndDate == null || validityEndDate.isAfter(validityStartDate);
+	}
 }

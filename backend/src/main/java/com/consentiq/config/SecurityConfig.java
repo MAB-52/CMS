@@ -78,6 +78,7 @@ public class SecurityConfig {
     private void writeUnauthorized(HttpServletRequest request, HttpServletResponse response, Exception ex)
             throws IOException {
         boolean sessionInvalidated = Boolean.TRUE.equals(request.getAttribute("sessionInvalidated"));
+        boolean accountInactive = Boolean.TRUE.equals(request.getAttribute("accountInactive"));
 
         log.warn(
                 "Authentication entry point | method={} | uri={} | errorCode={} | message={}",
@@ -88,7 +89,11 @@ public class SecurityConfig {
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 
-        ApiResponse<Void> body = sessionInvalidated
+        ApiResponse<Void> body = accountInactive
+                ? ApiResponse.error(
+                        "Your account has been deactivated. Please contact your administrator.",
+                        "ACCOUNT_INACTIVE")
+                : sessionInvalidated
                 ? ApiResponse.error(
                         "Your account was logged in from another device or location. Please log in again.",
                         "SESSION_INVALIDATED_ELSEWHERE")

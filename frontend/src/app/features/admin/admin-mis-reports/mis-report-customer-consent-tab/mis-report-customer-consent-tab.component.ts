@@ -184,7 +184,16 @@ export class MisReportCustomerConsentTabComponent implements OnDestroy {
     this.load(Math.floor((event.first ?? 0) / rows));
   }
 
+  private isRangeValid(): boolean {
+    if (this.validFrom && this.validTo && this.validFrom.getTime() > this.validTo.getTime()) {
+      this.notify.warning('Customer consent', "'From' date must be on or before 'To' date.");
+      return false;
+    }
+    return true;
+  }
+
   apply(): void {
+    if (!this.isRangeValid()) return;
     this.expandedRows = {};
     this.load(0);
   }
@@ -250,6 +259,7 @@ export class MisReportCustomerConsentTabComponent implements OnDestroy {
   }
 
   exportCsv(): void {
+    if (!this.isRangeValid()) return;
     this.exporting.set('csv');
     this.adminApi
       .exportMisCustomerConsentCsv(this.filterParams())
@@ -269,6 +279,7 @@ export class MisReportCustomerConsentTabComponent implements OnDestroy {
   }
 
   exportExcel(): void {
+    if (!this.isRangeValid()) return;
     this.exporting.set('excel');
     this.adminApi
       .exportMisCustomerConsentExcel(this.filterParams())

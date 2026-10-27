@@ -41,6 +41,7 @@ export class PendingApprovalsComponent implements OnInit {
 
   readonly list = signal<Consent[]>([]);
   readonly filtered = signal<Consent[]>([]);
+  readonly loading = signal(true);
   readonly mergeTags = signal<MergeTag[]>([]);
   search = '';
   typeFilter: ConsentType | 'ALL' = 'ALL';
@@ -57,13 +58,16 @@ export class PendingApprovalsComponent implements OnInit {
   }
 
   reload(): void {
+    this.loading.set(true);
     this.api.getPendingApprovals().subscribe({
       next: (res) => {
+        this.loading.set(false);
         if (res.success && res.data) {
           this.list.set(res.data);
           this.applyFilters();
         }
       },
+      error: () => this.loading.set(false),
     });
   }
 

@@ -156,11 +156,27 @@ public class UserManagementService {
 		if (StringUtils.hasText(req.getPassword())) {
 			user.setPassword(passwordEncoder.encode(req.getPassword()));
 		}
+		boolean deactivating = Boolean.FALSE.equals(req.getActive()) && Boolean.TRUE.equals(user.getActive());
+		boolean demoting = req.getRole() != null && user.getRole() == UserRole.ADMIN && req.getRole() != UserRole.ADMIN;
+		if (deactivating && user.getEmail().equalsIgnoreCase(cu)) {
+			throw new IllegalArgumentException("You cannot deactivate your own account.");
+		}
+		if ((deactivating || demoting) && user.getRole() == UserRole.ADMIN && Boolean.TRUE.equals(user.getActive())) {
+			long otherActiveAdmins = userRepository.findByRoleAndDeletedAtIsNull(UserRole.ADMIN).stream()
+					.filter(u -> Boolean.TRUE.equals(u.getActive()) && !u.getId().equals(user.getId()))
+					.count();
+			if (otherActiveAdmins == 0) {
+				throw new IllegalArgumentException("At least one active admin must remain.");
+			}
+		}
 		if (req.getRole() != null) {
 			user.setRole(req.getRole());
 		}
 		if (req.getActive() != null) {
 			user.setActive(req.getActive());
+		}
+		if (deactivating) {
+			user.setTokenVersion(user.getTokenVersion() + 1);
 		}
 
 		log.info("Executing DB query | method=save | param=id={}", id);

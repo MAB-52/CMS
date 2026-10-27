@@ -8,7 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatSelectModule } from '@angular/material/select';
-import { debounceTime, merge, Subscription } from 'rxjs';
+import { debounceTime, finalize, merge, Subscription } from 'rxjs';
 import {
   Consent,
   ConsentCategory,
@@ -32,6 +32,7 @@ import { AudienceDrillDownService } from '../../../core/services/audience-drill-
 import { MergeTagService } from '../../../core/services/merge-tag.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { LoggerService } from '../../../core/services/logger.service';
+import { notBlank } from '../../../core/validators/form-validators';
 import { groupMergeTagsByCategory } from '../../../core/utils/merge-tags.util';
 import type { MergeTag } from '../../../core/models/consent.model';
 import { ConsentLanguageCode, DEFAULT_LANGUAGE } from '../../../core/constants/consent-languages';
@@ -41,7 +42,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatIconModule } from '@angular/material/icon';
 import { computed } from '@angular/core';
-import { ConsentDetailsCardComponent } from './consent-details-card/consent-details-card.component';
+import { ConsentDetailsCardComponent, validityError } from './consent-details-card/consent-details-card.component';
 import { ConsentMessageCardComponent } from './consent-message-card/consent-message-card.component';
 import { ConsentTemplateRecordsComponent } from '../consent-template-records/consent-template-records.component';
 import { AiContentGeneratorComponent, AiInsertEvent } from './consent-message-card/ai-content-generator/ai-content-generator.component';
@@ -49,6 +50,7 @@ import { DeliveryChannelsCardComponent } from './delivery-channels-card/delivery
 import { RecurringScheduleEditorComponent } from '../../../shared/components/recurring-schedule-editor/recurring-schedule-editor.component';
 import { AuditActivityCardComponent } from './audit-activity-card/audit-activity-card.component';
 import { ButtonModule } from 'primeng/button';
+import { TooltipModule } from 'primeng/tooltip';
 import { ShellDockComponent } from '../../../shared/layout/app-shell/shell-dock.component';
 
 const LINKED_RULE_CHANNELS = ['EMAIL', 'SMS', 'WHATSAPP', 'RCS'] as const;
@@ -58,6 +60,7 @@ const LINKED_RULE_CHANNELS = ['EMAIL', 'SMS', 'WHATSAPP', 'RCS'] as const;
   standalone: true,
   imports: [
     ButtonModule,
+    TooltipModule,
     ShellDockComponent,
     ReactiveFormsModule,
     FormsModule,
@@ -97,8 +100,8 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
   @ViewChild('msgCard') msgCard!: ConsentMessageCardComponent;
 
   readonly form = this.fb.nonNullable.group({
-    consentName: ['', [Validators.required, Validators.maxLength(200)]],
-    description: ['', [Validators.required, Validators.maxLength(1000)]],
+    consentName: ['', [Validators.required, notBlank, Validators.maxLength(200)]],
+    description: ['', [Validators.required, notBlank, Validators.maxLength(1000)]],
     category: this.fb.nonNullable.control<ConsentCategory>('MARKETING', Validators.required),
     validityPreset: this.fb.nonNullable.control('365'),
     validityStartDate: [''],
@@ -120,6 +123,8 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
   readonly idLoading = signal(false);
   readonly loadedStatus = signal<ConsentStatus | null>(null);
   readonly lastSaved = signal<string | null>(null);
+  /** True while a manual Save Draft or Submit request is in flight (blocks double-clicks). */
+  readonly saving = signal(false);
   readonly autosaveBusy = signal(false);
   readonly formSubmitted = signal(false);
   readonly previewHtml = signal('');
@@ -489,11 +494,25 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
     return !!this.form.controls.consentName.value?.trim();
   }
 
-  canSubmit(): boolean {
+  /** Everything still missing before the consent can be submitted, in form order. */
+  submitBlockers(): string[] {
     const v = this.form.getRawValue();
-    const anyChannel = v.channelEmail || v.channelSms || v.channelPush || v.channelWhatsapp || v.channelRcs;
-    const msg = (this.form.controls.consentMessage.value || '').replace(/<[^>]+>/g, '').trim();
-    return this.nameOk() && anyChannel && !!msg && !!this.consentDbId();
+    const out: string[] = [];
+    if (!this.nameOk()) out.push('Consent name is required');
+    if (!v.description?.trim()) out.push('Description is required');
+    if (!v.category) out.push('Category must be selected');
+    const vErr = validityError(v.validityPreset, v.validityStartDate, v.validityEndDate);
+    if (vErr) out.push(vErr);
+    // stripHtmlClient decodes &nbsp; so "<p>&nbsp;</p>" counts as empty
+    if (!this.stripHtmlClient(v.consentMessage || '')) out.push('Consent message is required');
+    if (!(v.channelEmail || v.channelSms || v.channelPush || v.channelWhatsapp || v.channelRcs)) {
+      out.push('At least one channel is required');
+    }
+    return out;
+  }
+
+  canSubmit(): boolean {
+    return this.submitBlockers().length === 0 && !!this.consentDbId();
   }
 
   showLinkedCheckbox(): boolean {
@@ -520,11 +539,7 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
   }
 
   consentSectionReadyForLinked(): boolean {
-    const v = this.form.getRawValue();
-    const anyChannel = v.channelEmail || v.channelSms || v.channelPush || v.channelWhatsapp || v.channelRcs;
-    const msg = (this.form.controls.consentMessage.value || '').replace(/<[^>]+>/g, '').trim();
-    const d = this.form.controls.description.value?.trim() && this.form.controls.category.valid;
-    return this.nameOk() && !!d && anyChannel && !!msg;
+    return this.submitBlockers().length === 0;
   }
 
   onLinkedToggle(checked: boolean): void {
@@ -798,24 +813,41 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
     return (this.linkedRuleForm.broadcastChannels || []).includes(ch);
   }
 
-  linkedRuleSubmitReady(): boolean {
-    const segs = this.linkedRuleForm.selectedSegments ?? [];
-    if (segs.length === 0) {
-      return false;
+  /** Everything still missing in the paired broadcast rule, in form order. */
+  linkedRuleBlockers(): string[] {
+    const out: string[] = [];
+    if ((this.linkedRuleForm.selectedSegments ?? []).length === 0) {
+      out.push('Select at least one audience segment');
     }
-    const ch = this.linkedRuleForm.broadcastChannels ?? [];
-    if (ch.length === 0) {
-      return false;
+    if ((this.linkedRuleForm.broadcastChannels ?? []).length === 0) {
+      out.push('Select at least one broadcast channel');
     }
     if (this.linkedRuleForm.ruleType === 'PREDEFINED_SCENARIO' && !this.linkedRuleForm.predefinedScenario) {
-      return false;
+      out.push('Choose a predefined scenario');
     }
     if (this.linkedRuleForm.scheduleType === 'SCHEDULED') {
-      if (!this.linkedRuleForm.scheduledAt?.trim()) {
-        return false;
+      const at = this.linkedRuleForm.scheduledAt?.trim();
+      if (!at) {
+        out.push('Pick the scheduled date and time');
+      } else if (new Date(at).getTime() <= Date.now()) {
+        out.push('Scheduled date and time must be in the future');
       }
     }
     if (this.linkedRuleForm.scheduleType === 'RECURRING' && !this.recurringScheduleOk()) {
+      out.push('Complete the recurring schedule');
+    }
+    return out;
+  }
+
+  linkedRuleSubmitReady(): boolean {
+    return this.linkedRuleBlockers().length === 0;
+  }
+
+  /** Shows everything missing in the consent and the paired rule; false when the submit must stop. */
+  private warnLinkedBlockers(): boolean {
+    const blockers = [...this.submitBlockers(), ...this.linkedRuleBlockers()];
+    if (blockers.length) {
+      this.notify.warning('Cannot submit yet', blockers.join('; '));
       return false;
     }
     return true;
@@ -873,12 +905,7 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
     }
     this.formSubmitted.set(true);
     this.form.markAllAsTouched();
-    if (!this.consentSectionReadyForLinked()) {
-      this.notify.warning('Almost there', 'Complete consent details, message, and delivery channels.');
-      return;
-    }
-    if (!this.linkedRuleSubmitReady()) {
-      this.notify.warning('Broadcast rule', 'Select audience segments, channels, and a valid schedule.');
+    if (!this.warnLinkedBlockers()) {
       return;
     }
     const body = this.buildLinkedCreatePayload();
@@ -904,11 +931,17 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
                   void this.router.navigate(['/maker/consents', cid, 'edit'], { replaceUrl: true });
                 }
               },
-              error: () => this.linkedBusy.set(false),
+              error: (err) => {
+                this.linkedBusy.set(false);
+                this.showSaveError(err, 'Not submitted');
+              },
             }),
           );
         },
-        error: () => this.linkedBusy.set(false),
+        error: (err) => {
+          this.linkedBusy.set(false);
+          this.showSaveError(err, 'Not submitted');
+        },
       }),
     );
   }
@@ -916,8 +949,7 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
   private resubmitPersistedLinkedPair(): void {
     this.formSubmitted.set(true);
     this.form.markAllAsTouched();
-    if (!this.consentSectionReadyForLinked() || !this.linkedRuleSubmitReady()) {
-      this.notify.warning('Almost there', 'Complete consent and broadcast rule before resubmitting.');
+    if (!this.warnLinkedBlockers()) {
       return;
     }
     const cid = this.consentDbId()!;
@@ -947,15 +979,24 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
                         void this.router.navigate(['/maker/consents', cid, 'edit'], { replaceUrl: true });
                       }
                     },
-                    error: () => this.linkedBusy.set(false),
+                    error: (err) => {
+                      this.linkedBusy.set(false);
+                      this.showSaveError(err, 'Not submitted');
+                    },
                   }),
                 );
               },
-              error: () => this.linkedBusy.set(false),
+              error: (err) => {
+                this.linkedBusy.set(false);
+                this.showSaveError(err, 'Not submitted');
+              },
             }),
           );
         },
-        error: () => this.linkedBusy.set(false),
+        error: (err) => {
+          this.linkedBusy.set(false);
+          this.showSaveError(err, 'Not submitted');
+        },
       }),
     );
   }
@@ -1033,7 +1074,8 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
   }
 
   saveDraft(): void {
-    if (!this.editable()) {
+    // A double-click must not create two consents or send two saves
+    if (!this.editable() || this.saving()) {
       return;
     }
     if (this.createLinkedBroadcastRule() && !this.consentDbId()) {
@@ -1051,9 +1093,10 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
     this.form.controls.consentName.markAsTouched();
     const payload = this.buildPayload();
     const id = this.consentDbId();
+    this.saving.set(true);
     if (!id) {
       this.subs.add(
-        this.api.createConsent(payload).subscribe({
+        this.api.createConsent(payload).pipe(finalize(() => this.saving.set(false))).subscribe({
           next: (res) => {
             if (res.success && res.data) {
               this.consentDbId.set(res.data.id);
@@ -1067,6 +1110,7 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
               void this.router.navigate(['/maker/consents', res.data.id, 'edit'], { replaceUrl: true });
             }
           },
+          error: (err) => this.showSaveError(err),
         }),
       );
       return;
@@ -1078,26 +1122,33 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
           next: (res) => {
             if (!res.success) {
               this.autosaveBusy.set(false);
+              this.saving.set(false);
               return;
             }
             const rid = this.linkedRuleDbId()!;
             this.subs.add(
-              this.rulesApi.saveLinkedDraft(rid, this.linkedRulePayload()).subscribe({
-                next: (r2) => {
-                  this.autosaveBusy.set(false);
-                  if (r2.success) {
-                    this.lastSaved.set(new Date().toLocaleTimeString('en-IN', { hour12: false }));
-                    this.notify.success('Draft saved', res.message || 'Consent and linked rule saved.');
-                  }
-                },
-                error: () => {
-                  this.autosaveBusy.set(false);
-                },
-              }),
+              this.rulesApi
+                .saveLinkedDraft(rid, this.linkedRulePayload())
+                .pipe(finalize(() => this.saving.set(false)))
+                .subscribe({
+                  next: (r2) => {
+                    this.autosaveBusy.set(false);
+                    if (r2.success) {
+                      this.lastSaved.set(new Date().toLocaleTimeString('en-IN', { hour12: false }));
+                      this.notify.success('Draft saved', res.message || 'Consent and linked rule saved.');
+                    }
+                  },
+                  error: (err) => {
+                    this.autosaveBusy.set(false);
+                    this.showSaveError(err);
+                  },
+                }),
             );
           },
-          error: () => {
+          error: (err) => {
             this.autosaveBusy.set(false);
+            this.saving.set(false);
+            this.showSaveError(err);
           },
         }),
       );
@@ -1105,7 +1156,7 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
     }
     this.autosaveBusy.set(true);
     this.subs.add(
-      this.api.saveDraft(id, payload).subscribe({
+      this.api.saveDraft(id, payload).pipe(finalize(() => this.saving.set(false))).subscribe({
         next: (res) => {
           this.autosaveBusy.set(false);
           if (res.success && res.data) {
@@ -1116,11 +1167,26 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
             }
           }
         },
-        error: () => {
+        error: (err) => {
           this.autosaveBusy.set(false);
+          this.showSaveError(err);
         },
       }),
     );
+  }
+
+  /** Save/submit failed: tell the user why (field errors, server message, or offline). */
+  private showSaveError(
+    err: { status?: number; error?: { message?: string; errorCode?: string; data?: unknown } },
+    title = 'Draft not saved',
+  ): void {
+    let msg = err?.error?.message || 'Please try again.';
+    if (err?.status === 0) {
+      msg = 'Cannot reach the server. Check your connection — your changes are still on this page.';
+    } else if (err?.error?.errorCode === 'VALIDATION_ERROR' && err.error.data && typeof err.error.data === 'object') {
+      msg = Object.values(err.error.data as Record<string, string>).join('; ') || msg;
+    }
+    this.notify.error(title, msg);
   }
 
   private tryAutoSave(): void {
@@ -1153,30 +1219,45 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
   }
 
   submitForApproval(): void {
+    // A double-click must produce exactly one submission
+    if (this.saving()) {
+      return;
+    }
     this.formSubmitted.set(true);
     this.form.markAllAsTouched();
-    if (!this.canSubmit()) {
-      this.notify.warning('Almost there', 'Add a message, pick at least one channel, and ensure the name is set.');
+    const blockers = this.submitBlockers();
+    if (blockers.length) {
+      this.notify.warning('Cannot submit yet', blockers.join('; '));
       return;
     }
     const id = this.consentDbId();
     if (!id) {
+      this.notify.warning('Cannot submit yet', 'Save the draft first.');
       return;
     }
+    this.saving.set(true);
     this.subs.add(
       this.api.saveDraft(id, this.buildPayload()).subscribe({
         next: () => {
           this.subs.add(
-            this.api.submitForApproval(id).subscribe({
-              next: (res) => {
-                if (res.success && res.data) {
-                  this.loadedStatus.set(res.data.status);
-                  this.notify.success('Submitted', res.message || 'Submitted for approval.');
-                  void this.router.navigate(['/maker/consents', id, 'edit'], { replaceUrl: true });
-                }
-              },
-            }),
+            this.api
+              .submitForApproval(id)
+              .pipe(finalize(() => this.saving.set(false)))
+              .subscribe({
+                next: (res) => {
+                  if (res.success && res.data) {
+                    this.loadedStatus.set(res.data.status);
+                    this.notify.success('Submitted', res.message || 'Submitted for approval.');
+                    void this.router.navigate(['/maker/consents', id, 'edit'], { replaceUrl: true });
+                  }
+                },
+                error: (err) => this.showSaveError(err, 'Not submitted'),
+              }),
           );
+        },
+        error: (err) => {
+          this.saving.set(false);
+          this.showSaveError(err, 'Not submitted');
         },
       }),
     );
@@ -1188,7 +1269,7 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
 
   progress(): { details: boolean; message: boolean; channels: boolean; ready: boolean } {
     const d = this.form.controls.description.value?.trim() && this.form.controls.category.valid;
-    const m = !!(this.form.controls.consentMessage.value || '').replace(/<[^>]+>/g, '').trim();
+    const m = !!this.stripHtmlClient(this.form.controls.consentMessage.value || '');
     const fv = this.form.getRawValue();
     const c = fv.channelEmail || fv.channelSms || fv.channelPush || fv.channelWhatsapp || fv.channelRcs;
     return {
@@ -1214,6 +1295,10 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
   }
 
   onAiInsert(event: AiInsertEvent): void {
+    if (!this.editable()) {
+      this.notify.warning('View only', 'This consent can no longer be edited.');
+      return;
+    }
     const lang = event.languageCode || this.activeEditorLanguage();
 
     // Make sure the editor is showing the language we're inserting into,

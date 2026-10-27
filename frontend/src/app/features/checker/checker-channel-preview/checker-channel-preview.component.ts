@@ -9,6 +9,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { MergeTag } from '../../../core/models/consent.model';
 import { CHANNEL_META } from '../../../core/utils/channel.util';
+import { sanitizeRichHtml } from '../../../core/utils/safe-html.util';
 
 type ChannelId = 'EMAIL' | 'SMS' | 'PUSH' | 'WHATSAPP' | 'RCS';
 
@@ -67,7 +68,7 @@ export class CheckerChannelPreviewComponent implements OnChanges {
       const key = t.tagKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       html = html.replace(new RegExp(key, 'g'), t.sampleValue || '');
     }
-    return this.sanitizer.bypassSecurityTrustHtml(html);
+    return this.sanitizer.bypassSecurityTrustHtml(sanitizeRichHtml(html));
   }
 
   extractImages(html: string): string[] {

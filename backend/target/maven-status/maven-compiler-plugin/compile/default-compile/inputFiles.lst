@@ -54,6 +54,7 @@ D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\repository\CustomerChannelP
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\controller\PasswordResetController.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\model\dto\response\AdminDashboardStatsResponse.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\controller\PublicConsentInviteController.java
+D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\util\ReviewReasonUtil.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\model\dto\response\CustomerConsentRecordStatsResponse.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\model\dto\response\mis\MisRevocationRowResponse.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\model\dto\response\ReviewHistoryResponse.java

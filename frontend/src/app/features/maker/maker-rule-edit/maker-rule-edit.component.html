@@ -139,6 +139,11 @@
         @if (tplField.touched && tplField.invalid) {
         <small class="fld-error"><i class="pi pi-exclamation-circle" aria-hidden="true"></i>Consent template is required.</small>
         }
+        <button type="button" class="tpl-preview" [disabled]="!form.consentTemplateId || previewBusy()"
+          (click)="previewTemplate()">
+          <i [class]="previewBusy() ? 'pi pi-spin pi-spinner' : 'pi pi-eye'" aria-hidden="true"></i>
+          Preview consent message
+        </button>
       </div>
 
       <div class="section-title"><mat-icon aria-hidden="true">schedule</mat-icon>Schedule</div>
@@ -187,6 +192,9 @@
           <mat-icon class="preview-icon" aria-hidden="true">event</mat-icon>
           Scheduled for <strong>{{ scheduledDateTimePreview() }}</strong>
         </div>
+        @if (scheduleInPast()) {
+        <div class="alert warn">⚠ This time has already passed. Pick a future date and time.</div>
+        }
         }
         @if (!scheduledDateTimePreview() && scheduledDate()) {
         <div class="datetime-hint">Enter a valid time (e.g. 09:30) to complete the schedule.</div>
@@ -213,9 +221,9 @@
 
       <div class="actions">
         <button mat-stroked-button type="button" (click)="saveDraft()"
-          [disabled]="busy() || !canEdit() || !recurringScheduleOk()"><mat-icon>save</mat-icon>Save draft</button>
+          [disabled]="busy() || !canEdit()"><mat-icon>save</mat-icon>Save draft</button>
         <button mat-flat-button color="primary" type="button" (click)="submitForApproval()"
-          [disabled]="busy() || !canSubmit() || !recurringScheduleOk()">
+          [disabled]="busy() || !canEdit()">
           <mat-icon>send</mat-icon>
           Submit for approval
         </button>

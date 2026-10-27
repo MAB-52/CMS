@@ -48,6 +48,12 @@ public class ConsentController {
                 : "anonymous";
     }
 
+    /** Makers may read their own consents plus other Makers' approved/published ones (403 otherwise). */
+    private void assertCanView(Long id, Authentication authentication) {
+        UserDetailsImpl user = (UserDetailsImpl) authentication.getPrincipal();
+        consentService.assertCanView(id, user.getId(), user.getRole());
+    }
+
     @GetMapping("/my-consents")
     @PreAuthorize("hasAnyRole('MAKER','ADMIN')")
     public ResponseEntity<ApiResponse<PagedResponse<ConsentResponse>>> getMyConsents(
@@ -93,7 +99,7 @@ public class ConsentController {
     }
 
     @GetMapping("/stats/checker")
-    @PreAuthorize("hasAnyRole('CHECKER','ADMIN')")
+    @PreAuthorize("hasRole('CHECKER')")
     public ResponseEntity<ApiResponse<CheckerStatsResponse>> getCheckerStats(
             Authentication authentication, HttpServletRequest httpRequest) {
         String cu = currentUser();
@@ -192,7 +198,7 @@ public class ConsentController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ConsentResponse>> getConsentById(
-            @PathVariable("id") Long id, HttpServletRequest httpRequest) {
+            @PathVariable("id") Long id, Authentication authentication, HttpServletRequest httpRequest) {
         String cu = currentUser();
         log.info(
                 "HTTP REQUEST | method={} | uri={} | user={}",
@@ -201,7 +207,8 @@ public class ConsentController {
                 cu);
         log.debug("Entering getConsentById | params: id={}", id);
         log.info("User={} | action=getConsentById | entity=Consent | id={}", cu, id);
-        ConsentResponse data = consentService.getConsentById(id);
+        UserDetailsImpl user = (UserDetailsImpl) authentication.getPrincipal();
+        ConsentResponse data = consentService.getConsentForViewer(id, user.getId(), user.getRole());
         ResponseEntity<ApiResponse<ConsentResponse>> result =
                 ResponseEntity.ok(ApiResponse.success("Consent retrieved successfully", data));
         log.debug("Exiting getConsentById | result={}", result.getStatusCode());
@@ -314,7 +321,7 @@ public class ConsentController {
     }
 
     @GetMapping("/pending-approval")
-    @PreAuthorize("hasAnyRole('CHECKER','ADMIN')")
+    @PreAuthorize("hasRole('CHECKER')")
     public ResponseEntity<ApiResponse<List<ConsentResponse>>> getPendingApprovals(
             Authentication authentication, HttpServletRequest httpRequest) {
         String cu = currentUser();
@@ -334,7 +341,7 @@ public class ConsentController {
     }
 
     @GetMapping("/linked-pending")
-    @PreAuthorize("hasAnyRole('CHECKER','ADMIN')")
+    @PreAuthorize("hasRole('CHECKER')")
     public ResponseEntity<ApiResponse<List<ConsentResponse>>> getLinkedPendingApprovals(
             Authentication authentication, HttpServletRequest httpRequest) {
         String cu = currentUser();
@@ -354,7 +361,7 @@ public class ConsentController {
     }
 
     @PostMapping("/{id}/review")
-    @PreAuthorize("hasAnyRole('CHECKER','ADMIN')")
+    @PreAuthorize("hasRole('CHECKER')")
     public ResponseEntity<ApiResponse<ConsentResponse>> reviewConsent(
             @PathVariable("id") Long id,
             @Valid @RequestBody ConsentReviewRequest request,
@@ -387,7 +394,7 @@ public class ConsentController {
 
     @GetMapping("/{id}/diff")
     public ResponseEntity<ApiResponse<ConsentDiffResponse>> getConsentDiff(
-            @PathVariable("id") Long id, HttpServletRequest httpRequest) {
+            @PathVariable("id") Long id, Authentication authentication, HttpServletRequest httpRequest) {
         String cu = currentUser();
         log.info(
                 "HTTP REQUEST | method={} | uri={} | user={}",
@@ -396,6 +403,7 @@ public class ConsentController {
                 cu);
         log.debug("Entering getConsentDiff | params: id={}", id);
         log.info("User={} | action=getConsentDiff | entity=Consent | id={}", cu, id);
+        assertCanView(id, authentication);
         ConsentDiffResponse data = consentService.getConsentDiff(id);
         ResponseEntity<ApiResponse<ConsentDiffResponse>> result =
                 ResponseEntity.ok(ApiResponse.success("Diff retrieved successfully", data));
@@ -405,7 +413,7 @@ public class ConsentController {
 
     @GetMapping("/{id}/versions")
     public ResponseEntity<ApiResponse<List<ConsentVersionResponse>>> getVersionHistory(
-            @PathVariable("id") Long id, HttpServletRequest httpRequest) {
+            @PathVariable("id") Long id, Authentication authentication, HttpServletRequest httpRequest) {
         String cu = currentUser();
         log.info(
                 "HTTP REQUEST | method={} | uri={} | user={}",
@@ -414,6 +422,7 @@ public class ConsentController {
                 cu);
         log.debug("Entering getVersionHistory | params: id={}", id);
         log.info("User={} | action=getVersionHistory | entity=Consent | id={}", cu, id);
+        assertCanView(id, authentication);
         List<ConsentVersionResponse> data = consentService.getVersionHistory(id);
         ResponseEntity<ApiResponse<List<ConsentVersionResponse>>> result =
                 ResponseEntity.ok(ApiResponse.success("Version history retrieved", data));

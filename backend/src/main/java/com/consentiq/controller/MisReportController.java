@@ -79,6 +79,7 @@ public class MisReportController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant toDate,
             HttpServletRequest http) {
         misEnter("consentTrend", http);
+        requireRange(fromDate, toDate);
         ResponseEntity<ApiResponse<MisConsentTrendResponse>> r =
                 ResponseEntity.ok(
                         ApiResponse.success(
@@ -98,6 +99,7 @@ public class MisReportController {
             @RequestParam(defaultValue = "10") int size,
             HttpServletRequest http) {
         misEnter("customerConsentReport", http);
+        requireRange(fromDate, toDate);
         List<CustomerConsentRecordStatus> statuses = MisReportService.parseStatusList(status);
         ResponseEntity<ApiResponse<PagedResponse<MisCustomerConsentRowResponse>>> r =
                 ResponseEntity.ok(
@@ -120,6 +122,7 @@ public class MisReportController {
             HttpServletRequest http)
             throws IOException {
         misEnter("exportCustomerConsentCsv", http);
+        requireRange(fromDate, toDate);
         List<CustomerConsentRecordStatus> statuses = MisReportService.parseStatusList(status);
         String filename = "customer-consent-report.csv";
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
@@ -145,6 +148,7 @@ public class MisReportController {
             HttpServletRequest http)
             throws IOException {
         misEnter("exportCustomerConsentExcel", http);
+        requireRange(fromDate, toDate);
         List<CustomerConsentRecordStatus> statuses = MisReportService.parseStatusList(status);
         byte[] body = misReportService.exportCustomerConsentExcel(statuses, vip, fromDate, toDate, search);
         ResponseEntity<byte[]> r =
@@ -172,6 +176,7 @@ public class MisReportController {
             @RequestParam(defaultValue = "10") int size,
             HttpServletRequest http) {
         misEnter("auditReport", http);
+        requireRange(fromDate, toDate);
         ResponseEntity<ApiResponse<PagedResponse<AuditLogResponse>>> r =
                 ResponseEntity.ok(
                         ApiResponse.success(
@@ -204,6 +209,7 @@ public class MisReportController {
             HttpServletRequest http)
             throws IOException {
         misEnter("exportAuditCsv", http);
+        requireRange(fromDate, toDate);
         byte[] body =
                 misReportService.exportAuditCsv(
                         entityType, action, fromDate, toDate, performedBy, performedByRole, workflowActionsOnly, adminActorOnly);
@@ -231,6 +237,7 @@ public class MisReportController {
             HttpServletRequest http)
             throws IOException {
         misEnter("exportAuditExcel", http);
+        requireRange(fromDate, toDate);
         byte[] body =
                 misReportService.exportAuditExcel(
                         entityType, action, fromDate, toDate, performedBy, performedByRole, workflowActionsOnly, adminActorOnly);
@@ -320,6 +327,7 @@ public class MisReportController {
             @RequestParam(defaultValue = "10") int size,
             HttpServletRequest http) {
         misEnter("revocationReport", http);
+        requireRange(fromDate, toDate);
         ResponseEntity<ApiResponse<PagedResponse<MisRevocationRowResponse>>> r =
                 ResponseEntity.ok(
                         ApiResponse.success(
@@ -346,6 +354,7 @@ public class MisReportController {
             HttpServletRequest http)
             throws IOException {
         misEnter("exportRevocationCsv", http);
+        requireRange(fromDate, toDate);
         java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
         misReportService.exportRevocationCsv(bos, fromDate, toDate, vip);
         ResponseEntity<byte[]> r =
@@ -367,6 +376,7 @@ public class MisReportController {
             HttpServletRequest http)
             throws IOException {
         misEnter("exportRevocationExcel", http);
+        requireRange(fromDate, toDate);
         byte[] body = misReportService.exportRevocationExcel(fromDate, toDate, vip);
         ResponseEntity<byte[]> r =
                 ResponseEntity.ok()
@@ -424,6 +434,7 @@ public class MisReportController {
             @RequestParam(defaultValue = "10") int size,
             HttpServletRequest http) {
         misEnter("tatReport", http);
+        requireRange(fromDate, toDate);
         ResponseEntity<ApiResponse<MisTatReportBundleResponse>> r =
                 ResponseEntity.ok(
                         ApiResponse.success(
@@ -442,6 +453,7 @@ public class MisReportController {
             HttpServletRequest http)
             throws IOException {
         misEnter("exportTatCsv", http);
+        requireRange(fromDate, toDate);
         byte[] body = misReportService.exportTatCsv(fromDate, toDate, status, creatorId);
         ResponseEntity<byte[]> r =
                 ResponseEntity.ok()
@@ -463,6 +475,7 @@ public class MisReportController {
             HttpServletRequest http)
             throws IOException {
         misEnter("exportTatExcel", http);
+        requireRange(fromDate, toDate);
         byte[] body = misReportService.exportTatExcel(fromDate, toDate, status, creatorId);
         ResponseEntity<byte[]> r =
                 ResponseEntity.ok()
@@ -544,6 +557,7 @@ public class MisReportController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant toDate,
             HttpServletRequest http) {
         misEnter("activeConsentsTimeline", http);
+        requireRange(fromDate, toDate);
         ResponseEntity<ApiResponse<MisActiveConsentsTimelineResponse>> r =
                 ResponseEntity.ok(
                         ApiResponse.success(
@@ -679,6 +693,7 @@ public class MisReportController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant toDate,
             HttpServletRequest http) {
         misEnter("demographicLifecycle", http);
+        requireRange(fromDate, toDate);
         ResponseEntity<ApiResponse<MisDemographicLifecycleResponse>> r =
                 ResponseEntity.ok(
                         ApiResponse.success(
@@ -707,4 +722,11 @@ public class MisReportController {
         misExit("demographicGeo", r.getStatusCode());
         return r;
     }
+
+    private static <T extends Comparable<? super T>> void requireRange(T from, T to) {
+        if (from != null && to != null && from.compareTo(to) > 0) {
+            throw new IllegalArgumentException("'From' date must be on or before 'To' date.");
+        }
+    }
+
 }

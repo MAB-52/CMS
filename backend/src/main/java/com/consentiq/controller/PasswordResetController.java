@@ -43,7 +43,7 @@ public class PasswordResetController {
         log.info("User={} | action=forgotPassword | entity=PasswordReset | id=n/a", cu);
         passwordResetService.initiatePasswordReset(request);
         ResponseEntity<ApiResponse<Void>> result =
-                ResponseEntity.ok(ApiResponse.success("If the email exists, an OTP has been sent", null));
+                ResponseEntity.ok(ApiResponse.success("If this email is registered, an OTP has been sent.", null));
         log.debug("Exiting forgotPassword | result={}", result.getStatusCode());
         return result;
     }

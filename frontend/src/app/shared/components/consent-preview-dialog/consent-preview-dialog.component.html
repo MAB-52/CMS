@@ -1,29 +1,19 @@
 <div class="dlg">
   <div class="dlg-head">
+    <span class="dlg-head__ico" aria-hidden="true"><i class="pi pi-eye"></i></span>
     <div class="dlg-head__copy">
-      <span class="dlg-eyebrow">Consent Preview</span>
-      <h2 mat-dialog-title class="dlg-title">Message Preview</h2>
-      <p class="dlg-sub">
-        Review the rendered message with sample merge-tag values before publishing.
-      </p>
+      <span class="dlg-eyebrow">Consent preview</span>
+      <h2 mat-dialog-title class="dlg-title">Message preview</h2>
+      <p class="dlg-sub">Review the rendered message with sample merge-tag values before publishing.</p>
     </div>
-
-    <button
-      type="button"
-      class="dlg-x"
-      mat-dialog-close
-      aria-label="Close preview dialog"
-    >
-      <mat-icon>close</mat-icon>
-    </button>
+    <button type="button" class="dlg-x" mat-dialog-close aria-label="Close preview" pTooltip="Close"
+      tooltipPosition="left"><i class="pi pi-times"></i></button>
   </div>
 
   <mat-dialog-content class="dlg-body">
     <div class="dlg-info">
-      <mat-icon class="dlg-info__icon" aria-hidden="true">info</mat-icon>
-      <div class="dlg-info__text">
-        Dynamic fields are shown with sample values for preview only. Actual customer values will be used in production.
-      </div>
+      <i class="pi pi-info-circle dlg-info__icon" aria-hidden="true"></i>
+      <span class="dlg-info__text">Dynamic fields show sample values for preview only. Real customer values are used when the message is sent.</span>
     </div>
 
     <div class="dlg-preview-wrap">
@@ -32,8 +22,6 @@
   </mat-dialog-content>
 
   <mat-dialog-actions align="end" class="dlg-actions">
-    <button mat-stroked-button mat-dialog-close class="dlg-btn dlg-btn--secondary">
-      Close
-    </button>
+    <p-button label="Close" icon="pi pi-times" [outlined]="true" [rounded]="true" styleClass="dlg-btn" mat-dialog-close />
   </mat-dialog-actions>
 </div>

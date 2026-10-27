@@ -252,9 +252,15 @@ public class ConsentRuleExecutionService {
 			log.info("DB query completed | method=findByIdForUpdate | present=true");
 			assertAdminManageable(rule);
 			rule.setExecutionActive(active);
+			// Active ⇔ LIVE: only LIVE rules can be run manually or by the scheduler.
 			if (active) {
+				rule.setStatus(ConsentRuleStatus.LIVE);
+				if (rule.getPublishedAt() == null) {
+					rule.setPublishedAt(Instant.now());
+				}
 				RuleNextRunUtil.applyNextExecutionOnActivation(rule);
 			} else {
+				rule.setStatus(ConsentRuleStatus.APPROVED);
 				rule.setNextExecutionAt(null);
 			}
 			log.info("Executing DB query | method=save | param=ConsentRule");
@@ -288,8 +294,8 @@ public class ConsentRuleExecutionService {
 					.orElseThrow(() -> new IllegalArgumentException("Rule not found."));
 			log.info("DB query completed | method=findByIdForUpdate | present=true");
 			assertAdminManageable(rule);
-			if (!rule.isExecutionActive()) {
-				throw new IllegalArgumentException("Activate this rule before running it from the Admin dashboard.");
+			if (rule.getStatus() != ConsentRuleStatus.LIVE || !rule.isExecutionActive()) {
+				throw new IllegalArgumentException("Only LIVE (active) rules can be run. Activate this rule first.");
 			}
 			auditService.log(adminUserId, "RULE_MANUAL_RUN_REQUESTED", "CONSENT_RULE", rule.getId(), rule.getRuleName(),
 					"Manual rule execution started", http);
@@ -348,6 +354,7 @@ public class ConsentRuleExecutionService {
 			log.info("Executing DB query | method=findAllByStatusInOrderByApprovedAtDesc | param=ADMIN_MANAGEABLE");
 			List<ConsentRule> rules = consentRuleRepository.findAllByStatusInOrderByApprovedAtDesc(ADMIN_MANAGEABLE);
 			List<Long> res = rules.stream()
+					.filter(r -> r.getStatus() == ConsentRuleStatus.LIVE)
 					.filter(ConsentRule::isExecutionActive).filter(r -> !r.isExecutionRunning())
 					.filter(r -> r.getConsentTemplate() != null).map(ConsentRule::getId).collect(Collectors.toList());
 			log.info("DB query completed | method=findAllByStatusInOrderByApprovedAtDesc | size={}", rules.size());
@@ -366,7 +373,7 @@ public class ConsentRuleExecutionService {
 			eligible = false;
 		} else if (r.getConsentTemplate() == null) {
 			eligible = false;
-		} else if (r.getStatus() != ConsentRuleStatus.APPROVED && r.getStatus() != ConsentRuleStatus.LIVE) {
+		} else if (r.getStatus() != ConsentRuleStatus.LIVE) {
 			eligible = false;
 		} else {
 			eligible = switch (r.getScheduleType()) {
@@ -414,8 +421,8 @@ public class ConsentRuleExecutionService {
 		try {
 			validateTemplateAndChannels(rule);
 			if (evaluated == 0) {
-				outcome = BroadcastExecutionStatus.FAILED;
-				summary = "No eligible customers matched the configured audience segments.";
+				outcome = BroadcastExecutionStatus.SUCCESS;
+				summary = "No eligible customers matched the configured audience segments. 0 messages sent.";
 				channelResults.put("_engine", Map.of("status", "NO_AUDIENCE", "message", summary));
 			} else {
 				DispatchChannelsResult dispatched = dispatchChannels(rule, recipients);
@@ -571,7 +578,7 @@ public class ConsentRuleExecutionService {
 		String opaqueCode = UUID.randomUUID().toString().replace("-", "");
 		log.info("Executing DB query | method=save | param=ConsentOneTimeCode");
 		consentOneTimeCodeRepository.save(ConsentOneTimeCode.builder().code(opaqueCode).consentRequestId(entity.getId())
-				.createdAt(now).expiresAt(now.plus(15, ChronoUnit.MINUTES)).used(false).build());
+				.createdAt(now).expiresAt(now.plus(24, ChronoUnit.HOURS)).used(false).build());
 		log.info("DB query completed | method=save | result=completed");
 		customer.setLastConsentInviteSentAt(now);
 		if (customer.getLastConsentResponseAt() == null) {
@@ -727,7 +734,7 @@ public class ConsentRuleExecutionService {
 		if (channelResults.containsKey("_engine")) {
 			Object st = ((Map<?, ?>) channelResults.get("_engine")).get("status");
 			if ("NO_AUDIENCE".equals(String.valueOf(st))) {
-				return BroadcastExecutionStatus.FAILED;
+				return BroadcastExecutionStatus.SUCCESS;
 			}
 		}
 		boolean anyFailed = channelResults.entrySet().stream().filter(e -> !"_engine".equals(e.getKey()))

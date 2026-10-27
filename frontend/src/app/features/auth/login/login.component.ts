@@ -1,28 +1,34 @@
 import { Component, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
+import { CheckboxModule } from 'primeng/checkbox';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
-import { PasswordModule } from 'primeng/password';
+import { TooltipModule } from 'primeng/tooltip';
 import { AuthService } from '../../../core/services/auth.service';
 import { LoggerService } from '../../../core/services/logger.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { EMAIL_PATTERN, notBlank } from '../../../core/validators/form-validators';
+
+const REMEMBER_KEY = 'ciq_remember_email';
 
 @Component({
   selector: 'app-login',
   standalone: true,
   imports: [
+    FormsModule,
     ReactiveFormsModule,
     RouterModule,
     ButtonModule,
+    CheckboxModule,
     IconFieldModule,
     InputIconModule,
     InputTextModule,
     MessageModule,
-    PasswordModule,
+    TooltipModule,
   ],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css',
@@ -39,21 +45,39 @@ export class LoginComponent {
   readonly loading = signal(false);
   readonly errorBanner = signal<string | null>(null);
   readonly success = signal(false);
+  readonly hidePw = signal(true);
+
+  readonly features = [
+    { icon: 'pi pi-shield', title: 'Secure consent capture', text: 'Encrypted at rest and in transit' },
+    { icon: 'pi pi-users', title: 'Maker–checker approvals', text: 'No change goes live unreviewed' },
+    { icon: 'pi pi-file', title: 'Complete audit trail', text: 'Every action recorded and searchable' },
+  ];
+
+  remember = false;
 
   readonly form = this.fb.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(4)]],
+    email: ['', [Validators.required, notBlank, Validators.pattern(EMAIL_PATTERN)]],
+    password: ['', [Validators.required, notBlank, Validators.minLength(4)]],
   });
 
   constructor() {
+    const saved = this.readRemembered();
+    if (saved) {
+      this.form.controls.email.setValue(saved);
+      this.remember = true;
+    }
     if (this.route.snapshot.queryParamMap.get('reason') === 'session_expired') {
-      this.notify.warning('Session expired', 'Please sign in again.');
+      this.notify.warnOnce('session-expired', 'Session expired. Please sign in again.');
     }
   }
 
   showError(name: 'email' | 'password'): boolean {
     const c = this.form.controls[name];
     return c.invalid && c.touched;
+  }
+
+  togglePw(): void {
+    this.hidePw.update((v) => !v);
   }
 
   submit(): void {
@@ -64,13 +88,15 @@ export class LoginComponent {
     }
     this.loading.set(true);
     const { email, password } = this.form.getRawValue();
-    this.auth.login(email, password).subscribe({
+    const trimmed = email.trim();
+    this.auth.login(trimmed, password).subscribe({
       next: (res) => {
         if (!res.success || !res.data?.token) {
           this.loading.set(false);
           this.errorBanner.set(res.message || 'Sign-in failed.');
           return;
         }
+        this.storeRemembered(trimmed);
         this.success.set(true);
         this.logger.info('LoginComponent', 'Navigating after login');
         setTimeout(() => {
@@ -83,5 +109,22 @@ export class LoginComponent {
         this.errorBanner.set(err?.error?.message || err?.message || 'Unable to sign in.');
       },
     });
+  }
+
+  private readRemembered(): string | null {
+    try {
+      return localStorage.getItem(REMEMBER_KEY);
+    } catch {
+      return null;
+    }
+  }
+
+  private storeRemembered(email: string): void {
+    try {
+      if (this.remember) localStorage.setItem(REMEMBER_KEY, email);
+      else localStorage.removeItem(REMEMBER_KEY);
+    } catch {
+      return;
+    }
   }
 }

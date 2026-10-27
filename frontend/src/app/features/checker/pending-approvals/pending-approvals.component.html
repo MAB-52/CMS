@@ -103,7 +103,16 @@
   </div>
 
   <!-- EMPTY STATE -->
-  @if (!filtered().length) {
+  @if (loading()) {
+    <div class="empty">
+      <div class="empty__icon">
+        <mat-icon>hourglass_empty</mat-icon>
+      </div>
+      <p>
+        Loading pending consents…
+      </p>
+    </div>
+  } @else if (!list().length) {
     <div class="empty">
       <div class="empty__icon">
         <mat-icon>task_alt</mat-icon>
@@ -113,6 +122,18 @@
       </h2>
       <p>
         No consents are waiting for your review.
+      </p>
+    </div>
+  } @else if (!filtered().length) {
+    <div class="empty">
+      <div class="empty__icon">
+        <mat-icon>search_off</mat-icon>
+      </div>
+      <h2>
+        No results found
+      </h2>
+      <p>
+        Try adjusting your search.
       </p>
     </div>
   } @else {

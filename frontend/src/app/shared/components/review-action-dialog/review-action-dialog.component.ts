@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormControl, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { ButtonModule } from 'primeng/button';
 import { TextareaModule } from 'primeng/textarea';
@@ -81,7 +81,13 @@ export class ReviewActionDialogComponent {
   }
 
   constructor() {
-    this.text.setValidators([Validators.required, Validators.minLength(this.data.minLength)]);
+    // Count trimmed characters (matches the on-screen counter), so 20 spaces or padded text can't pass
+    const min = this.data.minLength;
+    this.text.setValidators([
+      Validators.required,
+      (c: AbstractControl): ValidationErrors | null =>
+        ((c.value as string) || '').trim().length >= min ? null : { minlength: { requiredLength: min } },
+    ]);
   }
 
   languageLabel(code: string): string {

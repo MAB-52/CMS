@@ -1,11 +1,15 @@
 :host {
   display: block;
+  width: 100%;
+  min-width: 0;
   font-family: var(--is-font);
 }
 
 .dlg {
   position: relative;
-  width: min(720px, 92vw);
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
   background: var(--is-surface);
 }
 .dlg::before {
@@ -18,12 +22,22 @@
 .dlg-head {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
   gap: var(--is-s-3);
-  padding: var(--is-s-5) var(--is-s-5) var(--is-s-3);
+  padding: var(--is-s-5) var(--is-s-5) var(--is-s-4);
   border-bottom: 1px solid var(--is-border);
 }
-.dlg-head__copy { display: grid; gap: 4px; min-width: 0; }
+.dlg-head__ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--is-r-sm);
+  background: var(--is-grad-banner);
+  color: var(--is-text-inverse);
+  box-shadow: var(--is-shadow-primary);
+}
+.dlg-head__copy { display: grid; flex: 1; gap: 2px; min-width: 0; }
 .dlg-eyebrow {
   font-size: var(--is-fs-2xs);
   font-weight: var(--is-fw-bold);
@@ -37,7 +51,7 @@
   font-size: var(--is-fs-h3) !important;
   line-height: var(--is-lh-h3) !important;
   font-weight: var(--is-fw-bold) !important;
-  color: var(--is-text) !important;
+  color: var(--is-primary) !important;
 }
 .dlg-title::before { display: none; }
 .dlg-sub { margin: 0; font-size: var(--is-fs-sm); color: var(--is-text-2); }
@@ -45,43 +59,48 @@
   flex: none;
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border: 0;
   border-radius: var(--is-r-pill);
   background: transparent;
   color: var(--is-text-2);
   cursor: pointer;
-  transition: all var(--is-dur) ease;
+  transition: background var(--is-dur) ease, color var(--is-dur) ease, transform var(--is-dur) var(--is-ease);
 }
-.dlg-x:hover { background: var(--is-tint-purple); color: var(--is-primary); }
+.dlg-x:hover { background: var(--is-tint-purple); color: var(--is-primary); transform: rotate(90deg); }
 
 .dlg-body {
   display: grid !important;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--is-s-4);
-  padding: var(--is-s-4) var(--is-s-5) !important;
   max-height: 64vh;
+  padding: var(--is-s-4) var(--is-s-5) !important;
+  overflow-x: hidden !important;
 }
 .dlg-info {
   display: flex;
   align-items: flex-start;
   gap: 10px;
+  min-width: 0;
   padding: 12px 14px;
-  border-radius: var(--is-r-sm);
   border: 1px solid var(--is-info-border);
   border-left: 4px solid var(--is-info);
+  border-radius: var(--is-r-sm);
   background: var(--is-info-bg);
 }
-.dlg-info__icon { flex: none; font-size: 20px; width: 20px; height: 20px; color: var(--is-info); }
-.dlg-info__text { font-size: var(--is-fs-sm); line-height: 1.5; color: var(--is-text); }
+.dlg-info__icon { flex: none; margin-top: 2px; font-size: 15px; color: var(--is-info); }
+.dlg-info__text { min-width: 0; font-size: var(--is-fs-sm); line-height: 1.5; color: var(--is-text); }
 
 .dlg-preview-wrap {
+  min-width: 0;
   padding: var(--is-s-4);
+  border: 1px solid var(--is-border);
   border-radius: var(--is-r-md);
   background: var(--is-canvas);
-  border: 1px solid var(--is-border);
 }
 .dlg-preview {
+  min-width: 0;
   padding: var(--is-s-5);
   border-radius: var(--is-r-sm);
   background: var(--is-surface);
@@ -90,13 +109,31 @@
   font-size: var(--is-fs-body);
   line-height: 1.7;
   overflow-wrap: anywhere;
+  word-break: break-word;
+  animation: is-fade-in var(--is-dur-slow) ease both;
 }
-:host ::ng-deep .dlg-preview img { max-width: 100%; border-radius: var(--is-r-field); }
+:host ::ng-deep .dlg-preview * { max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }
+:host ::ng-deep .dlg-preview img { height: auto; border-radius: var(--is-r-field); }
 :host ::ng-deep .dlg-preview p { margin: 0 0 8px; }
+:host ::ng-deep .dlg-preview p:last-child { margin-bottom: 0; }
+:host ::ng-deep .dlg-preview .preview-tag {
+  padding: 0 4px;
+  border-radius: var(--is-r-xs);
+  background: var(--is-tint-purple);
+  color: var(--is-primary);
+  font-weight: var(--is-fw-semibold);
+}
 
 .dlg-actions {
   padding: var(--is-s-4) var(--is-s-5) !important;
   border-top: 1px solid var(--is-border);
-  background: var(--is-surface-2);
+  background: var(--is-canvas);
 }
-.dlg-btn { min-width: 120px; }
+:host ::ng-deep .dlg-btn.p-button {
+  min-width: 120px;
+  border-color: #2E1475;
+  color: #2E1475;
+  font-family: var(--is-font);
+  font-weight: var(--is-fw-bold);
+}
+:host ::ng-deep .dlg-btn.p-button:not(:disabled):hover { background: var(--is-tint-purple); border-color: #2E1475; color: #2E1475; }

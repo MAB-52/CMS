@@ -18,6 +18,14 @@
     } @else {
       @if (errorMessage(); as err) {
         <div class="banner banner--error" role="alert"><mat-icon class="banner-icon" aria-hidden="true">error_outline</mat-icon><span>{{ err }}</span></div>
+        <a
+          class="back-link"
+          routerLink="/public/consent/respond"
+          [queryParams]="{ token: token() }"
+        >
+          <mat-icon aria-hidden="true">arrow_back</mat-icon>
+          Back to consent request
+        </a>
       } @else {
         <a
           class="back-link"

@@ -1073,6 +1073,8 @@ import com.consentiq.exception.ConsentNotFoundException;
 import com.consentiq.exception.DuplicateConsentException;
 import com.consentiq.exception.InvalidConsentStateException;
 import com.consentiq.exception.UnauthorizedActionException;
+import com.consentiq.util.HtmlTextUtil;
+import com.consentiq.util.ReviewReasonUtil;
 import com.consentiq.model.dto.request.ConsentCreateRequest;
 import com.consentiq.model.dto.request.ConsentReviewRequest;
 import com.consentiq.model.dto.request.ConsentRuleLinkedDraftRequest;
@@ -1119,6 +1121,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ConsentService {
     private static final Logger log = LoggerFactory.getLogger(ConsentService.class);
+    private static final List<String> REVIEW_LANGUAGES = List.of("en", "hi", "mr", "ur");
+    private static final String FALLBACK_REVIEW_LANGUAGE = "en";
 
     private static String currentUser() {
         return SecurityContextHolder.getContext().getAuthentication() != null
@@ -1394,12 +1398,17 @@ public class ConsentService {
         log.debug("Entering submitForApproval | params: dbId={}, userId={}", dbId, userId);
         log.info("User={} | action=submitForApproval | entity=Consent | id={}", cu, dbId);
         log.debug("Transaction started | method=submitForApproval | id={}", dbId);
-        Consent consent = findConsent(dbId);
+        // Locked read: a double-click's second request waits here, then sees PENDING_APPROVAL and is rejected
+        Consent consent = consentRepository.findByIdForUpdate(dbId).orElseThrow(() -> new ConsentNotFoundException(dbId));
         validateOwner(consent, userId);
         if (consent.getStatus() != ConsentStatus.DRAFT && consent.getStatus() != ConsentStatus.REVISION_REQUESTED) {
             throw new InvalidConsentStateException(consent.getStatus().name(), "SUBMIT");
         }
-        if (!StringUtils.hasText(consent.getConsentMessage())) {
+        if (!StringUtils.hasText(consent.getDescription())) {
+            throw new IllegalArgumentException("Description is required before submitting for approval");
+        }
+        // Raw HTML like "<p>&nbsp;</p>" has text but nothing visible
+        if (HtmlTextUtil.isBlankHtml(consent.getConsentMessage())) {
             throw new IllegalArgumentException("Consent message cannot be empty before submitting for approval");
         }
         boolean anyChannel = consent.isChannelEmail() || consent.isChannelSms()
@@ -1431,6 +1440,8 @@ public class ConsentService {
         log.debug("Entering submitLinkedConsentAndRule | params: dbId={}, userId={}", dbId, userId);
         log.info("User={} | action=submitLinkedConsentAndRule | entity=Consent | id={}", cu, dbId);
         log.debug("Transaction started | method=submitLinkedConsentAndRule | id={}", dbId);
+        // Lock the row first so a concurrent duplicate submit waits and then fails the status check
+        consentRepository.findByIdForUpdate(dbId).orElseThrow(() -> new ConsentNotFoundException(dbId));
         Consent consent = findConsentWithLinkedRule(dbId);
         validateOwner(consent, userId);
         if (!consent.isLinkedRuleIntent() || consent.getLinkedRule() == null) {
@@ -1439,7 +1450,11 @@ public class ConsentService {
         if (consent.getStatus() != ConsentStatus.DRAFT && consent.getStatus() != ConsentStatus.REVISION_REQUESTED) {
             throw new InvalidConsentStateException(consent.getStatus().name(), "SUBMIT_LINKED");
         }
-        if (!StringUtils.hasText(consent.getConsentMessage())) {
+        if (!StringUtils.hasText(consent.getDescription())) {
+            throw new IllegalArgumentException("Description is required before submitting for approval");
+        }
+        // Raw HTML like "<p>&nbsp;</p>" has text but nothing visible
+        if (HtmlTextUtil.isBlankHtml(consent.getConsentMessage())) {
             throw new IllegalArgumentException("Consent message cannot be empty before submitting for approval");
         }
         boolean anyChannel = consent.isChannelEmail() || consent.isChannelSms()
@@ -1484,9 +1499,10 @@ public class ConsentService {
         log.info("User={} | action=reviewConsent | entity=Consent | id={}", cu, dbId);
         log.debug("Transaction started | method=reviewConsent | id={}", dbId);
         User checker = loadUser(checkerId);
-        if (checker.getRole() != UserRole.CHECKER && checker.getRole() != UserRole.ADMIN) {
+        if (checker.getRole() != UserRole.CHECKER) {
             throw new UnauthorizedActionException("REVIEW_CONSENT");
         }
+        consentRepository.findByIdForUpdate(dbId).orElseThrow(() -> new ConsentNotFoundException(dbId));
         Consent consent = findConsentWithLinkedRule(dbId);
         String action = request.getAction().trim().toUpperCase(Locale.ROOT);
         if ("PUBLISH".equals(action)) {
@@ -1514,7 +1530,9 @@ public class ConsentService {
             throw new InvalidConsentStateException(consent.getStatus().name(), action);
         }
         if (consent.getCreatedBy().getId().equals(checkerId)) {
-            throw new UnauthorizedActionException("You cannot approve a consent that you created");
+            throw new UnauthorizedActionException("APPROVE".equals(action)
+                    ? "You cannot approve a consent that you created"
+                    : "You cannot review a consent that you created");
         }
 
         // Persist reviewedCombinations (audit trail of what checker actually viewed) on every action
@@ -1530,14 +1548,16 @@ public class ConsentService {
 
         switch (action) {
             case "APPROVE" -> {
-                if (!StringUtils.hasText(request.getApproveReason())) {
-                    throw new IllegalArgumentException("Approval reason is required.");
-                }
-                consent.setStatus(ConsentStatus.APPROVED);
+                assertAllCombinationsReviewed(consent, request.getReviewedCombinations());
+                String approveReason = ReviewReasonUtil.require(
+                        request.getApproveReason(), ReviewReasonUtil.APPROVE_MIN, "Approval reason");
+                Instant approvedAt = Instant.now();
+                consent.setStatus(ConsentStatus.PUBLISHED);
+                consent.setPublishedAt(approvedAt);
                 consent.setReviewedBy(checker);
-                consent.setReviewedAt(Instant.now());
+                consent.setReviewedAt(approvedAt);
                 consent.setRejectionReason(null);
-                consent.setApproveReason(request.getApproveReason().trim());
+                consent.setApproveReason(approveReason);
                 auditService.log(
                         checkerId,
                         "CONSENT_APPROVED",
@@ -1548,11 +1568,10 @@ public class ConsentService {
                         http);
             }
             case "REJECT" -> {
-                if (!StringUtils.hasText(request.getReason())) {
-                    throw new IllegalArgumentException("Rejection reason is required");
-                }
+                String reason = ReviewReasonUtil.require(
+                        request.getReason(), ReviewReasonUtil.REJECT_MIN, "Rejection reason");
                 consent.setStatus(ConsentStatus.REJECTED);
-                consent.setRejectionReason(request.getReason());
+                consent.setRejectionReason(reason);
                 consent.setReviewedBy(checker);
                 consent.setReviewedAt(Instant.now());
                 auditService.log(
@@ -1566,11 +1585,10 @@ public class ConsentService {
                 cascadeLinkedRuleOnConsentReject(consent, request.getReason().trim(), checker, checkerId, http);
             }
             case "REQUEST_REVISION" -> {
-                if (!StringUtils.hasText(request.getRevisionMessage())) {
-                    throw new IllegalArgumentException("Revision message is required when requesting changes");
-                }
+                String revisionMessage = ReviewReasonUtil.require(
+                        request.getRevisionMessage(), ReviewReasonUtil.REVISION_MIN, "Revision message");
                 consent.setStatus(ConsentStatus.REVISION_REQUESTED);
-                consent.setRevisionMessage(request.getRevisionMessage());
+                consent.setRevisionMessage(revisionMessage);
                 consent.setReviewedBy(checker);
                 consent.setReviewedAt(Instant.now());
 
@@ -1807,7 +1825,7 @@ public class ConsentService {
         log.info("User={} | action=getCheckerStats | entity=Consent | id={}", cu, checkerId);
         log.debug("Transaction started | method=getCheckerStats | id={}", checkerId);
         User user = loadUser(checkerId);
-        if (user.getRole() != UserRole.CHECKER && user.getRole() != UserRole.ADMIN) {
+        if (user.getRole() != UserRole.CHECKER) {
             throw new UnauthorizedActionException("VIEW_CHECKER_STATS");
         }
         ZoneId zone = ZoneId.of("Asia/Kolkata");
@@ -2019,6 +2037,7 @@ public class ConsentService {
         log.debug("Entering listWorkflowTemplates | params: none");
         log.info("User={} | action=listWorkflowTemplates | entity=Consent | id=n/a", cu);
         log.info("Executing DB query | method=findByStatusInOrderByConsentNameAsc | param=statuses=PUBLISHED,APPROVED");
+        // Shared template library: every APPROVED/PUBLISHED consent, whoever created it
         List<Consent> templates =
                 consentRepository.findByStatusInOrderByConsentNameAsc(List.of(ConsentStatus.PUBLISHED, ConsentStatus.APPROVED));
         log.info("DB query completed | method=findByStatusInOrderByConsentNameAsc | size={}", templates.size());
@@ -2043,6 +2062,49 @@ public class ConsentService {
         Consent c = consentRepository.findById(dbId).orElseThrow(() -> new ConsentNotFoundException(dbId));
         log.info("DB query completed | method=findById | present=true");
         return c;
+    }
+
+    private void assertAllCombinationsReviewed(Consent consent, List<ChannelLanguageComboDto> reviewed) {
+        Set<String> seen = new HashSet<>();
+        if (reviewed != null) {
+            for (ChannelLanguageComboDto combo : reviewed) {
+                if (combo.getChannel() != null && combo.getLanguageCode() != null) {
+                    seen.add(combo.getChannel().trim().toUpperCase(Locale.ROOT) + "::"
+                            + combo.getLanguageCode().trim().toLowerCase(Locale.ROOT));
+                }
+            }
+        }
+        List<String> channels = new ArrayList<>();
+        if (consent.isChannelEmail()) channels.add("EMAIL");
+        if (consent.isChannelSms()) channels.add("SMS");
+        if (consent.isChannelPush()) channels.add("PUSH");
+        if (consent.isChannelWhatsapp()) channels.add("WHATSAPP");
+        if (consent.isChannelRcs()) channels.add("RCS");
+
+        for (String channel : channels) {
+            List<String> langs = REVIEW_LANGUAGES.stream()
+                    .filter(lang -> hasRenderedContent(consent, lang, channel))
+                    .toList();
+            if (langs.isEmpty()) {
+                langs = List.of(FALLBACK_REVIEW_LANGUAGE);
+            }
+            for (String lang : langs) {
+                if (!seen.contains(channel + "::" + lang)) {
+                    throw new IllegalArgumentException("Review every channel and language preview before approving.");
+                }
+            }
+        }
+    }
+
+    private static boolean hasRenderedContent(Consent consent, String lang, String channel) {
+        if (consent.getTranslations() == null) {
+            return false;
+        }
+        return consent.getTranslations().stream()
+                .filter(t -> t.getLanguageCode() != null && lang.equalsIgnoreCase(t.getLanguageCode().trim()))
+                .flatMap(t -> t.getRenders() == null ? java.util.stream.Stream.empty() : t.getRenders().stream())
+                .anyMatch(r -> r.getChannel() != null && channel.equalsIgnoreCase(r.getChannel().trim())
+                        && StringUtils.hasText(r.getRenderedContent()));
     }
 
     private Consent findConsentWithLinkedRule(Long dbId) {
@@ -2129,6 +2191,39 @@ public class ConsentService {
         if (user.getRole() != UserRole.MAKER && user.getRole() != UserRole.ADMIN) {
             throw new UnauthorizedActionException("CREATE_CONSENT");
         }
+    }
+
+    /**
+     * Makers may read their own consents in any status, plus other Makers' APPROVED/PUBLISHED consents
+     * (the shared template library, read-only). Other Makers' drafts and pending items stay private.
+     * Checker and Admin can read all.
+     */
+    @Transactional(readOnly = true)
+    public void assertCanView(Long dbId, Long userId, UserRole role) {
+        if (role != UserRole.MAKER) {
+            return;
+        }
+        Consent consent = findConsent(dbId);
+        if (!consent.getCreatedBy().getId().equals(userId) && !isLibraryConsent(consent)) {
+            log.warn("Read denied | entity=Consent | id={} | userId={}", dbId, userId);
+            throw new UnauthorizedActionException("You do not have permission to view this consent.");
+        }
+    }
+
+    /** Consent for the viewer; another Maker's paired rule is removed because rules stay private to their owner. */
+    @Transactional(readOnly = true)
+    public ConsentResponse getConsentForViewer(Long dbId, Long userId, UserRole role) {
+        assertCanView(dbId, userId, role);
+        Consent consent = findConsent(dbId);
+        ConsentResponse out = ConsentMapper.toResponse(consent);
+        if (role == UserRole.MAKER && !consent.getCreatedBy().getId().equals(userId)) {
+            out.setLinkedRule(null);
+        }
+        return out;
+    }
+
+    private static boolean isLibraryConsent(Consent consent) {
+        return consent.getStatus() == ConsentStatus.APPROVED || consent.getStatus() == ConsentStatus.PUBLISHED;
     }
 
     private void validateOwner(Consent consent, Long userId) {

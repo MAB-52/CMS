@@ -9,6 +9,11 @@ export const adminGuard: CanActivateFn = () => {
   const notify = inject(NotificationService);
 
   if (!auth.isLoggedIn()) {
+    if (auth.getToken()) {
+      // Had a session, but the token expired or is invalid
+      auth.logout({ sessionExpired: true });
+      return false;
+    }
     notify.warning('Session Required', 'Please log in to continue.');
     return router.parseUrl('/login');
   }
@@ -16,7 +21,7 @@ export const adminGuard: CanActivateFn = () => {
   const role = auth.getRole();
 
   if (role !== 'ADMIN') {
-    notify.warning('Admin only', 'You do not have access to the Admin portal.');
+    notify.warning('Access denied', 'You do not have permission to access the Admin portal.');
 
     if (role === 'MAKER') {
       return router.parseUrl('/maker/dashboard');

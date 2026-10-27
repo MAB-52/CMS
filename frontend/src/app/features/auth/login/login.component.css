@@ -1,23 +1,16 @@
 :host {
   display: block;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   font-family: 'Nunito', var(--is-font);
 }
 
 .login {
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
-  min-height: 100vh;
-  background: #F7F8FC;
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+  height: 100vh;
   overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
+  background: #F7F8FC;
 }
 
 .brand {
@@ -25,126 +18,157 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 48px;
-  padding: 56px 64px;
+  gap: 24px;
+  height: 100vh;
+  padding: clamp(24px, 4vh, 48px) clamp(32px, 5vw, 72px);
   overflow: hidden;
+  isolation: isolate;
   color: #FFFFFF;
   background: linear-gradient(90deg, #45329E 0%, #EA6B28 100%);
   background-size: 160% 100%;
-  animation: login-shift 14s ease-in-out infinite alternate;
+  animation: login-shift 16s ease-in-out infinite alternate;
 }
-.brand::after {
-  content: '';
+.brand__ring {
   position: absolute;
-  right: -160px;
-  bottom: -160px;
-  width: 420px;
-  height: 420px;
+  top: -140px;
+  left: 44%;
+  z-index: -1;
+  width: 300px;
+  height: 300px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-  animation: login-float 12s ease-in-out infinite;
-  pointer-events: none;
+  animation: login-drift 18s ease-in-out infinite;
+}
+.brand__orb {
+  position: absolute;
+  right: -180px;
+  bottom: -200px;
+  z-index: -1;
+  width: 560px;
+  height: 560px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  animation: login-float 14s ease-in-out infinite;
+}
+.brand__head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(18px, 3vh, 28px);
+  margin-bottom: clamp(18px, 3.4vh, 34px);
+  position: relative;                 /* ADD */
+  top: clamp(-56px, -6vh, -24px);     /* ADD: moves the logos up, nothing else shifts */
 }
 .brand__logo {
-  position: relative;
-  z-index: 1;
   width: auto;
-  height: 52px;
-  align-self: flex-start;
+  height: clamp(88px, 13vh, 128px);
   animation: login-fade-down 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.brand__body {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  gap: 20px;
-  max-width: 540px;
+.brand__divider {
+  width: 56px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  animation: login-grow 600ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
 }
+.brand__suite {
+  width: clamp(340px, 36vw, 540px);
+  max-width: 100%;
+  height: auto;
+  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.18));
+  animation: login-fade-down 650ms cubic-bezier(0.22, 1, 0.36, 1) 180ms both;
+}
+.brand__body { display: grid; gap: clamp(10px, 1.8vh, 18px); margin-block: auto; }
+.brand__text, .features { max-width: 560px; }
 .brand__title {
   margin: 0;
+  color: #FFFFFF !important;
   font-size: 32px;
   line-height: 40px;
   font-weight: 700;
-  animation: login-slide-in 700ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
-}
-.brand__rule {
-  display: block;
-  width: 78px;
-  height: 5px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.55);
-  transform-origin: left;
-  animation: login-grow 700ms cubic-bezier(0.22, 1, 0.36, 1) 320ms both;
+  letter-spacing: -0.01em;
+  animation: login-slide-in 650ms cubic-bezier(0.22, 1, 0.36, 1) 160ms both;
 }
 .brand__text {
   margin: 0;
   font-size: 16px;
-  line-height: 28px;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.92);
-  animation: login-slide-in 700ms cubic-bezier(0.22, 1, 0.36, 1) 240ms both;
-}
-.brand__legal {
-  position: relative;
-  z-index: 1;
-  margin: 0;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.72);
+  line-height: 27px;
+  color: rgba(255, 255, 255, 0.9);
+  animation: login-slide-in 650ms cubic-bezier(0.22, 1, 0.36, 1) 240ms both;
 }
 
-.panel {
+.features { display: grid; gap: clamp(8px, 1.4vh, 12px); margin: 6px 0 0; padding: 0; list-style: none; }
+.feature {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: clamp(10px, 1.6vh, 16px) 18px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  animation: login-slide-in 650ms cubic-bezier(0.22, 1, 0.36, 1) calc(320ms + var(--i, 0) * 90ms) both;
+  transition: transform 250ms ease, background 250ms ease, border-color 250ms ease;
+}
+.feature:hover { transform: translateX(6px); background: rgba(255, 255, 255, 0.2); border-color: rgba(255, 255, 255, 0.45); }
+.feature__ico {
+  flex: none;
   display: grid;
   place-items: center;
-  padding: 48px 32px;
-  background: radial-gradient(circle at 85% 10%, rgba(234, 107, 40, 0.06), transparent 40%),
-    radial-gradient(circle at 10% 90%, rgba(69, 50, 158, 0.06), transparent 45%), #F7F8FC;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #FFFFFF;
+  color: #45329E;
+  box-shadow: 0 6px 14px rgba(23, 12, 70, 0.18);
+  transition: transform 250ms ease;
 }
+.feature:hover .feature__ico { transform: rotate(-8deg) scale(1.06); }
+.feature__ico .pi { font-size: 16px; }
+.feature__copy { display: grid; gap: 2px; min-width: 0; }
+.feature__copy strong { font-size: 16px; font-weight: 700; }
+.feature__copy span { font-size: 14px; color: rgba(255, 255, 255, 0.82); }
+.brand__legal { margin: 0; font-size: 13px; color: rgba(255, 255, 255, 0.78); }
+
+.panel { display: grid; place-items: center; height: 100vh; padding: 24px 32px; overflow: hidden; }
 
 .card {
   display: flex;
   flex-direction: column;
   align-items: center;
   width: 100%;
-  max-width: 440px;
-  padding: 44px 40px 32px;
-  border: 1px solid #E2E8F0;
+  max-width: 444px;
+  max-height: calc(100vh - 48px);
+  padding: clamp(24px, 4vh, 40px) 40px clamp(20px, 3vh, 32px);
+  border: 1px solid #EEF0F6;
   border-radius: 24px;
   background: #FFFFFF;
-  box-shadow: 0 12px 32px rgba(23, 36, 69, 0.08);
-  animation: login-rise 650ms cubic-bezier(0.22, 1, 0.36, 1) 100ms both;
+  box-shadow: 0 24px 48px -20px rgba(23, 36, 69, 0.18), 0 4px 16px rgba(23, 36, 69, 0.06);
+  animation: login-rise 650ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
   transition: transform 300ms ease, box-shadow 300ms ease;
 }
-.card--success { transform: scale(0.985); box-shadow: 0 8px 22px rgba(46, 20, 117, 0.18); }
-.card__logo { height: 46px; width: auto; margin-bottom: 24px; }
-.card__title {
-  margin: 0;
-  font-size: 32px;
-  line-height: 40px;
-  font-weight: 700;
-  color: #000000;
-}
+.card--success { transform: scale(0.985); }
+.card__logo { width: auto; height: 46px; margin-bottom: clamp(14px, 2.6vh, 26px); }
+.card__title { margin: 0; font-size: 32px; line-height: 40px; font-weight: 700; color: #000000; }
+.card__sub { margin: 6px 0 0; font-size: 16px; color: #64748B; }
 .card__rule {
   display: block;
-  width: 64px;
+  width: 62px;
   height: 4px;
-  margin: 12px 0 28px;
+  margin: clamp(10px, 1.8vh, 18px) 0 clamp(16px, 2.8vh, 28px);
   border-radius: 999px;
   background: linear-gradient(90deg, #45329E, #EA6B28);
+  transform-origin: center;
   animation: login-grow 700ms cubic-bezier(0.22, 1, 0.36, 1) 450ms both;
 }
-:host ::ng-deep .card__error {
-  width: 100%;
-  margin-bottom: 18px;
-  animation: login-shake 420ms ease both;
-}
+:host ::ng-deep .card__error { width: 100%; margin-bottom: 18px; animation: login-shake 420ms ease both; }
 
-.form { display: grid; gap: 16px; width: 100%; }
-.field { display: grid; gap: 6px; }
+.form { display: grid; gap: 18px; width: 100%; }
+.field { display: grid; gap: 8px; }
+.field__label { font-size: 15px; font-weight: 700; color: #000000; }
 .field__error {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding-left: 18px;
   font-size: 13px;
   font-weight: 600;
   color: #B02A37;
@@ -152,63 +176,59 @@
 }
 .field__error .pi { font-size: 12px; }
 
-:host ::ng-deep .field__control,
-:host ::ng-deep .field__password { width: 100%; }
-:host ::ng-deep .field__control .p-inputtext,
-:host ::ng-deep .field__password-input {
+:host ::ng-deep .field__control { width: 100%; }
+:host ::ng-deep .field__control .p-inputtext {
   width: 100%;
-  height: 52px;
+  height: 48px;
+  padding-inline: 46px 16px;
   border: 1px solid #E2E8F0;
-  border-radius: 999px !important;
+  border-radius: 10px;
   background: #FFFFFF;
   color: #000000;
   font-family: 'Nunito', var(--is-font);
   font-size: 16px;
   transition: border-color 200ms ease, box-shadow 200ms ease;
 }
-:host ::ng-deep .field__control .p-inputtext { padding-inline: 48px 20px; }
-:host ::ng-deep .field__password-input { padding-inline: 22px 48px; }
-:host ::ng-deep .field__control .p-inputtext::placeholder,
-:host ::ng-deep .field__password-input::placeholder { color: #94A3B8; }
-:host ::ng-deep .field__control .p-inputtext:enabled:hover,
-:host ::ng-deep .field__password-input:enabled:hover { border-color: #CBD5E1; }
-:host ::ng-deep .field__control .p-inputtext:enabled:focus,
-:host ::ng-deep .field__password-input:enabled:focus {
+:host ::ng-deep .field__control--pw .p-inputtext { padding-inline-end: 48px; }
+:host ::ng-deep .field__control .p-inputtext::placeholder { color: #94A3B8; }
+:host ::ng-deep .field__control .p-inputtext:enabled:hover { border-color: #CBD5E1; }
+:host ::ng-deep .field__control .p-inputtext:enabled:focus {
   border-color: #2E1475;
   box-shadow: 0 0 0 4px rgba(46, 20, 117, 0.1);
 }
-:host ::ng-deep .field__control .p-inputicon { left: 20px; color: #94A3B8; transition: color 200ms ease; }
-:host ::ng-deep .field__control:focus-within .p-inputicon { color: #2E1475; }
-:host ::ng-deep .field__password .p-password-toggle-mask-icon,
-:host ::ng-deep .field__password .p-password-mask-icon,
-:host ::ng-deep .field__password .p-password-unmask-icon {
-  right: 20px;
-  color: #94A3B8;
+:host ::ng-deep .field__control .p-inputicon:first-child { inset-inline-start: 16px; color: #64748B; transition: color 200ms ease; }
+:host ::ng-deep .field__control:focus-within .p-inputicon:first-child { color: #2E1475; }
+:host ::ng-deep .field__control .p-inputicon:last-child:not(:first-child) { inset-inline-end: 8px; }
+.pw-toggle {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-top: -8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #64748B;
   cursor: pointer;
-  transition: color 200ms ease;
+  transition: background 200ms ease, color 200ms ease;
 }
-:host ::ng-deep .field__password:focus-within .p-password-mask-icon,
-:host ::ng-deep .field__password:focus-within .p-password-unmask-icon { color: #2E1475; }
+.pw-toggle:hover { background: #F3F0FB; color: #2E1475; }
 
-.form__forgot {
-  justify-self: end;
-  margin-top: -4px;
-  font-size: 14px;
-  font-weight: 700;
-  color: #2E1475;
-  text-decoration: none;
-  transition: color 200ms ease;
-}
+.form__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: -2px; }
+.remember { display: inline-flex; align-items: center; gap: 10px; font-size: 14px; color: #000000; cursor: pointer; user-select: none; }
+:host ::ng-deep .remember .p-checkbox-box { border-radius: 5px; }
+:host ::ng-deep .remember .p-checkbox-checked .p-checkbox-box { border-color: #2E1475; background: #2E1475; }
+.form__forgot { font-size: 14px; font-weight: 700; color: #2E1475; text-decoration: none; transition: color 200ms ease; }
 .form__forgot:hover { color: #EA6B28; }
 
 :host ::ng-deep .form__submit.p-button {
-  height: 52px;
-  margin-top: 6px;
+  height: 48px;
+  margin-top: 4px;
   border: 0;
   background: linear-gradient(90deg, #2E1475 0%, #465599 100%);
   color: #FFFFFF;
   font-family: 'Nunito', var(--is-font);
-  box-shadow: 0 8px 22px rgba(46, 20, 117, 0.28);
+  box-shadow: 0 10px 24px -6px rgba(46, 20, 117, 0.45);
   transition: transform 200ms ease, box-shadow 200ms ease, filter 200ms ease;
 }
 :host ::ng-deep .form__submit .p-button-label { font-size: 16px; font-weight: 700; }
@@ -218,28 +238,35 @@
   background: linear-gradient(90deg, #2E1475 0%, #465599 100%);
   filter: brightness(1.12);
   transform: translateY(-1px);
-  box-shadow: 0 12px 26px rgba(46, 20, 117, 0.34);
+  box-shadow: 0 14px 28px -6px rgba(46, 20, 117, 0.5);
 }
 :host ::ng-deep .form__submit.p-button:not(:disabled):hover .p-button-icon { transform: translateX(4px); }
 :host ::ng-deep .form__submit.p-button:not(:disabled):active { transform: scale(0.98); }
 
-.card__help {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin: 24px 0 0;
-  font-size: 14px;
-  color: #64748B;
-}
+.card__help { display: inline-flex; align-items: center; gap: 8px; margin: 22px 0 0; font-size: 14px; color: #64748B; }
 .card__help .pi { color: #EA6B28; }
 
 @keyframes login-shift {
   from { background-position: 0% 50%; }
   to   { background-position: 100% 50%; }
 }
+@media (max-height: 820px) {
+  .brand__logo { height: 80px; }
+  .brand__suite { width: 400px; }
+}
+@media (max-height: 720px) {
+  .feature__copy span, .brand__text { display: none; }
+  .brand__head { gap: 14px; margin-bottom: 14px; }
+  .brand__logo { height: 64px; }
+  .brand__suite { width: 300px; }
+}
 @keyframes login-float {
   0%, 100% { transform: translate(0, 0); }
-  50%      { transform: translate(-30px, -24px); }
+  50%      { transform: translate(-36px, -28px); }
+}
+@keyframes login-drift {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(24px, 18px); }
 }
 @keyframes login-rise {
   from { opacity: 0; transform: translateY(18px) scale(0.98); }
@@ -266,16 +293,23 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .brand, .brand::after, .brand__logo, .brand__title, .brand__rule, .brand__text, .card, .card__rule, .field__error { animation: none !important; }
+  .brand, .brand__ring, .brand__orb, .brand__logo, .brand__divider, .brand__suite, .brand__title, .brand__text, .feature, .card, .card__rule, .field__error { animation: none !important; }
   :host ::ng-deep .card__error { animation: none !important; }
 }
 
+@media (max-width: 1100px) {
+  .brand { padding: 48px 44px 40px; }
+  .brand__title { font-size: 32px; line-height: 40px; }
+}
 @media (max-width: 900px) {
+  :host, .login, .brand, .panel { height: auto; overflow: visible; }
+  :host { min-height: 100vh; }
   .login { grid-template-columns: 1fr; }
-  .brand { gap: 24px; padding: 32px 24px; }
-  .brand__logo { height: 40px; }
-  .brand__text, .brand__legal { display: none; }
-  .brand__title { font-size: 24px; line-height: 32px; }
+  .brand { gap: 20px; padding: 32px 24px; }
+  .brand__logo { height: 56px; }
+  .brand__suite { width: 280px; }
+  .brand__text, .features, .brand__legal { display: none; }
+  .brand__title { font-size: 26px; line-height: 34px; }
   .panel { padding: 32px 16px 48px; }
-  .card { padding: 36px 24px 28px; }
+  .card { padding: 32px 24px 28px; }
 }

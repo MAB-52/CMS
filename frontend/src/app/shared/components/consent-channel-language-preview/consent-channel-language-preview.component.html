@@ -251,8 +251,10 @@
                   This business uses a secure service from Meta to manage this chat.
                 </div>
                 <div class="wa-bubble">
-                  @for (imgSrc of waImages(); track imgSrc) {
-                    <img [src]="imgSrc" alt="" class="wa-img" />
+                  @for (imgSrc of messageImages(); track imgSrc) {
+                    <div class="wa-media">
+                      <img [src]="imgSrc" alt="Image attached to the consent message" class="wa-img" loading="lazy" />
+                    </div>
                   }
                   <div class="wa-text">
                     @if (messageText()) {
@@ -302,8 +304,10 @@
               <div class="thread thread--rcs" [dir]="isCurrentRtl() ? 'rtl' : 'ltr'">
                 <div class="rcs-stamp">Today · 9:41 AM</div>
                 <div class="rcs-card">
-                  @for (imgSrc of waImages(); track imgSrc) {
-                    <img [src]="imgSrc" alt="" class="rcs-img" />
+                  @for (imgSrc of messageImages(); track imgSrc) {
+                    <div class="rcs-media">
+                      <img [src]="imgSrc" alt="Image attached to the consent message" class="rcs-img" loading="lazy" />
+                    </div>
                   }
                   <div class="rcs-text">
                     @if (messageText()) {

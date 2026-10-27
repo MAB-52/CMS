@@ -6,7 +6,9 @@ import com.consentiq.model.entity.Consent;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -18,6 +20,11 @@ import java.util.Optional;
 public interface ConsentRepository extends JpaRepository<Consent, Long>, JpaSpecificationExecutor<Consent> {
 
     Optional<Consent> findByConsentId(String consentId);
+
+    /** Row lock so two concurrent submits of the same consent run one after the other. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT c FROM Consent c WHERE c.id = :id")
+    Optional<Consent> findByIdForUpdate(@Param("id") Long id);
 
     boolean existsByConsentNameIgnoreCase(String consentName);
 
@@ -40,7 +47,7 @@ public interface ConsentRepository extends JpaRepository<Consent, Long>, JpaSpec
     long countPendingApprovalExcludingCreator(@Param("status") ConsentStatus status, @Param("checkerId") Long checkerId);
 
     @Query(
-            "SELECT COUNT(c) FROM Consent c WHERE c.reviewedBy.id = :checkerId AND c.status = 'APPROVED' AND c.reviewedAt >= :start")
+            "SELECT COUNT(c) FROM Consent c WHERE c.reviewedBy.id = :checkerId AND c.status IN ('APPROVED', 'PUBLISHED') AND c.reviewedAt >= :start")
     long countApprovedByCheckerSince(@Param("checkerId") Long checkerId, @Param("start") Instant start);
 
     long countByReviewedBy_IdAndStatus(Long reviewerId, ConsentStatus status);

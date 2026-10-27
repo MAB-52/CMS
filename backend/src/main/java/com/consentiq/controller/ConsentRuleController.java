@@ -128,30 +128,8 @@ public class ConsentRuleController {
         return result;
     }
 
-    @PostMapping("/{id}/publish-live")
-    @PreAuthorize("hasAnyRole('MAKER','ADMIN')")
-    public ResponseEntity<ApiResponse<ConsentRuleResponse>> publishLive(
-            @PathVariable Long id,
-            Authentication authentication,
-            HttpServletRequest http) {
-        String cu = currentUser();
-        log.info(
-                "HTTP REQUEST | method={} | uri={} | user={}",
-                http.getMethod(),
-                http.getRequestURI(),
-                cu);
-        log.debug("Entering publishLive | params: id={}", id);
-        log.info("User={} | action=publishLive | entity=ConsentRule | id={}", cu, id);
-        Long userId = extractUserId(authentication);
-        ConsentRuleResponse data = consentRuleService.publishLive(id, userId, http);
-        ResponseEntity<ApiResponse<ConsentRuleResponse>> result =
-                ResponseEntity.ok(ApiResponse.success("Rule is now live", data));
-        log.debug("Exiting publishLive | result={}", result.getStatusCode());
-        return result;
-    }
-
     @PostMapping("/{id}/review")
-    @PreAuthorize("hasAnyRole('CHECKER','ADMIN')")
+    @PreAuthorize("hasRole('CHECKER')")
     public ResponseEntity<ApiResponse<ConsentRuleResponse>> review(
             @PathVariable Long id,
             @Valid @RequestBody WorkflowReviewRequest request,
@@ -182,7 +160,7 @@ public class ConsentRuleController {
     }
 
     @GetMapping("/pending")
-    @PreAuthorize("hasAnyRole('CHECKER','ADMIN')")
+    @PreAuthorize("hasRole('CHECKER')")
     public ResponseEntity<ApiResponse<List<ConsentRuleResponse>>> pending(HttpServletRequest httpRequest) {
         String cu = currentUser();
         log.info(

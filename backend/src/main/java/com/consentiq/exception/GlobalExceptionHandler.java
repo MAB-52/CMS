@@ -1,11 +1,13 @@
 package com.consentiq.exception;
 
 import com.consentiq.model.dto.response.ApiResponse;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -15,8 +17,10 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -143,7 +147,11 @@ public class GlobalExceptionHandler {
         log.error("Exception in handleValidation | user={} | message={}", user, ex.getMessage(), ex);
         ApiResponse<Map<String, String>> body = ApiResponse.<Map<String, String>>builder()
                 .success(false)
-                .message("Validation failed")
+                .message(ex.getBindingResult().getFieldErrors().stream()
+                        .map(FieldError::getDefaultMessage)
+                        .filter(m -> m != null && !m.isBlank())
+                        .findFirst()
+                        .orElse("Validation failed"))
                 .data(errors)
                 .errorCode("VALIDATION_ERROR")
                 .build();
@@ -151,6 +159,29 @@ public class GlobalExceptionHandler {
                 ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
         log.debug("Exiting handleValidation | result={}", result.getStatusCode());
         return result;
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnreadable(
+            HttpMessageNotReadableException ex, HttpServletRequest request) {
+        String user = currentUser();
+        log.info(
+                "HTTP REQUEST | method={} | uri={} | user={}",
+                request.getMethod(), request.getRequestURI(), user);
+        log.error("Exception in handleUnreadable | user={} | message={}", user, ex.getMessage());
+        String message = "Malformed request body.";
+        if (ex.getCause() instanceof InvalidFormatException ife
+                && ife.getTargetType() != null
+                && ife.getTargetType().isEnum()) {
+            String field = ife.getPath().isEmpty()
+                    ? "field"
+                    : ife.getPath().get(ife.getPath().size() - 1).getFieldName();
+            String allowed = Arrays.stream(ife.getTargetType().getEnumConstants())
+                    .map(String::valueOf)
+                    .collect(Collectors.joining(", "));
+            message = "Invalid value for " + field + ". Allowed: " + allowed + ".";
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(message, "BAD_REQUEST"));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -165,7 +196,7 @@ public class GlobalExceptionHandler {
         log.error("Exception in handleAccessDenied | user={} | message={}", user, ex.getMessage(), ex);
         ResponseEntity<ApiResponse<Void>> result =
                 ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(ApiResponse.error(ex.getMessage(), "ACCESS_DENIED"));
+                        .body(ApiResponse.error("You do not have permission to perform this action.", "ACCESS_DENIED"));
         log.debug("Exiting handleAccessDenied | result={}", result.getStatusCode());
         return result;
     }
@@ -184,7 +215,7 @@ public class GlobalExceptionHandler {
                 ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(
                                 ApiResponse.error(
-                                        "Invalid email or password. Please check your credentials.",
+                                        "Sign-in failed. Invalid email or password.",
                                         "INVALID_CREDENTIALS"));
         log.debug("Exiting handleBadCredentials | result={}", result.getStatusCode());
         return result;
@@ -206,6 +237,37 @@ public class GlobalExceptionHandler {
         return result;
     }
 
+    @ExceptionHandler(OtpException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOtp(OtpException ex, HttpServletRequest request) {
+        String user = currentUser();
+        log.debug("Entering handleOtp | params: message={}", ex.getMessage());
+        log.info(
+                "HTTP REQUEST | method={} | uri={} | user={}",
+                request.getMethod(), request.getRequestURI(), user);
+        log.warn("OTP rejected | user={} | message={}", user, ex.getMessage());
+        ResponseEntity<ApiResponse<Void>> result =
+                ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(ApiResponse.error(ex.getMessage(), "OTP_INVALID"));
+        log.debug("Exiting handleOtp | result={}", result.getStatusCode());
+        return result;
+    }
+
+    @ExceptionHandler(PasswordResetException.class)
+    public ResponseEntity<ApiResponse<Void>> handlePasswordReset(
+            PasswordResetException ex, HttpServletRequest request) {
+        String user = currentUser();
+        log.debug("Entering handlePasswordReset | params: message={}", ex.getMessage());
+        log.info(
+                "HTTP REQUEST | method={} | uri={} | user={}",
+                request.getMethod(), request.getRequestURI(), user);
+        log.warn("Password reset rejected | user={} | message={}", user, ex.getMessage());
+        ResponseEntity<ApiResponse<Void>> result =
+                ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(ApiResponse.error(ex.getMessage(), "PASSWORD_RESET_ERROR"));
+        log.debug("Exiting handlePasswordReset | result={}", result.getStatusCode());
+        return result;
+    }
+
     @ExceptionHandler(UsernameNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleUserNotFound(
             UsernameNotFoundException ex, HttpServletRequest request) {
@@ -218,7 +280,8 @@ public class GlobalExceptionHandler {
         log.error("Exception in handleUserNotFound | user={} | message={}", user, ex.getMessage(), ex);
         ResponseEntity<ApiResponse<Void>> result =
                 ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(ApiResponse.error(ex.getMessage(), "USER_NOT_FOUND"));
+                        // Same reply as a wrong password so callers cannot tell which emails exist
+                        .body(ApiResponse.error("Sign-in failed. Invalid email or password.", "INVALID_CREDENTIALS"));
         log.debug("Exiting handleUserNotFound | result={}", result.getStatusCode());
         return result;
     }

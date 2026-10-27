@@ -3,18 +3,29 @@ package com.consentiq.util;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /** Small helpers for MIS exports (Apache POI XSSF). */
 public final class MisReportExportUtil {
 
+    private static final Pattern PLAIN_NUMBER = Pattern.compile("^[+-]?\\d+(\\.\\d+)?$");
+
     private MisReportExportUtil() {}
+
+    private static boolean startsWithFormulaChar(String v) {
+        if (v.isEmpty()) {
+            return false;
+        }
+        char c = v.charAt(0);
+        return c == '=' || c == '+' || c == '-' || c == '@' || c == '\t' || c == '\r';
+    }
 
     public static byte[] writeCsv(String headerLine, List<String[]> rows) throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -39,13 +50,17 @@ public final class MisReportExportUtil {
         if (v == null) {
             return "";
         }
+        if (startsWithFormulaChar(v) && !PLAIN_NUMBER.matcher(v).matches()) {
+            v = "'" + v;
+        }
         boolean needsQuote = v.contains(",") || v.contains("\"") || v.contains("\n");
         String escaped = v.replace("\"", "\"\"");
         return needsQuote ? "\"" + escaped + "\"" : escaped;
     }
 
     public static byte[] writeXlsx(String sheetName, List<String> headers, List<List<String>> rows) throws IOException {
-        try (XSSFWorkbook wb = new XSSFWorkbook(); ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+        SXSSFWorkbook wb = new SXSSFWorkbook(100);
+        try (wb; ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
             Sheet sh = wb.createSheet(sheetName == null ? "Report" : sheetName);
             int r = 0;
             Row hr = sh.createRow(r++);
@@ -63,6 +78,8 @@ public final class MisReportExportUtil {
             }
             wb.write(bos);
             return bos.toByteArray();
+        } finally {
+            wb.dispose();
         }
     }
 }

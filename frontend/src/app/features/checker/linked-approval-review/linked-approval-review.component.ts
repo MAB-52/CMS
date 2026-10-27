@@ -1,5 +1,6 @@
 
 import { DatePipe } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -118,6 +119,13 @@ export class LinkedApprovalReviewComponent implements OnInit {
     });
   }
 
+  private onDecisionError(err: HttpErrorResponse): void {
+    this.actingBusy.set(false);
+    if (err.status === 409) {
+      this.load();
+    }
+  }
+
   back(): void {
     this.router.navigate(['..'], { relativeTo: this.route });
   }
@@ -188,7 +196,7 @@ export class LinkedApprovalReviewComponent implements OnInit {
               this.back();
             }
           },
-          error: () => this.actingBusy.set(false),
+          error: (err: HttpErrorResponse) => this.onDecisionError(err),
         });
     });
   }
@@ -229,7 +237,7 @@ export class LinkedApprovalReviewComponent implements OnInit {
               this.back();
             }
           },
-          error: () => this.actingBusy.set(false),
+          error: (err: HttpErrorResponse) => this.onDecisionError(err),
         });
     });
   }
@@ -263,7 +271,7 @@ export class LinkedApprovalReviewComponent implements OnInit {
               this.back();
             }
           },
-          error: () => this.actingBusy.set(false),
+          error: (err: HttpErrorResponse) => this.onDecisionError(err),
         });
     });
   }

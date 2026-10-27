@@ -1,14 +1,32 @@
 <div class="login">
-  <aside class="brand" aria-label="ConsentIQ">
-    <img src="assets/images/logo-white.png" alt="Aurionpro — Lead the next" class="brand__logo" />
+  <aside class="brand" aria-label="Aurionpro ConsentIQ">
+    <span class="brand__ring" aria-hidden="true"></span>
+    <span class="brand__orb" aria-hidden="true"></span>
 
     <div class="brand__body">
+      <div class="brand__head">
+        <img src="assets/images/logo-white.png" alt="Aurionpro — Lead the next" class="brand__logo" />
+        <span class="brand__divider" aria-hidden="true"></span>
+        <img src="assets/images/interactsuite_logo.svg" alt="Interact Suite" class="brand__suite" />
+      </div>
+
       <h2 class="brand__title">Aurionpro ConsentIQ</h2>
-      <span class="brand__rule" aria-hidden="true"></span>
       <p class="brand__text">
-        Capture, review and broadcast customer consent from one secure place, with every decision
-        approved by a checker and recorded in the audit trail.
+        Capture, review and broadcast customer consent from one secure place — every decision
+        checker-approved and audit-logged.
       </p>
+
+      <ul class="features">
+        @for (f of features; track f.title; let i = $index) {
+        <li class="feature" [style.--i]="i">
+          <span class="feature__ico" aria-hidden="true"><i [class]="f.icon"></i></span>
+          <span class="feature__copy">
+            <strong>{{ f.title }}</strong>
+            <span>{{ f.text }}</span>
+          </span>
+        </li>
+        }
+      </ul>
     </div>
 
     <p class="brand__legal">© {{ year }} Aurionpro Solutions. All rights reserved.</p>
@@ -17,8 +35,8 @@
   <main class="panel">
     <div class="card" [class.card--success]="success()">
       <img src="assets/images/logo.png" alt="Aurionpro" class="card__logo" />
-
-      <h1 class="card__title">Login Here</h1>
+      <h1 class="card__title">Welcome back</h1>
+      <p class="card__sub">Sign in to your ConsentIQ workspace</p>
       <span class="card__rule" aria-hidden="true"></span>
 
       @if (errorBanner()) {
@@ -29,30 +47,47 @@
 
       <form [formGroup]="form" (ngSubmit)="submit()" class="form" novalidate>
         <div class="field">
-          <label class="sr-only" for="login-email">Email</label>
+          <label class="field__label" for="login-email">Email address</label>
           <p-iconfield class="field__control">
             <p-inputicon styleClass="pi pi-envelope" />
             <input pInputText id="login-email" type="email" formControlName="email" autocomplete="username"
-              placeholder="Enter your email here…" [invalid]="showError('email')" fluid />
+              placeholder="name@company.com" [invalid]="showError('email')" fluid />
           </p-iconfield>
           @if (showError('email')) {
           <small class="field__error"><i class="pi pi-exclamation-circle" aria-hidden="true"></i>
-            {{ form.controls.email.hasError('required') ? 'Email is required.' : 'Enter a valid email.' }}</small>
+            {{ form.controls.email.hasError('pattern') ? 'Enter a valid email address.' : 'Email is required.' }}</small>
           }
         </div>
 
         <div class="field">
-          <label class="sr-only" for="login-password">Password</label>
-          <p-password inputId="login-password" formControlName="password" [toggleMask]="true" [feedback]="false"
-            placeholder="Enter your password here…" autocomplete="current-password" styleClass="field__password"
-            inputStyleClass="field__password-input" [invalid]="showError('password')" fluid />
+          <label class="field__label" for="login-password">Password</label>
+          <p-iconfield class="field__control field__control--pw">
+            <p-inputicon styleClass="pi pi-lock" />
+            <input pInputText id="login-password" [type]="hidePw() ? 'password' : 'text'" formControlName="password"
+              autocomplete="current-password" placeholder="Enter your password" [invalid]="showError('password')"
+              fluid />
+            <p-inputicon>
+              <button type="button" class="pw-toggle" (click)="togglePw()"
+                [attr.aria-label]="hidePw() ? 'Show password' : 'Hide password'" [attr.aria-pressed]="!hidePw()"
+                [pTooltip]="hidePw() ? 'Show password' : 'Hide password'" tooltipPosition="left">
+                <i [class]="hidePw() ? 'pi pi-eye' : 'pi pi-eye-slash'" aria-hidden="true"></i>
+              </button>
+            </p-inputicon>
+          </p-iconfield>
           @if (showError('password')) {
           <small class="field__error"><i class="pi pi-exclamation-circle" aria-hidden="true"></i>
-            {{ form.controls.password.hasError('required') ? 'Password is required.' : 'Password is too short.' }}</small>
+            {{ form.controls.password.hasError('minlength') ? 'Password must be at least 4 characters.' : 'Password is required.' }}</small>
           }
         </div>
 
-        <a routerLink="/forgot-password" class="form__forgot">Forgot password?</a>
+        <div class="form__row">
+          <label class="remember" pTooltip="Pre-fill your email on this device next time" tooltipPosition="top">
+            <p-checkbox [(ngModel)]="remember" [ngModelOptions]="{ standalone: true }" [binary]="true"
+              inputId="login-remember" />
+            <span>Remember me</span>
+          </label>
+          <a routerLink="/forgot-password" class="form__forgot">Forgot password?</a>
+        </div>
 
         <p-button type="submit" [label]="loading() ? 'Signing in…' : 'Login'" icon="pi pi-arrow-right"
           iconPos="right" [loading]="loading()" [rounded]="true" [fluid]="true" styleClass="form__submit" />

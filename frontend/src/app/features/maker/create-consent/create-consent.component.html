@@ -8,8 +8,8 @@
     </div>
   </div>
 
-  <div class="autosave">
-    <mat-icon class="as-ico" aria-hidden="true">cloud_done</mat-icon> Draft auto-saves every 2 minutes.
+  <div class="autosave" pTooltip="Your draft is saved automatically while you work" tooltipPosition="right">
+    <i class="pi pi-cloud as-ico" aria-hidden="true"></i> Draft auto-saves every 2 minutes.
     @if (autosaveBusy()) {
       <span class="muted">Saving…</span>
     } @else if (lastSaved()) {
@@ -20,7 +20,7 @@
   @if (loadedStatus() === 'PENDING_APPROVAL') {
     <div class="banner banner--amber">
       <div>
-        <div class="banner-title"><mat-icon aria-hidden="true">hourglass_top</mat-icon> Pending Checker Approval <span class="dot">● Awaiting</span></div>
+        <div class="banner-title"><i class="pi pi-hourglass" aria-hidden="true"></i> Pending Checker Approval <span class="dot">● Awaiting</span></div>
         <p class="banner-text">Your consent is being reviewed by the Checker.</p>
       </div>
     </div>
@@ -28,7 +28,7 @@
 
   @if (loadedStatus() === 'REVISION_REQUESTED') {
     <div class="banner banner--orange">
-      <div class="banner-title"><mat-icon aria-hidden="true">assignment_return</mat-icon> Revision Requested by Checker</div>
+      <div class="banner-title"><i class="pi pi-replay" aria-hidden="true"></i> Revision Requested by Checker</div>
       @if (revisionMessage()) {
         <blockquote class="rev-q">"{{ revisionMessage() }}"</blockquote>
       }
@@ -46,7 +46,6 @@
       [submitted]="formSubmitted()"
     />
 
-    <!-- ← CHANGED: per-language col-right block -->
     <div class="col-right">
       <app-ai-content-generator
         [activeLanguage]="activeEditorLanguage()"
@@ -78,6 +77,7 @@
         [allTags]="mergeTags"
         [activeLanguage]="activeEditorLanguage()"
         [languageContentMap]="languageContentMap()"
+        [readOnly]="!editable()"
         (languageContentChange)="onLanguageContentChange($event)"
         (tagsUsedChange)="onTagsFromMessage($event)"
         (tagAdded)="onTagAdded($event)">
@@ -306,7 +306,7 @@
             icon="pi pi-send"
             [rounded]="true"
             [loading]="linkedBusy()"
-            [disabled]="!consentSectionReadyForLinked() || !linkedRuleSubmitReady() || linkedBusy() || !editable()"
+            [disabled]="linkedBusy() || !editable()"
             (onClick)="submitLinkedForApproval()" />
         }
 
@@ -317,14 +317,16 @@
             severity="secondary"
             [outlined]="true"
             [rounded]="true"
-            [disabled]="!nameOk() || !editable()"
+            [loading]="saving()"
+            [disabled]="!nameOk() || !editable() || saving()"
             (onClick)="saveDraft()" />
 
           <p-button
             label="Submit for Approval"
             icon="pi pi-send"
             [rounded]="true"
-            [disabled]="!canSubmit() || !editable()"
+            [loading]="saving()"
+            [disabled]="!consentDbId() || !editable() || saving()"
             (onClick)="submitForApproval()" />
         }
       </div>

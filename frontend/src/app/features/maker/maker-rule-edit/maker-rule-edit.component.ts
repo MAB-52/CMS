@@ -26,7 +26,13 @@ import { ConsentRule, PredefinedRuleScenario, WorkflowScheduleType, AudienceSegm
 import { AuditLogEntry } from '../../../core/models/audit.model';
 import { WorkflowStatusBadgeComponent } from '../../../shared/components/workflow-status-badge/workflow-status-badge.component';
 import { RecurringScheduleEditorComponent } from '../../../shared/components/recurring-schedule-editor/recurring-schedule-editor.component';
-import { Subscription } from 'rxjs';
+import { MatDialog } from '@angular/material/dialog';
+import { MergeTagService } from '../../../core/services/merge-tag.service';
+import {
+  ConsentPreviewDialogComponent,
+  ConsentPreviewDialogData,
+} from '../../../shared/components/consent-preview-dialog/consent-preview-dialog.component';
+import { Subscription, finalize, forkJoin } from 'rxjs';
 
 const CHANNELS = ['EMAIL', 'SMS', 'WHATSAPP', 'RCS'] as const;
 
@@ -65,6 +71,31 @@ export class MakerRuleEditComponent implements OnInit, OnDestroy {
   private readonly consentApi = inject(ConsentService);
   private readonly notify = inject(NotificationService);
   private readonly auditApi = inject(AuditService);
+  private readonly mergeApi = inject(MergeTagService);
+  private readonly dialog = inject(MatDialog);
+
+  /** Read-only look at the selected template's message (works for any approved/published consent). */
+  previewTemplate(): void {
+    const id = this.form.consentTemplateId;
+    if (!id || this.previewBusy()) {
+      return;
+    }
+    this.previewBusy.set(true);
+    forkJoin({ consent: this.consentApi.getConsentById(id), tags: this.mergeApi.getMergeTags() })
+      .pipe(finalize(() => this.previewBusy.set(false)))
+      .subscribe({
+        next: ({ consent, tags }) => {
+          const html = consent.data?.consentMessage || '';
+          if (!html) {
+            this.notify.warning('Preview', 'This consent has no message to preview.');
+            return;
+          }
+          const data: ConsentPreviewDialogData = { html, mergeTags: tags };
+          this.dialog.open(ConsentPreviewDialogComponent, { width: '760px', maxHeight: '90vh', data });
+        },
+        error: (err) => this.notify.error('Preview unavailable', err?.error?.message || 'Please try again.'),
+      });
+  }
 
   readonly isNew = signal(false);
   readonly ruleId = signal<number | null>(null);
@@ -75,6 +106,7 @@ export class MakerRuleEditComponent implements OnInit, OnDestroy {
   /** Stable options array for the segment multiselect (avoids re-filtering on every change detection). */
   readonly segmentOptions = computed(() => this.segments().filter((s) => s.selectable));
   readonly audit = signal<AuditLogEntry[]>([]);
+  readonly previewBusy = signal(false);
   readonly recurringScheduleValid = signal(true);
   readonly drillDownPreview = signal<{ totalCount: number; segmentCounts: { code: string; count: number }[] } | null>(
     null,
@@ -372,7 +404,46 @@ export class MakerRuleEditComponent implements OnInit, OnDestroy {
 
   // ── Save / submit ──────────────────────────────────────────────────────────
 
+  /** Everything still missing before the rule can be saved or submitted, in form order. */
+  ruleBlockers(): string[] {
+    const out: string[] = [];
+    if (this.form.consentTemplateId == null) out.push('Select an approved consent template');
+    if ((this.form.selectedSegments?.length ?? 0) === 0) out.push('Select at least one audience segment');
+    if ((this.form.broadcastChannels?.length ?? 0) === 0) out.push('Select at least one broadcast channel');
+    if (this.form.scheduleType === 'SCHEDULED') {
+      if (!this.form.scheduledAt) out.push('Pick the scheduled date and time');
+      else if (this.scheduleInPast()) out.push('Scheduled date and time must be in the future');
+    }
+    if (this.form.scheduleType === 'RECURRING' && !this.recurringScheduleOk()) {
+      out.push('Complete the recurring schedule');
+    }
+    return out;
+  }
+
+  scheduleInPast(): boolean {
+    return !!this.form.scheduledAt && new Date(this.form.scheduledAt).getTime() <= Date.now();
+  }
+
+  /** Save/submit failed: show why (field errors, server message, or offline). */
+  private showError(
+    err: { status?: number; error?: { message?: string; errorCode?: string; data?: unknown } },
+    title: string,
+  ): void {
+    let msg = err?.error?.message || 'Please try again.';
+    if (err?.status === 0) {
+      msg = 'Cannot reach the server. Check your connection — your changes are still on this page.';
+    } else if (err?.error?.errorCode === 'VALIDATION_ERROR' && err.error.data && typeof err.error.data === 'object') {
+      msg = Object.values(err.error.data as Record<string, string>).join('; ') || msg;
+    }
+    this.notify.error(title, msg);
+  }
+
   saveDraft(): void {
+    const blockers = this.ruleBlockers();
+    if (blockers.length) {
+      this.notify.warning('Cannot save yet', blockers.join('; '));
+      return;
+    }
     this.busy.set(true);
     if (this.isNew()) {
       this.rulesApi.create(this.payload()).subscribe({
@@ -387,7 +458,10 @@ export class MakerRuleEditComponent implements OnInit, OnDestroy {
             void this.router.navigate(['/maker/rules', res.data.id], { replaceUrl: true });
           }
         },
-        error: () => this.busy.set(false),
+        error: (err) => {
+          this.busy.set(false);
+          this.showError(err, 'Draft not saved');
+        },
       });
     } else {
       const id = this.ruleId()!;
@@ -400,12 +474,20 @@ export class MakerRuleEditComponent implements OnInit, OnDestroy {
             this.loadAudit(id);
           }
         },
-        error: () => this.busy.set(false),
+        error: (err) => {
+          this.busy.set(false);
+          this.showError(err, 'Draft not saved');
+        },
       });
     }
   }
 
   submitForApproval(): void {
+    const blockers = this.ruleBlockers();
+    if (blockers.length) {
+      this.notify.warning('Cannot submit yet', blockers.join('; '));
+      return;
+    }
     const run = (id: number) => {
       this.rulesApi.submit(id).subscribe({
         next: (res) => {
@@ -415,7 +497,10 @@ export class MakerRuleEditComponent implements OnInit, OnDestroy {
             void this.router.navigateByUrl('/maker/rules');
           }
         },
-        error: () => this.busy.set(false),
+        error: (err) => {
+          this.busy.set(false);
+          this.showError(err, 'Not submitted');
+        },
       });
     };
     this.busy.set(true);
@@ -430,7 +515,10 @@ export class MakerRuleEditComponent implements OnInit, OnDestroy {
             this.busy.set(false);
           }
         },
-        error: () => this.busy.set(false),
+        error: (err) => {
+          this.busy.set(false);
+          this.showError(err, 'Not submitted');
+        },
       });
     } else {
       run(this.ruleId()!);
@@ -445,11 +533,7 @@ export class MakerRuleEditComponent implements OnInit, OnDestroy {
   }
 
   canSubmit(): boolean {
-    return (
-      this.canEdit() &&
-      this.form.consentTemplateId !== null &&
-      (this.form.selectedSegments?.length ?? 0) > 0
-    );
+    return this.canEdit() && this.ruleBlockers().length === 0;
   }
 
   canPublish(): boolean {

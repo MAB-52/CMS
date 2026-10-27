@@ -80,11 +80,17 @@
 }
 
 :host ::ng-deep .translated-content table {
-  width: 100%;
+  display: block;
+  max-width: 100%;
   border-collapse: collapse;
   margin: 20px 0;
-  overflow: hidden;
+  overflow-x: auto;
   border-radius: 14px;
+}
+
+:host ::ng-deep .translated-content pre {
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 :host ::ng-deep .translated-content th,

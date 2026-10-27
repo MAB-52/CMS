@@ -20,7 +20,7 @@
 // }
 
 
-export type PublicInviteState = 'REJECTED' | 'ACCEPTED' | 'READY' | 'NOT_FOUND' | 'WITHDRAWN' | 'EXPIRED';
+export type PublicInviteState = 'REJECTED' | 'ACCEPTED' | 'READY' | 'NOT_FOUND' | 'WITHDRAWN' | 'EXPIRED' | 'UNAVAILABLE';
 
 export interface PublicConsentInviteDetail {
   state: PublicInviteState;

@@ -1,5 +1,7 @@
 package com.consentiq.controller;
 
+import com.consentiq.enums.UserRole;
+import com.consentiq.exception.UnauthorizedActionException;
 import com.consentiq.model.dto.response.ApiResponse;
 import com.consentiq.model.dto.response.AuditLogResponse;
 import com.consentiq.model.dto.response.MakerTrailResponse;
@@ -7,6 +9,8 @@ import com.consentiq.model.dto.response.PagedResponse;
 import com.consentiq.model.dto.response.ReviewHistoryResponse;
 import com.consentiq.security.UserDetailsImpl;
 import com.consentiq.service.AuditService;
+import com.consentiq.service.ConsentRuleService;
+import com.consentiq.service.ConsentService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -19,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 
 @RestController
 @RequestMapping("/api/audit")
@@ -28,11 +33,27 @@ public class AuditController {
     private static final Logger log = LoggerFactory.getLogger(AuditController.class);
 
     private final AuditService auditService;
+    private final ConsentService consentService;
+    private final ConsentRuleService consentRuleService;
 
     private static String currentUser() {
         return SecurityContextHolder.getContext().getAuthentication() != null
                 ? SecurityContextHolder.getContext().getAuthentication().getName()
                 : "anonymous";
+    }
+
+    /** Makers may only read the history of their own consents and rules; Checker/Admin read all. */
+    private void assertCanViewTrail(String entityType, Long id, Authentication authentication) {
+        UserDetailsImpl user = (UserDetailsImpl) authentication.getPrincipal();
+        if (user.getRole() != UserRole.MAKER) {
+            return;
+        }
+        String type = entityType == null ? "" : entityType.trim().toUpperCase(Locale.ROOT);
+        switch (type) {
+            case "CONSENT" -> consentService.assertCanView(id, user.getId(), user.getRole());
+            case "CONSENT_RULE" -> consentRuleService.assertCanView(id, user.getId(), user.getRole());
+            default -> throw new UnauthorizedActionException("You do not have permission to view this history.");
+        }
     }
 
     @GetMapping("/my-activity")
@@ -62,7 +83,7 @@ public class AuditController {
      * {@code from}/{@code to} are ISO-8601 instants; {@code to} is exclusive.
      */
     @GetMapping("/my-reviews")
-    @PreAuthorize("hasAnyRole('CHECKER','ADMIN')")
+    @PreAuthorize("hasRole('CHECKER')")
     public ResponseEntity<ApiResponse<ReviewHistoryResponse>> getMyReviews(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "15") int size,
@@ -117,7 +138,7 @@ public class AuditController {
 
     @GetMapping("/consent/{id}")
     public ResponseEntity<ApiResponse<List<AuditLogResponse>>> getConsentAuditTrail(
-            @PathVariable("id") Long id, HttpServletRequest httpRequest) {
+            @PathVariable("id") Long id, Authentication authentication, HttpServletRequest httpRequest) {
         String cu = currentUser();
         log.info(
                 "HTTP REQUEST | method={} | uri={} | user={}",
@@ -126,6 +147,7 @@ public class AuditController {
                 cu);
         log.debug("Entering getConsentAuditTrail | params: id={}", id);
         log.info("User={} | action=getConsentAuditTrail | entity=Consent | id={}", cu, id);
+        assertCanViewTrail("CONSENT", id, authentication);
         List<AuditLogResponse> data = auditService.getConsentAuditTrail(id);
         ResponseEntity<ApiResponse<List<AuditLogResponse>>> result =
                 ResponseEntity.ok(ApiResponse.success("Audit trail retrieved", data));
@@ -137,6 +159,7 @@ public class AuditController {
     public ResponseEntity<ApiResponse<List<AuditLogResponse>>> getEntityAuditTrail(
             @PathVariable("entityType") String entityType,
             @PathVariable("id") Long id,
+            Authentication authentication,
             HttpServletRequest httpRequest) {
         String cu = currentUser();
         log.info(
@@ -146,6 +169,7 @@ public class AuditController {
                 cu);
         log.debug("Entering getEntityAuditTrail | params: entityType={} | id={}", entityType, id);
         log.info("User={} | action=getEntityAuditTrail | entity={} | id={}", cu, entityType, id);
+        assertCanViewTrail(entityType, id, authentication);
         List<AuditLogResponse> data = auditService.getAuditTrail(entityType, id);
         ResponseEntity<ApiResponse<List<AuditLogResponse>>> result =
                 ResponseEntity.ok(ApiResponse.success("Audit trail retrieved", data));

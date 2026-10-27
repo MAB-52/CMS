@@ -224,14 +224,17 @@ export class AdminUserManagementComponent {
     if (!this.submitted()) return null;
     switch (field) {
       case 'name':
-        return this.formFullName.trim() ? null : 'Full name is required.';
+        if (!this.formFullName.trim()) return 'Full name is required.';
+        return this.formFullName.trim().length <= 100 ? null : 'Full name must not exceed 100 characters.';
       case 'email':
         if (!this.formEmail.trim()) return 'Email is required.';
+        if (this.formEmail.trim().length > 100) return 'Email must not exceed 100 characters.';
         return EMAIL_RE.test(this.formEmail.trim()) ? null : 'Enter a valid email address.';
       case 'password':
         if (this.isEditing() && !this.formPassword) return null;
         if (!this.formPassword) return 'Password is required for new users.';
-        return this.formPassword.length >= 8 ? null : 'Use at least 8 characters.';
+        if (this.formPassword.length < 8) return 'Use at least 8 characters.';
+        return this.formPassword.length <= 100 ? null : 'Use at most 100 characters.';
       case 'role':
         return this.formRole ? null : 'Choose a role.';
     }

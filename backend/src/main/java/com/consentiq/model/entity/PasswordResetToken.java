@@ -30,6 +30,10 @@ public class PasswordResetToken {
     @Column(nullable = false)
     private Boolean used;
 
+    /** Wrong OTP guesses against this token; null on rows created before the column existed. */
+    @Column(name = "attempts")
+    private Integer attempts;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;

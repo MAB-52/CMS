@@ -22,6 +22,7 @@ import {
   hasRenderedContent,
 } from '../../../core/models/consent-translation.types';
 import { CHANNEL_META, ChannelId } from '../../../core/utils/channel.util';
+import { sanitizeRichHtml } from '../../../core/utils/safe-html.util';
 import { CONSENT_LANGUAGES, isRtl, labelFor, requiresTranslationVerification } from '../../../core/constants/consent-languages';
 
 /** GSM-7 single-message limit; longer texts are split into 153-char segments. */
@@ -256,7 +257,7 @@ export class ConsentChannelLanguagePreviewComponent implements OnChanges {
   }
 
   processedEmailHtml(): SafeHtml {
-    return this.sanitizer.bypassSecurityTrustHtml(this.applyMergeTags(this.currentContent() || ''));
+    return this.sanitizer.bypassSecurityTrustHtml(sanitizeRichHtml(this.applyMergeTags(this.currentContent() || '')));
   }
 
   /** Plain-text body for chat-style channels, with merge tags filled by sample values. */
@@ -285,13 +286,24 @@ export class ConsentChannelLanguagePreviewComponent implements OnChanges {
     return text;
   }
 
+  private readonly imageCache = new Map<string, string[]>();
+
   extractImages(html: string): string[] {
-    if (!html) return [];
-    const tmp = document.createElement('div');
-    tmp.innerHTML = html;
-    return Array.from(tmp.querySelectorAll('img'))
+    if (!html || !/<img\b/i.test(html)) return [];
+    const cached = this.imageCache.get(html);
+    if (cached) return cached;
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const srcs = Array.from(doc.querySelectorAll('img'))
       .map((img) => img.getAttribute('src') || '')
       .filter((src) => !!src);
+    if (this.imageCache.size > 20) this.imageCache.clear();
+    this.imageCache.set(html, srcs);
+    return srcs;
+  }
+
+  messageImages(): string[] {
+    const fromRender = this.extractImages(this.currentContent());
+    return fromRender.length ? fromRender : this.extractImages(this.fallbackContent ?? '');
   }
 
   smsLen(): number {
@@ -305,9 +317,5 @@ export class ConsentChannelLanguagePreviewComponent implements OnChanges {
 
   smsOverLimit(): boolean {
     return this.smsLen() > SMS_SINGLE;
-  }
-
-  waImages(): string[] {
-    return this.extractImages(this.currentContent());
   }
 }

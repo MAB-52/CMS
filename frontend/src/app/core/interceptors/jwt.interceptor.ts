@@ -30,7 +30,14 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
  
         const errorCode = err.error?.errorCode;
  
-        if (errorCode === 'SESSION_INVALIDATED_ELSEWHERE') {
+        if (errorCode === 'ACCOUNT_INACTIVE') {
+          logger.warn('JwtInterceptor', '401 received — account deactivated');
+          notify.warnOnce(
+            'account-inactive',
+            'Your account has been deactivated. Please contact your administrator.',
+          );
+          auth.logout({ sessionExpired: true });
+        } else if (errorCode === 'SESSION_INVALIDATED_ELSEWHERE') {
           logger.warn('JwtInterceptor', '401 received — session invalidated by another login');
           notify.warnOnce(
             'session-invalidated',

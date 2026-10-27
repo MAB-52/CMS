@@ -48,7 +48,14 @@
         </div>
       </div>
 
-      @if (!rows().length) {
+      @if (loading()) {
+        <div class="empty-state">
+          <div class="empty-state__icon">
+            <mat-icon>hourglass_empty</mat-icon>
+          </div>
+          <p>Loading pending rules…</p>
+        </div>
+      } @else if (!rows().length) {
 
         <div class="empty-state">
           <div class="empty-state__icon">

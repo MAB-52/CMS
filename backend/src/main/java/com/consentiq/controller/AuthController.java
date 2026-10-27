@@ -61,6 +61,7 @@ public class AuthController {
         log.info("User={} | action=logout | entity=Auth | id=n/a", cu);
         if (authentication != null && authentication.getPrincipal() instanceof UserDetailsImpl user) {
             log.info("Branch taken | method=logout | condition=principal | value=user | email={}", user.getEmail());
+            authService.logout(user.getId());
         } else {
             log.info("Branch taken | method=logout | condition=principal | value=unknown");
         }

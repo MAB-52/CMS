@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -35,16 +36,27 @@ export class CheckerRuleReviewComponent implements OnInit {
 
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
-    this.api.getById(id).subscribe((res) => {
-      if (res.success && res.data) {
-        this.rule.set(res.data);
-      }
-    });
+    this.loadRule(id);
     this.auditApi.getEntityAuditTrail('CONSENT_RULE', id).subscribe((r) => {
       if (r.success && r.data) {
         this.audit.set(r.data);
       }
     });
+  }
+
+  private loadRule(id: number): void {
+    this.api.getById(id).subscribe((res) => {
+      if (res.success && res.data) {
+        this.rule.set(res.data);
+      }
+    });
+  }
+
+  private onDecisionError(id: number, err: HttpErrorResponse): void {
+    this.busy.set(false);
+    if (err.status === 409) {
+      this.loadRule(id);
+    }
   }
 
   canDecide(): boolean {
@@ -113,7 +125,7 @@ export class CheckerRuleReviewComponent implements OnInit {
             setTimeout(() => void this.router.navigateByUrl('/checker/rules/pending'), 1200);
           }
         },
-        error: () => this.busy.set(false),
+        error: (err: HttpErrorResponse) => this.onDecisionError(r.id, err),
       });
     });
   }
@@ -146,7 +158,7 @@ export class CheckerRuleReviewComponent implements OnInit {
             setTimeout(() => void this.router.navigateByUrl('/checker/rules/pending'), 1200);
           }
         },
-        error: () => this.busy.set(false),
+        error: (err: HttpErrorResponse) => this.onDecisionError(r.id, err),
       });
     });
   }
@@ -179,7 +191,7 @@ export class CheckerRuleReviewComponent implements OnInit {
             setTimeout(() => void this.router.navigateByUrl('/checker/rules/pending'), 1200);
           }
         },
-        error: () => this.busy.set(false),
+        error: (err: HttpErrorResponse) => this.onDecisionError(r.id, err),
       });
     });
   }

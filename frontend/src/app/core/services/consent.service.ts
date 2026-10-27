@@ -62,7 +62,9 @@ export class ConsentService {
       if (err.status === 401) {
         userMessage = 'Session expired. Please log in again.';
       } else if (err.status === 403) {
-        userMessage = 'You do not have permission to perform this action.';
+        userMessage = code === 'UNAUTHORIZED_ACTION' && body?.message
+          ? body.message
+          : 'You do not have permission to perform this action.';
       } else if (err.status === 404) {
         userMessage = 'The requested consent could not be found.';
       } else if (err.status === 409 && code === 'INVALID_STATE_TRANSITION') {
@@ -76,7 +78,7 @@ export class ConsentService {
       } else {
         userMessage = msg || 'Something went wrong.';
       }
-      if (err.status !== 401 && err.status !== 403) {
+      if (err.status !== 401 && (err.status !== 403 || code === 'UNAUTHORIZED_ACTION')) {
         this.notify.error('Request failed', userMessage);
       }
       const enriched: ConsentServiceError = Object.assign(err, { userMessage, errorCode: code });

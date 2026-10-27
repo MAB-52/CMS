@@ -170,7 +170,16 @@ export class MisReportAuditTabComponent implements OnInit, OnDestroy {
     this.load(Math.floor((event.first ?? 0) / rows));
   }
 
+  private isRangeValid(): boolean {
+    if (this.from && this.to && this.from.getTime() > this.to.getTime()) {
+      this.notify.warning('Audit', "'From' date must be on or before 'To' date.");
+      return false;
+    }
+    return true;
+  }
+
   apply(): void {
+    if (!this.isRangeValid()) return;
     this.expandedRows = {};
     this.load(0);
   }
@@ -255,6 +264,7 @@ export class MisReportAuditTabComponent implements OnInit, OnDestroy {
   }
 
   exportCsv(): void {
+    if (!this.isRangeValid()) return;
     this.exporting.set('csv');
     this.adminApi
       .exportMisAuditCsv(this.filterParams())
@@ -273,6 +283,7 @@ export class MisReportAuditTabComponent implements OnInit, OnDestroy {
   }
 
   exportExcel(): void {
+    if (!this.isRangeValid()) return;
     this.exporting.set('excel');
     this.adminApi
       .exportMisAuditExcel(this.filterParams())

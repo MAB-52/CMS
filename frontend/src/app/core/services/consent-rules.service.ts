@@ -34,7 +34,8 @@ export class ConsentRulesService {
       // if (err.status !== 401) {
       //   this.notify.error(name, msg);
       // }
-      if (err.status !== 401 && err.status !== 403) {
+      const code = (err.error as ApiResponse<unknown>)?.errorCode;
+      if (err.status !== 401 && (err.status !== 403 || code === 'UNAUTHORIZED_ACTION')) {
         this.notify.error(name, msg);
       }
       return throwError(() => err);
@@ -80,12 +81,6 @@ export class ConsentRulesService {
     return this.http
       .post<ApiResponse<ConsentRule>>(`${environment.apiUrl}/consent-rules/${id}/review`, body)
       .pipe(catchError(this.handle('Review')));
-  }
-
-  publishLive(id: number): Observable<ApiResponse<ConsentRule>> {
-    return this.http
-      .post<ApiResponse<ConsentRule>>(`${environment.apiUrl}/consent-rules/${id}/publish-live`, {})
-      .pipe(catchError(this.handle('Rule')));
   }
 
   getById(id: number): Observable<ApiResponse<ConsentRule>> {

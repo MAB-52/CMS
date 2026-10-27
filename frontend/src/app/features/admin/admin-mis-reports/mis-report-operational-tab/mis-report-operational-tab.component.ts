@@ -213,7 +213,16 @@ export class MisReportOperationalTabComponent implements OnInit, OnDestroy {
     this.loadTat(Math.floor((event.first ?? 0) / rows));
   }
 
+  private isRangeValid(): boolean {
+    if (this.tatFrom && this.tatTo && this.tatFrom.getTime() > this.tatTo.getTime()) {
+      this.notify.warning('TAT report', "'From' date must be on or before 'To' date.");
+      return false;
+    }
+    return true;
+  }
+
   applyTat(): void {
+    if (!this.isRangeValid()) return;
     this.loadTat(0);
   }
 
@@ -301,6 +310,7 @@ export class MisReportOperationalTabComponent implements OnInit, OnDestroy {
   }
 
   exportTatCsv(): void {
+    if (!this.isRangeValid()) return;
     this.exportingTat.set('csv');
     this.adminApi
       .exportMisTatCsv(this.tatParams())
@@ -319,6 +329,7 @@ export class MisReportOperationalTabComponent implements OnInit, OnDestroy {
   }
 
   exportTatExcel(): void {
+    if (!this.isRangeValid()) return;
     this.exportingTat.set('excel');
     this.adminApi
       .exportMisTatExcel(this.tatParams())

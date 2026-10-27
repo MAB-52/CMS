@@ -61,17 +61,18 @@ public class PublicConsentSessionController {
                 cu);
         log.debug("Entering exchange | params: codePresent={}", body.getCode() != null && !body.getCode().isBlank());
         log.info("User={} | action=exchange | entity=ConsentSession | id=n/a", cu);
-        Optional<String> jwtOpt = publicConsentSessionService.exchangeOpaqueCodeForSessionJwt(body.getCode());
-        if (jwtOpt.isEmpty()) {
+        PublicConsentSessionService.ExchangeResult exchange =
+                publicConsentSessionService.exchangeOpaqueCodeForSessionJwt(body.getCode());
+        if (!exchange.succeeded()) {
             log.warn("Empty result returned | method=exchange | filter=jwtMissing | user={}", cu);
             ResponseEntity<Map<String, String>> bad =
-                    ResponseEntity.badRequest().body(Map.of("error", "LINK_EXPIRED"));
+                    ResponseEntity.badRequest().body(Map.of("error", exchange.error()));
             log.debug("Exiting exchange | result={}", bad.getStatusCode());
             return bad;
         }
         boolean isSecure = httpRequest.isSecure(); // true in prod HTTPS, false in localhost HTTP
 
-        ResponseCookie cookie = ResponseCookie.from(COOKIE_CONSENT_SESSION, jwtOpt.get())
+        ResponseCookie cookie = ResponseCookie.from(COOKIE_CONSENT_SESSION, exchange.jwt())
                 .httpOnly(true)
                 .path("/")
                 .maxAge(Duration.ofSeconds(30 * 60))

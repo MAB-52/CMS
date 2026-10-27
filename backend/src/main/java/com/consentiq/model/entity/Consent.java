@@ -13,6 +13,7 @@ import org.hibernate.type.SqlTypes;
 
 import com.consentiq.enums.ConsentCategory;
 import com.consentiq.enums.ConsentStatus;
+import com.consentiq.util.HtmlTextUtil;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -27,6 +28,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -161,4 +164,11 @@ public class Consent {
      @OneToMany(mappedBy = "consent", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
      @Builder.Default
      private List<ConsentTranslation> translations = new ArrayList<>();
+
+    /** Strip script/event handlers on every save path so stored consent HTML is always safe to render. */
+    @PrePersist
+    @PreUpdate
+    void sanitizeContent() {
+        consentMessage = HtmlTextUtil.sanitizeRichHtml(consentMessage);
+    }
 }

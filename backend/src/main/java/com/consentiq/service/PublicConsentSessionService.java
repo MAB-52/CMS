@@ -1,6 +1,9 @@
 package com.consentiq.service;
 
+import com.consentiq.enums.InviteTokenResponseStatus;
+import com.consentiq.model.entity.ConsentInviteToken;
 import com.consentiq.model.entity.ConsentOneTimeCode;
+import com.consentiq.repository.ConsentInviteTokenRepository;
 import com.consentiq.repository.ConsentOneTimeCodeRepository;
 import com.consentiq.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -25,24 +28,42 @@ public class PublicConsentSessionService {
                 : "anonymous";
     }
 
+    public static final String INVALID_LINK = "INVALID_LINK";
+    public static final String LINK_EXPIRED = "LINK_EXPIRED";
+
+    public record ExchangeResult(String jwt, String error) {
+        static ExchangeResult ok(String jwt) {
+            return new ExchangeResult(jwt, null);
+        }
+
+        static ExchangeResult failed(String error) {
+            return new ExchangeResult(null, error);
+        }
+
+        public boolean succeeded() {
+            return jwt != null;
+        }
+    }
+
     private final ConsentOneTimeCodeRepository consentOneTimeCodeRepository;
+    private final ConsentInviteTokenRepository inviteTokenRepository;
     private final JwtTokenProvider jwtTokenProvider;
 
     @Transactional
-    public Optional<String> exchangeOpaqueCodeForSessionJwt(String rawCode) {
+    public ExchangeResult exchangeOpaqueCodeForSessionJwt(String rawCode) {
         String cu = currentUser();
         log.debug("Entering exchangeOpaqueCodeForSessionJwt | params: rawCode=****");
         log.info("User={} | action=exchangeOpaqueCodeForSessionJwt | entity=ConsentOneTimeCode | id=n/a", cu);
 
         if (rawCode == null || rawCode.isBlank()) {
             log.warn("exchange failed | reason=blank_code");
-            return Optional.empty();
+            return ExchangeResult.failed(INVALID_LINK);
         }
 
         Optional<ConsentOneTimeCode> opt = consentOneTimeCodeRepository.findByCode(rawCode.trim());
         if (opt.isEmpty()) {
             log.warn("exchange failed | reason=code_not_found");
-            return Optional.empty();
+            return ExchangeResult.failed(INVALID_LINK);
         }
 
         ConsentOneTimeCode row = opt.get();
@@ -53,12 +74,24 @@ public class PublicConsentSessionService {
 
         if (row.getExpiresAt() == null) {
             log.warn("exchange failed | reason=expires_at_null | consentRequestId={}", row.getConsentRequestId());
-            return Optional.empty();
+            return ExchangeResult.failed(LINK_EXPIRED);
         }
 
         if (now.isAfter(row.getExpiresAt())) {
             log.warn("exchange failed | reason=expired | consentRequestId={}", row.getConsentRequestId());
-            return Optional.empty();
+            return ExchangeResult.failed(LINK_EXPIRED);
+        }
+
+        Optional<ConsentInviteToken> inviteOpt = inviteTokenRepository.findById(row.getConsentRequestId());
+        if (inviteOpt.isEmpty()) {
+            log.warn("exchange failed | reason=invite_not_found | consentRequestId={}", row.getConsentRequestId());
+            return ExchangeResult.failed(INVALID_LINK);
+        }
+        ConsentInviteToken invite = inviteOpt.get();
+        if ((invite.getResponseStatus() != null && invite.getResponseStatus() != InviteTokenResponseStatus.PENDING)
+                || invite.getExpiresAt() == null || now.isAfter(invite.getExpiresAt())) {
+            log.warn("exchange failed | reason=invite_closed | consentRequestId={}", row.getConsentRequestId());
+            return ExchangeResult.failed(LINK_EXPIRED);
         }
 
         if (!row.isUsed()) {
@@ -71,6 +104,6 @@ public class PublicConsentSessionService {
 
         String jwt = jwtTokenProvider.generateConsentSessionToken(row.getConsentRequestId());
         log.info("exchange success | consentRequestId={}", row.getConsentRequestId());
-        return Optional.of(jwt);
+        return ExchangeResult.ok(jwt);
     }
 }

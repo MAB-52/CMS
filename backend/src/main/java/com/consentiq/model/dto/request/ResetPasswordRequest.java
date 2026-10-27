@@ -18,8 +18,8 @@ public class ResetPasswordRequest {
     
     @NotBlank(message = "New password is required")
     @Size(min = 6, message = "Password must be at least 6 characters")
-    @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{6,}$",
-             message = "Password must contain at least one digit, one uppercase, one lowercase, and one special character")
+    @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9])(?=\\S+$).{6,}$",
+             message = "Password must contain at least one digit, one uppercase, one lowercase, one special character, and no spaces")
     private String newPassword;
     
     @NotBlank(message = "Confirm password is required")

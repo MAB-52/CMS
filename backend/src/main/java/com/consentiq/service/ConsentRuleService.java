@@ -14,6 +14,7 @@ import com.consentiq.model.entity.User;
 import com.consentiq.repository.ConsentRepository;
 import com.consentiq.repository.ConsentRuleRepository;
 import com.consentiq.repository.UserRepository;
+import com.consentiq.util.ReviewReasonUtil;
 import com.consentiq.util.RuleNextRunUtil;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -41,10 +42,11 @@ import java.util.Set;
  *
  *  DRAFT  →  [saveDraft*]  →  DRAFT
  *  DRAFT / REVISION_REQUESTED  →  [submitForApproval]  →  PENDING_CHECKER_APPROVAL
- *  PENDING_CHECKER_APPROVAL    →  [reviewRule APPROVE]  →  APPROVED
+ *  PENDING_CHECKER_APPROVAL    →  [reviewRule APPROVE]  →  LIVE (auto-activated)
  *  PENDING_CHECKER_APPROVAL    →  [reviewRule REJECT]   →  REJECTED
  *  PENDING_CHECKER_APPROVAL    →  [reviewRule REQUEST_REVISION] → REVISION_REQUESTED
- *  APPROVED                    →  [publishLive]         →  LIVE
+ *  LIVE                        →  [Admin deactivate]    →  APPROVED
+ *  APPROVED                    →  [Admin activate]      →  LIVE
  *
  * Key fixes applied vs. previous version:
  *  1. Consent template resolution is separate from {@code applyNonTemplateFieldsFromUpsert} /
@@ -325,7 +327,7 @@ public class ConsentRuleService {
                 consentRepository
                         .findById(consentId)
                         .orElseThrow(() -> new IllegalArgumentException("Consent not found: id=" + consentId));
-        if (consent.getStatus() != ConsentStatus.APPROVED) {
+        if (consent.getStatus() != ConsentStatus.APPROVED && consent.getStatus() != ConsentStatus.PUBLISHED) {
             throw new IllegalArgumentException(
                     "Consent must be APPROVED before linking template to rule; status=" + consent.getStatus());
         }
@@ -461,11 +463,12 @@ public class ConsentRuleService {
                 id, checkerId, request.getAction());
 
         User checker = loadUser(checkerId);
-        if (checker.getRole() != UserRole.CHECKER && checker.getRole() != UserRole.ADMIN) {
+        if (checker.getRole() != UserRole.CHECKER) {
             throw new UnauthorizedActionException("REVIEW_RULE");
         }
 
-        ConsentRule rule = findRule(id);
+        ConsentRule rule = consentRuleRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new IllegalArgumentException("Rule not found: id=" + id));
 
         if (rule.getStatus() != ConsentRuleStatus.PENDING_CHECKER_APPROVAL) {
             log.warn("[RULE] Review rejected — ruleId={} status={} is not PENDING_CHECKER_APPROVAL",
@@ -500,54 +503,6 @@ public class ConsentRuleService {
         return res;
         } catch (Exception e) {
             log.error("Exception in reviewRule | user={} | message={}", cu, e.getMessage(), e);
-            throw e;
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // ADMIN / PUBLISH OPERATIONS
-    // ─────────────────────────────────────────────────────────────────────────
-
-    /**
-     * Publishes an APPROVED rule to LIVE, enabling execution.
-     * Only the rule owner or an ADMIN may do this.
-     */
-    @Transactional
-    public ConsentRuleResponse publishLive(Long id, Long userId, HttpServletRequest http) {
-        String cu = currentUser();
-        log.debug("Entering publishLive | params: ruleId={},userId={}", id, userId);
-        log.info("User={} | action=publishLive | entity=ConsentRule | id={}", cu, id);
-        log.debug("Transaction started | method=publishLive | id={}", id);
-        try {
-        log.info("[RULE] publishLive — ruleId={} userId={}", id, userId);
-        ConsentRule rule = findRule(id);
-        assertOwnerOrAdmin(rule, userId);
-        assertMakerOrAdmin(loadUser(userId));
-
-        if (rule.getStatus() != ConsentRuleStatus.APPROVED) {
-            log.warn("[RULE] Publish rejected — ruleId={} status={}", id, rule.getStatus());
-            throw new InvalidWorkflowStateException(rule.getStatus().name(), "PUBLISH_LIVE");
-        }
-
-        rule.setStatus(ConsentRuleStatus.LIVE);
-        rule.setPublishedAt(Instant.now());
-        rule.setExecutionActive(true);
-        RuleNextRunUtil.applyNextExecutionOnActivation(rule);
-
-        log.info("Executing DB query | method=save | param=ConsentRule");
-        ConsentRule saved = consentRuleRepository.save(rule);
-        log.info("DB query completed | method=save | result=completed");
-        log.info("[RULE] Rule is now LIVE — ruleId={} nextExecution={}", saved.getId(), saved.getNextExecutionAt());
-
-        auditService.log(userId, "RULE_LIVE", "CONSENT_RULE", saved.getId(),
-                saved.getRuleName(), "Rule published / live", http);
-
-        ConsentRuleResponse res = toResponse(saved);
-        log.debug("Transaction completing | method=publishLive | id={}", id);
-        log.debug("Exiting publishLive | result=id={}", saved.getId());
-        return res;
-        } catch (Exception e) {
-            log.error("Exception in publishLive | user={} | message={}", cu, e.getMessage(), e);
             throw e;
         }
     }
@@ -696,18 +651,21 @@ public class ConsentRuleService {
             ConsentRule rule, User checker, WorkflowReviewRequest req,
             Long checkerId, HttpServletRequest http) {
 
-        rule.setStatus(ConsentRuleStatus.APPROVED);
+        String approveReason =
+                ReviewReasonUtil.require(req.getApproveReason(), ReviewReasonUtil.APPROVE_MIN, "Approval reason");
+
+        // Approval auto-activates, so the rule goes straight to LIVE (active ⇔ LIVE).
+        // Admin deactivation moves it back to APPROVED.
+        Instant now = Instant.now();
+        rule.setStatus(ConsentRuleStatus.LIVE);
         rule.setReviewedBy(checker);
-        rule.setReviewedAt(Instant.now());
-        rule.setApprovedAt(Instant.now());
+        rule.setReviewedAt(now);
+        rule.setApprovedAt(now);
+        rule.setPublishedAt(now);
         rule.setRejectionReason(null);
         rule.setRevisionReason(null);
         rule.setReviewerRemarks(req.getRemarks());
-
-        if (!StringUtils.hasText(req.getApproveReason())) {
-            throw new IllegalArgumentException("Approval reason is required.");
-        }
-        rule.setApproveReason(req.getApproveReason().trim());
+        rule.setApproveReason(approveReason);
 
         // Auto-activate on approval for all schedule types (IMMEDIATE / SCHEDULED / RECURRING).
         // The admin toggle remains available to deactivate/reactivate later if needed.
@@ -722,7 +680,7 @@ public class ConsentRuleService {
                 rule.getId(), rule.getScheduleType(), checkerId);
         auditService.log(checkerId, "RULE_APPROVED", "CONSENT_RULE", rule.getId(),
                 rule.getRuleName(),
-                StringUtils.hasText(req.getRemarks()) ? req.getRemarks() : "Approved",
+                StringUtils.hasText(req.getRemarks()) ? req.getRemarks() : "Approved and live",
                 http);
     }
 
@@ -730,37 +688,34 @@ public class ConsentRuleService {
             ConsentRule rule, User checker, WorkflowReviewRequest req,
             Long checkerId, HttpServletRequest http) {
 
-        if (!StringUtils.hasText(req.getReason())) {
-            throw new IllegalArgumentException("Rejection reason is required.");
-        }
+        String reason = ReviewReasonUtil.require(req.getReason(), ReviewReasonUtil.REJECT_MIN, "Rejection reason");
         rule.setStatus(ConsentRuleStatus.REJECTED);
-        rule.setRejectionReason(req.getReason().trim());
+        rule.setRejectionReason(reason);
         rule.setReviewedBy(checker);
         rule.setReviewedAt(Instant.now());
         rule.setReviewerRemarks(req.getRemarks());
 
         log.info("[RULE] REJECTED ruleId={} by checkerId={} reason='{}'",
-                rule.getId(), checkerId, req.getReason());
+                rule.getId(), checkerId, reason);
         auditService.log(checkerId, "RULE_REJECTED", "CONSENT_RULE", rule.getId(),
-                rule.getRuleName(), req.getReason().trim(), http);
+                rule.getRuleName(), reason, http);
     }
 
     private void handleRequestRevision(
             ConsentRule rule, User checker, WorkflowReviewRequest req,
             Long checkerId, HttpServletRequest http) {
 
-        if (!StringUtils.hasText(req.getRevisionMessage())) {
-            throw new IllegalArgumentException("Revision message is required.");
-        }
+        String message =
+                ReviewReasonUtil.require(req.getRevisionMessage(), ReviewReasonUtil.REVISION_MIN, "Revision message");
         rule.setStatus(ConsentRuleStatus.REVISION_REQUESTED);
-        rule.setRevisionReason(req.getRevisionMessage().trim());
+        rule.setRevisionReason(message);
         rule.setReviewedBy(checker);
         rule.setReviewedAt(Instant.now());
         rule.setReviewerRemarks(req.getRemarks());
 
         log.info("[RULE] REVISION_REQUESTED ruleId={} by checkerId={}", rule.getId(), checkerId);
         auditService.log(checkerId, "RULE_REVISION_REQUESTED", "CONSENT_RULE", rule.getId(),
-                rule.getRuleName(), req.getRevisionMessage().trim(), http);
+                rule.getRuleName(), message, http);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -820,6 +775,9 @@ public class ConsentRuleService {
 
         if (scheduleType == WorkflowScheduleType.SCHEDULED && scheduledAt == null) {
             throw new IllegalArgumentException("Scheduled date/time is required for scheduled rules.");
+        }
+        if (scheduleType == WorkflowScheduleType.SCHEDULED && !scheduledAt.isAfter(Instant.now())) {
+            throw new IllegalArgumentException("Scheduled date and time must be in the future.");
         }
         if (scheduleType == WorkflowScheduleType.RECURRING && !StringUtils.hasText(recurringCron)) {
             throw new IllegalArgumentException("Recurring schedule requires a cron expression.");
@@ -1040,6 +998,12 @@ public class ConsentRuleService {
         }
     }
 
+    /** Makers may only read rules they created (including paired rules); Checker and Admin can read all. */
+    @Transactional(readOnly = true)
+    public void assertCanView(Long ruleId, Long userId, UserRole role) {
+        authorizeRead(findRule(ruleId), userId, role);
+    }
+
     private void authorizeRead(ConsentRule rule, Long userId, UserRole role) {
         if (role == UserRole.ADMIN || role == UserRole.CHECKER) {
             return;
@@ -1047,7 +1011,7 @@ public class ConsentRuleService {
         if (role == UserRole.MAKER && rule.getCreatedBy().getId().equals(userId)) {
             return;
         }
-        throw new UnauthorizedActionException("VIEW_RULE");
+        throw new UnauthorizedActionException("You do not have permission to view this rule.");
     }
 
     // ─────────────────────────────────────────────────────────────────────────

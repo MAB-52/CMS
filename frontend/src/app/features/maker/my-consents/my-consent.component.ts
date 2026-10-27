@@ -10,6 +10,7 @@ import { Consent, ConsentStatus } from '../../../core/models/consent.model';
 import { ConsentService } from '../../../core/services/consent.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { ConfirmDialogService } from '../../../shared/components/confirm-dialog/confirm-dialog.service';
 import { StatusBadgeComponent } from '../../../shared/components/status-badge/status-badge.component';
 import { TimeAgoPipe } from '../../../shared/pipes/time-ago.pipe';
 
@@ -34,6 +35,7 @@ export class MyConsentsComponent implements OnInit {
   private readonly api = inject(ConsentService);
   private readonly auth = inject(AuthService);
   private readonly notify = inject(NotificationService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -101,17 +103,30 @@ export class MyConsentsComponent implements OnInit {
   }
 
   delete(c: Consent): void {
-    if (!confirm(`Delete ${c.consentName}?`)) {
-      return;
-    }
-    this.api.deleteConsent(c.id).subscribe({
-      next: (res) => {
-        if (res.success) {
-          this.notify.success('Deleted', res.message || 'Consent removed.');
-          this.reload();
+    this.confirmDialog
+      .open({
+        icon: 'pi pi-trash',
+        title: 'Delete draft?',
+        body: `“${c.consentName}” will be permanently deleted. This cannot be undone.`,
+        cancelLabel: 'Keep draft',
+        confirmLabel: 'Delete',
+        confirmIcon: 'pi pi-trash',
+        confirmColor: 'warn',
+      })
+      .subscribe((ok) => {
+        if (!ok) {
+          return;
         }
-      },
-    });
+        this.api.deleteConsent(c.id).subscribe({
+          next: (res) => {
+            if (res.success) {
+              this.notify.success('Deleted', res.message || 'Consent removed.');
+              this.reload();
+            }
+          },
+          error: (err) => this.notify.error('Not deleted', err?.error?.message || 'Please try again.'),
+        });
+      });
   }
 
   publish(c: Consent): void {

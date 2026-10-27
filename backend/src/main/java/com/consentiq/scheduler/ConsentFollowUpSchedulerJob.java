@@ -407,7 +407,7 @@ public class ConsentFollowUpSchedulerJob {
 
                     .createdAt(now)
 
-                    .expiresAt(now.plus(15, ChronoUnit.MINUTES))
+                    .expiresAt(now.plus(24, ChronoUnit.HOURS))
 
                     .used(false)
 
