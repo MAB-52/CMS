@@ -1,18 +1,17 @@
 
 import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { MatIconModule } from '@angular/material/icon';
+import { CheckboxModule } from 'primeng/checkbox';
+import { TagModule } from 'primeng/tag';
 import { MergeTag } from '../../../../core/models/consent.model';
 import { ChannelLanguageRenderMap } from '../../../../core/models/consent-translation.types';
+import { CHANNEL_META, ChannelId, ChannelMeta } from '../../../../core/utils/channel.util';
 import { ConsentChannelLanguagePreviewComponent } from '../../../../shared/components/consent-channel-language-preview/consent-channel-language-preview.component';
-
-type ChannelId = 'EMAIL' | 'SMS' | 'PUSH' | 'WHATSAPP' | 'RCS';
 
 @Component({
   selector: 'app-delivery-channels-card',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, MatIconModule, ConsentChannelLanguagePreviewComponent],
+  imports: [ReactiveFormsModule, CheckboxModule, TagModule, ConsentChannelLanguagePreviewComponent],
   templateUrl: './delivery-channels-card.component.html',
   styleUrl: './delivery-channels-card.component.css',
 })
@@ -24,15 +23,19 @@ export class DeliveryChannelsCardComponent {
   @Input() initialChannel: string | null = null;
   @Input() initialLanguage: string | null = null;
 
-  readonly channels: { id: ChannelId; icon: string; name: string; desc: string }[] = [
-    { id: 'EMAIL', icon: '📧', name: 'Email', desc: 'HTML formatted email with full branding' },
-    { id: 'SMS', icon: '📱', name: 'SMS', desc: 'Plain text, 160 characters max' },
-    { id: 'WHATSAPP', icon: '💬', name: 'WhatsApp', desc: 'Rich message via WhatsApp Business' },
-    { id: 'RCS', icon: '🌐', name: 'RCS', desc: 'Rich Communication Services message' },
+  readonly channels: { id: ChannelId; desc: string }[] = [
+    { id: 'EMAIL', desc: 'HTML formatted email with full branding' },
+    { id: 'SMS', desc: 'Plain text, 160 characters max' },
+    { id: 'WHATSAPP', desc: 'Rich message via WhatsApp Business' },
+    { id: 'RCS', desc: 'Rich Communication Services message' },
   ];
 
   get selectedChannels(): ChannelId[] {
     return this.channels.filter((ch) => this.isOn(ch.id)).map((ch) => ch.id);
+  }
+
+  meta(id: ChannelId): ChannelMeta {
+    return CHANNEL_META[id];
   }
 
   isOn(id: ChannelId): boolean {
@@ -40,15 +43,7 @@ export class DeliveryChannelsCardComponent {
     return !!this.form?.controls[key]?.value;
   }
 
-  toggle(id: ChannelId): void {
-    const key = this.controlKey(id);
-    const ctrl = this.form.controls[key];
-    if (!ctrl) return;
-    ctrl.setValue(!ctrl.value);
-    ctrl.markAsDirty();
-  }
-
-  private controlKey(id: ChannelId): string {
+  controlKey(id: ChannelId): string {
     const map: Record<ChannelId, string> = {
       EMAIL: 'channelEmail',
       SMS: 'channelSms',

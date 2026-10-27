@@ -1,0 +1,380 @@
+/*
+ * Shared PrimeNG report kit (mr-*) for admin pages — Interact Suite Design System v2.0.
+ * Include in a component's styleUrls; all rules are :host-scoped.
+ */
+
+/* Toolbar */
+.mr-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--is-s-4);
+  animation: is-fade-up var(--is-dur-slow) var(--is-ease) both;
+}
+.mr-toolbar__text { display: flex; align-items: center; gap: var(--is-s-3); min-width: 0; }
+.mr-toolbar__ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--is-r-nav);
+  background: var(--is-grad-banner);
+  color: var(--is-text-inverse);
+  box-shadow: var(--is-shadow-primary);
+  transition: transform var(--is-dur) var(--is-ease);
+}
+.mr-toolbar:hover .mr-toolbar__ico { transform: rotate(-6deg) scale(1.05); }
+.mr-toolbar__ico .pi { font-size: 20px; }
+.mr-toolbar__title { margin: 0; font-size: var(--is-fs-h3); line-height: var(--is-lh-h3); font-weight: var(--is-fw-bold); color: var(--is-primary); }
+.mr-toolbar__sub {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--is-s-2);
+  margin: 2px 0 0;
+  font-size: var(--is-fs-body);
+  line-height: var(--is-lh-body);
+  color: var(--is-text-2);
+}
+.mr-count {
+  padding: 2px 10px;
+  border-radius: var(--is-r-pill);
+  background: var(--is-tint-orange);
+  color: var(--is-secondary-strong);
+  font-size: var(--is-fs-xs);
+  font-weight: var(--is-fw-bold);
+  white-space: nowrap;
+  animation: is-scale-in var(--is-dur) var(--is-ease) both;
+}
+
+/* Export buttons: grey outlined CSV + green outlined Excel pills */
+.mr-exports { display: flex; gap: var(--is-s-2); }
+:host ::ng-deep .mr-exports .p-button { font-family: var(--is-font); font-weight: var(--is-fw-bold); }
+
+/* Buttons — primary dark gradient pill, outlined secondary pill */
+:host ::ng-deep .mr-btn-primary.p-button,
+:host ::ng-deep .mr-btn-outline.p-button {
+  min-height: 44px;
+  padding: 12px 24px;
+  border-radius: var(--is-r-pill);
+  font-family: var(--is-font);
+  font-size: var(--is-fs-body);
+  line-height: 20px;
+  transition: transform var(--is-dur) var(--is-ease), box-shadow var(--is-dur) ease, background var(--is-dur) ease;
+}
+:host ::ng-deep .mr-btn-primary.p-button .p-button-label,
+:host ::ng-deep .mr-btn-outline.p-button .p-button-label { font-weight: var(--is-fw-bold); }
+:host ::ng-deep .mr-btn-primary.p-button {
+  border: 0;
+  background: linear-gradient(90deg, var(--is-primary-strong), var(--is-primary-soft));
+  color: var(--is-text-inverse);
+  box-shadow: var(--is-shadow-primary);
+}
+:host ::ng-deep .mr-btn-primary.p-button:not(:disabled):hover {
+  background: linear-gradient(90deg, var(--is-primary-strong), var(--is-primary));
+  transform: translateY(-1px);
+}
+:host ::ng-deep .mr-btn-outline.p-button { border: 1px solid var(--is-primary); background: var(--is-surface); color: var(--is-primary); }
+:host ::ng-deep .mr-btn-outline.p-button:not(:disabled):hover { background: var(--is-tint-purple); border-color: var(--is-primary); color: var(--is-primary); transform: translateY(-1px); }
+:host ::ng-deep .mr-btn-primary.p-button:active,
+:host ::ng-deep .mr-btn-outline.p-button:active { transform: scale(0.98); }
+
+/* Cards */
+.mr-card {
+  position: relative;
+  display: grid;
+  gap: var(--is-s-4);
+  min-width: 0;
+  padding: var(--is-card-pad);
+  border: 1px solid var(--is-border);
+  border-radius: var(--is-r-card);
+  background: var(--is-surface);
+  box-shadow: var(--is-shadow-soft);
+  animation: is-fade-up var(--is-dur-slow) var(--is-ease) var(--d, 0ms) both;
+}
+.mr-card--flush { padding: 0; overflow: hidden; gap: 0; }
+/* Grid children default to min-width:auto and would grow to the table's width
+   (then get clipped); let them shrink so wide tables scroll horizontally instead. */
+.mr-card > *,
+.mr-table-wrap > * { min-width: 0; }
+:host ::ng-deep .mr-table { min-width: 0; max-width: 100%; }
+:host ::ng-deep .mr-table .p-datatable-table-container { overflow-x: auto; }
+:host ::ng-deep .mr-table .p-datatable-sort-icon { width: 12px; height: 12px; }
+.mr-card__head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--is-s-3); }
+.mr-card__ico {
+  --c: var(--is-primary);
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--is-r-sm);
+  background: color-mix(in srgb, var(--c) 12%, white);
+  color: var(--c);
+}
+.mr-card__titles { flex: 1; min-width: 220px; }
+.mr-card__title { margin: 0; font-size: var(--is-fs-md); line-height: 22px; font-weight: var(--is-fw-bold); color: var(--is-primary); }
+.mr-card__sub { margin: 2px 0 0; font-size: var(--is-fs-sm); color: var(--is-text-2); }
+
+/* Fields — 8px radius, shrink to their column */
+.mr-field { display: grid; gap: var(--is-s-2); min-width: 0; }
+.mr-field__label { font-size: var(--is-fs-title); line-height: var(--is-lh-title); font-weight: var(--is-fw-bold); color: var(--is-primary); }
+:host ::ng-deep .mr-field > * { min-width: 0; }
+:host ::ng-deep .mr-input { width: 100%; font-family: var(--is-font); }
+:host ::ng-deep .mr-input.p-datepicker { display: flex; min-width: 0; }
+:host ::ng-deep .mr-input.p-select,
+:host ::ng-deep .mr-input .p-datepicker-input {
+  min-height: 44px;
+  border-radius: var(--is-r-field);
+  font-size: var(--is-fs-body);
+  transition: border-color var(--is-dur) ease, box-shadow var(--is-dur) ease;
+}
+:host ::ng-deep .mr-input .p-datepicker-input { flex: 1 1 auto; width: 100%; min-width: 0; }
+:host ::ng-deep .mr-input .p-select-label { display: flex; align-items: center; font-size: var(--is-fs-body); }
+:host ::ng-deep .mr-input.p-select.p-focus,
+:host ::ng-deep .mr-input .p-datepicker-input:focus {
+  border-color: var(--is-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--is-primary) 14%, transparent);
+}
+.mr-opt { display: inline-flex; align-items: center; gap: var(--is-s-2); }
+
+/* Segmented control (p-selectbutton) as design-system pills */
+:host ::ng-deep .mr-seg.p-selectbutton {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--is-border);
+  border-radius: var(--is-r-pill);
+  background: var(--is-canvas);
+}
+:host ::ng-deep .mr-seg .p-togglebutton {
+  min-height: 36px;
+  padding: 0 18px;
+  border: 0 !important;
+  border-radius: var(--is-r-pill) !important;
+  background: transparent;
+  color: var(--is-text-2);
+  font-family: var(--is-font);
+  font-size: var(--is-fs-body);
+  font-weight: var(--is-fw-bold);
+  transition: background var(--is-dur) var(--is-ease), color var(--is-dur) ease, box-shadow var(--is-dur) ease;
+}
+:host ::ng-deep .mr-seg .p-togglebutton .p-togglebutton-content { background: transparent; box-shadow: none; padding: 0; }
+:host ::ng-deep .mr-seg .p-togglebutton:not(.p-togglebutton-checked):hover { color: var(--is-primary); background: var(--is-tint-purple); }
+:host ::ng-deep .mr-seg .p-togglebutton.p-togglebutton-checked {
+  background: linear-gradient(90deg, var(--is-primary-strong), var(--is-primary-soft));
+  color: var(--is-text-inverse);
+  box-shadow: var(--is-shadow-primary);
+}
+:host ::ng-deep .mr-seg--orange .p-togglebutton.p-togglebutton-checked {
+  background: var(--is-secondary);
+  box-shadow: 0 6px 16px rgba(234, 107, 40, 0.3);
+}
+.mr-seg__opt { display: inline-flex; align-items: center; gap: var(--is-s-2); }
+.mr-seg__opt .pi { font-size: 13px; }
+
+/* Loading bar */
+.mr-progress { position: absolute; inset: 0 0 auto; z-index: 2; opacity: 0; transition: opacity var(--is-dur) ease; pointer-events: none; }
+.mr-progress--on { opacity: 1; }
+:host ::ng-deep .mr-progress .p-progressbar { height: 3px; border-radius: 0; background: transparent; }
+:host ::ng-deep .mr-progress .p-progressbar-value { background: var(--is-grad-banner); }
+:host ::ng-deep .mr-busy .p-datatable-tbody { opacity: 0.55; transition: opacity var(--is-dur) ease; }
+
+/* PrimeNG table */
+:host ::ng-deep .mr-table .p-datatable-thead > tr > th {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--is-border);
+  background: var(--is-canvas);
+  color: var(--is-text-2);
+  font-family: var(--is-font);
+  font-size: var(--is-fs-2xs);
+  font-weight: var(--is-fw-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+:host ::ng-deep .mr-table .p-datatable-thead > tr > th.p-datatable-column-sorted { color: var(--is-primary); background: var(--is-tint-purple); }
+:host ::ng-deep .mr-table .p-datatable-tbody > tr > td {
+  padding: 12px 16px;
+  border-color: var(--is-border);
+  font-family: var(--is-font);
+  font-size: var(--is-fs-body);
+  line-height: var(--is-lh-body);
+  color: var(--is-text);
+  vertical-align: middle;
+  transition: background var(--is-dur-fast) ease;
+}
+:host ::ng-deep .mr-table .p-datatable-tbody > tr:last-child > td { border-bottom: 0; }
+:host ::ng-deep .mr-table .p-paginator {
+  padding: 12px 16px;
+  border-top: 1px solid var(--is-border);
+  border-radius: 0;
+  background: var(--is-surface);
+  font-family: var(--is-font);
+}
+:host ::ng-deep .mr-table .p-paginator-current { margin-right: auto; font-size: var(--is-fs-sm); color: var(--is-text-2); }
+:host ::ng-deep .mr-table .p-paginator-page { border-radius: var(--is-r-pill); font-weight: var(--is-fw-bold); }
+:host ::ng-deep .mr-table .p-paginator-page.p-paginator-page-selected {
+  background: linear-gradient(90deg, var(--is-primary-strong), var(--is-primary-soft));
+  color: var(--is-text-inverse);
+}
+/* Rows-per-page select: compact pill sized to the pager (its menu is appended to <body>). */
+:host ::ng-deep .mr-table .p-paginator-rpp-dropdown {
+  height: 34px;
+  margin-left: 6px;
+  border-radius: var(--is-r-pill);
+  font-family: var(--is-font);
+}
+:host ::ng-deep .mr-table .p-paginator-rpp-dropdown .p-select-label {
+  display: flex;
+  align-items: center;
+  padding: 0 4px 0 14px;
+  font-size: var(--is-fs-sm);
+  font-weight: var(--is-fw-bold);
+  color: var(--is-text);
+}
+:host ::ng-deep .mr-table .p-paginator-rpp-dropdown .p-select-dropdown { width: 2rem; color: var(--is-text-2); }
+.mr-table-wrap { overflow: hidden; border: 1px solid var(--is-border); border-radius: var(--is-r-nav); }
+
+:host ::ng-deep .mr-row { animation: mr-row-in var(--is-dur-slow) var(--is-ease) calc(var(--i, 0) * 30ms) both; }
+:host ::ng-deep .mr-row:hover > td { background: var(--is-tint-purple); }
+:host ::ng-deep .mr-row--idle > td { color: var(--is-text-3) !important; }
+:host ::ng-deep .mr-table .p-tag { font-family: var(--is-font); font-size: var(--is-fs-xs); font-weight: var(--is-fw-bold); white-space: nowrap; }
+
+/* Cell building blocks */
+.mr-person { display: flex; align-items: center; gap: var(--is-s-3); min-width: 0; }
+:host ::ng-deep .mr-avatar {
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  color: var(--is-text-inverse);
+  font-size: var(--is-fs-xs);
+  font-weight: var(--is-fw-bold);
+  box-shadow: var(--is-shadow-xs);
+  transition: transform var(--is-dur) var(--is-ease);
+}
+:host ::ng-deep .mr-row:hover .mr-avatar { transform: scale(1.08); }
+.mr-stack { display: grid; gap: 2px; min-width: 0; }
+.mr-strong { font-weight: var(--is-fw-bold); white-space: nowrap; }
+.mr-mono { font-family: var(--is-font-mono); font-size: var(--is-fs-xs); color: var(--is-text-2); letter-spacing: 0.02em; }
+.mr-line { display: inline-flex; align-items: center; gap: 7px; min-width: 0; white-space: nowrap; }
+.mr-line .pi { font-size: 11px; color: var(--is-text-3); }
+.mr-sub { font-size: var(--is-fs-xs); color: var(--is-text-2); }
+.mr-rel { font-size: var(--is-fs-2xs); color: var(--is-text-3); }
+.mr-dash { color: var(--is-text-3); }
+.mr-ellipsis { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.mr-num { font-weight: var(--is-fw-bold); font-variant-numeric: tabular-nums; }
+.mr-chip {
+  --c: var(--is-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 4px;
+  border-radius: var(--is-r-pill);
+  background: color-mix(in srgb, var(--c) 9%, white);
+  color: var(--is-text);
+  font-weight: var(--is-fw-bold);
+  white-space: nowrap;
+}
+.mr-chip__ico {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--c);
+  color: var(--is-text-inverse);
+  transition: transform var(--is-dur) var(--is-ease);
+}
+.mr-chip__ico .pi { font-size: 12px; }
+:host ::ng-deep .mr-row:hover .mr-chip__ico { transform: rotate(-10deg) scale(1.1); }
+:host ::ng-deep .mr-vip.p-tag {
+  background: linear-gradient(135deg, var(--is-yellow), var(--is-secondary));
+  color: var(--is-text-inverse);
+  box-shadow: 0 4px 10px rgba(234, 107, 40, 0.28);
+}
+
+/* Meter: value + thin bar (percentages) */
+.mr-meter { --c: var(--is-primary); display: grid; gap: 5px; min-width: 96px; }
+.mr-meter__val { font-weight: var(--is-fw-bold); color: var(--c); font-variant-numeric: tabular-nums; }
+:host ::ng-deep .mr-meter .p-progressbar { height: 6px; border-radius: var(--is-r-pill); background: var(--is-neutral-bg); }
+:host ::ng-deep .mr-meter .p-progressbar-value { border-radius: var(--is-r-pill); background: var(--c); }
+
+/* KPI tiles */
+.mr-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--is-s-4); }
+.mr-kpi {
+  --c: var(--is-primary);
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--is-s-3);
+  padding: var(--is-s-4);
+  overflow: hidden;
+  border: 1px solid var(--is-border);
+  border-radius: var(--is-r-nav);
+  background: var(--is-surface);
+  box-shadow: var(--is-shadow-xs);
+  animation: is-fade-up var(--is-dur-slow) var(--is-ease) calc(var(--i, 0) * 60ms) both;
+  transition: transform var(--is-dur) var(--is-ease), box-shadow var(--is-dur) ease;
+}
+.mr-kpi::after {
+  content: '';
+  position: absolute;
+  right: -26px;
+  bottom: -36px;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--c) 8%, transparent);
+  transition: transform var(--is-dur-slow) var(--is-ease);
+}
+.mr-kpi:hover { transform: translateY(-3px); box-shadow: var(--is-shadow-soft); }
+.mr-kpi:hover::after { transform: scale(1.25); }
+.mr-kpi__ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--is-r-sm);
+  background: var(--c);
+  color: var(--is-text-inverse);
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--c) 32%, transparent);
+}
+.mr-kpi__ico .pi { font-size: 17px; }
+.mr-kpi__body { position: relative; z-index: 1; display: grid; min-width: 0; }
+.mr-kpi__label { font-size: var(--is-fs-2xs); font-weight: var(--is-fw-bold); letter-spacing: 0.06em; text-transform: uppercase; color: var(--is-text-2); }
+.mr-kpi__value { font-size: 22px; line-height: 30px; font-weight: var(--is-fw-black); color: var(--is-text); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mr-kpi__unit { margin-left: 3px; font-size: var(--is-fs-sm); font-weight: var(--is-fw-bold); color: var(--is-text-2); }
+
+/* Empty state */
+.mr-empty { display: grid; justify-items: center; gap: 6px; padding: var(--is-s-7) var(--is-s-4); text-align: center; animation: is-fade-in var(--is-dur-slow) ease both; }
+.mr-empty__ico {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--is-s-2);
+  border-radius: 50%;
+  background: var(--is-tint-orange);
+  color: var(--is-secondary);
+  animation: is-float 4s ease-in-out infinite;
+}
+.mr-empty__ico .pi { font-size: 24px; }
+.mr-empty p { margin: 0; }
+.mr-empty__title { font-size: var(--is-fs-md); font-weight: var(--is-fw-bold); color: var(--is-primary); }
+.mr-empty__sub { font-size: var(--is-fs-body); color: var(--is-text-2); }
+.mr-skel-stack { display: grid; gap: 6px; }
+
+@keyframes mr-row-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mr-toolbar, .mr-card, .mr-kpi, .mr-empty, .mr-empty__ico, .mr-count { animation: none !important; }
+  :host ::ng-deep .mr-row { animation: none !important; }
+}

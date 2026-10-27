@@ -11,7 +11,6 @@ import { ConsentService } from '../../../core/services/consent.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { StatusBadgeComponent } from '../../../shared/components/status-badge/status-badge.component';
-import { ConsentTypeLabelPipe } from '../../../shared/pipes/consent-type-label.pipe';
 import { TimeAgoPipe } from '../../../shared/pipes/time-ago.pipe';
 
 @Component({
@@ -26,8 +25,7 @@ import { TimeAgoPipe } from '../../../shared/pipes/time-ago.pipe';
     MatInputModule,
     MatIconModule,
     StatusBadgeComponent,
-    ConsentTypeLabelPipe,
-    TimeAgoPipe,
+    TimeAgoPipe
   ],
   templateUrl: './my-consent.component.html',
   styleUrl: './my-consent.component.css',

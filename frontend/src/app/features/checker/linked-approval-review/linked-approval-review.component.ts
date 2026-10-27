@@ -4,7 +4,6 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatDialog } from '@angular/material/dialog';
 import { Consent, MergeTag } from '../../../core/models/consent.model';
 import { ConsentRuleType, WorkflowScheduleType, audienceSegmentLabel } from '../../../core/models/workflow.model';
 import { ConsentService } from '../../../core/services/consent.service';
@@ -12,10 +11,13 @@ import { MergeTagService } from '../../../core/services/merge-tag.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ChannelId, getChannels } from '../../../core/utils/channel.util';
 
-import { ChannelLanguageCombo, buildRenderMap } from '../../../core/models/consent-translation.types';
+import { ChannelLanguageCombo, buildRenderMap, countReviewCombinations } from '../../../core/models/consent-translation.types';
 import { ConsentTypeLabelPipe } from '../../../shared/pipes/consent-type-label.pipe';
 import { ConsentChannelLanguagePreviewComponent } from '../../../shared/components/consent-channel-language-preview/consent-channel-language-preview.component';
-import { ReviewActionDialogComponent, ReviewActionDialogData, ReviewActionDialogResult } from '../../../shared/components/review-action-dialog/review-action-dialog.component';
+import { DecisionBarComponent } from '../../../shared/components/decision-bar/decision-bar.component';
+import { ReviewActionDialogData, ReviewActionDialogResult } from '../../../shared/components/review-action-dialog/review-action-dialog.component';
+import { ReviewActionDialogService } from '../../../shared/components/review-action-dialog/review-action-dialog.service';
+import { ChannelChipComponent } from '../../../shared/components/channel-chip/channel-chip.component';
 
 const CHANNEL_CHIP_LABEL: Record<ChannelId, string> = {
   EMAIL: 'Email',
@@ -34,6 +36,8 @@ const CHANNEL_CHIP_LABEL: Record<ChannelId, string> = {
     DatePipe,
     ConsentTypeLabelPipe,
     ConsentChannelLanguagePreviewComponent,
+    DecisionBarComponent,
+    ChannelChipComponent
   ],
   templateUrl: './linked-approval-review.component.html',
   styleUrls: ['../checker-shared.css', '../linked-approvals/linked-approvals.component.css', './linked-approval-review.component.css'],
@@ -43,7 +47,7 @@ export class LinkedApprovalReviewComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly consentApi = inject(ConsentService);
   private readonly mergeApi = inject(MergeTagService);
-  private readonly dialog = inject(MatDialog);
+  private readonly reviewDialog = inject(ReviewActionDialogService);
   private readonly notify = inject(NotificationService);
 
   readonly consent = signal<Consent | null>(null);
@@ -64,9 +68,18 @@ export class LinkedApprovalReviewComponent implements OnInit {
   readonly totalCombinations = computed(() => {
     const c = this.consent();
     if (!c) return 0;
-    const channels = [c.channelEmail, c.channelSms, c.channelPush, c.channelWhatsapp, c.channelRcs].filter(Boolean).length;
-    const languageCount = c.translations?.length || 1;
-    return Math.max(1, channels) * Math.max(1, languageCount);
+    const channels = (
+      [
+        ['EMAIL', c.channelEmail],
+        ['SMS', c.channelSms],
+        ['PUSH', c.channelPush],
+        ['WHATSAPP', c.channelWhatsapp],
+        ['RCS', c.channelRcs],
+      ] as const
+    )
+      .filter(([, on]) => on)
+      .map(([id]) => id);
+    return countReviewCombinations(channels, this.renderMap());
   });
 
   readonly viewedCount = computed(() => this.viewedCombos().size);
@@ -162,9 +175,7 @@ export class LinkedApprovalReviewComponent implements OnInit {
       showFlagCombo: false,
     };
 
-    const ref = this.dialog.open(ReviewActionDialogComponent, { width: '520px', disableClose: true, data });
-
-    ref.afterClosed().subscribe((result: ReviewActionDialogResult | null) => {
+    this.reviewDialog.open(data).subscribe((result: ReviewActionDialogResult | null) => {
       if (!result) return;
       this.actingBusy.set(true);
       this.consentApi
@@ -201,9 +212,7 @@ export class LinkedApprovalReviewComponent implements OnInit {
       currentLanguage: current?.languageCode ?? null,
     };
 
-    const ref = this.dialog.open(ReviewActionDialogComponent, { width: '520px', disableClose: true, data });
-
-    ref.afterClosed().subscribe((result: ReviewActionDialogResult | null) => {
+    this.reviewDialog.open(data).subscribe((result: ReviewActionDialogResult | null) => {
       if (!result) return;
 
       const flagged: ChannelLanguageCombo[] =
@@ -241,9 +250,7 @@ export class LinkedApprovalReviewComponent implements OnInit {
       showFlagCombo: false,
     };
 
-    const ref = this.dialog.open(ReviewActionDialogComponent, { width: '520px', disableClose: true, data });
-
-    ref.afterClosed().subscribe((result: ReviewActionDialogResult | null) => {
+    this.reviewDialog.open(data).subscribe((result: ReviewActionDialogResult | null) => {
       if (!result) return;
       this.actingBusy.set(true);
       this.consentApi

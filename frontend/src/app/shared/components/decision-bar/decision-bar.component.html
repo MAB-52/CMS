@@ -1,0 +1,48 @@
+<app-shell-dock>
+  <div class="is-action-dock decision-bar" role="region" [attr.aria-label]="'Decision: ' + title()">
+    <div class="is-action-dock__info">
+      <div class="is-action-dock__title" [title]="title()">{{ title() }}</div>
+      <div class="is-action-dock__sub">
+        <span><ng-content /></span>
+        @if (total() !== null) {
+          <p-tag
+            [severity]="allViewed() ? 'success' : 'warn'"
+            [icon]="allViewed() ? 'pi pi-check-circle' : 'pi pi-eye'"
+            [value]="viewed() + '/' + total() + ' combinations viewed'"
+            [rounded]="true"
+          />
+        }
+      </div>
+    </div>
+
+    <div class="is-action-dock__actions">
+      <p-button
+        label="Reject"
+        icon="pi pi-times-circle"
+        severity="danger"
+        [outlined]="true"
+        [rounded]="true"
+        [disabled]="disabled() || busy()"
+        (onClick)="reject.emit()"
+      />
+      <p-button
+        [label]="revisionLabel()"
+        icon="pi pi-replay"
+        severity="warn"
+        [outlined]="true"
+        [rounded]="true"
+        [disabled]="disabled() || busy()"
+        (onClick)="revise.emit()"
+      />
+      <p-button
+        label="Approve"
+        icon="pi pi-check-circle"
+        severity="success"
+        [rounded]="true"
+        [loading]="busy()"
+        [disabled]="approveDisabled()"
+        (onClick)="approve.emit()"
+      />
+    </div>
+  </div>
+</app-shell-dock>

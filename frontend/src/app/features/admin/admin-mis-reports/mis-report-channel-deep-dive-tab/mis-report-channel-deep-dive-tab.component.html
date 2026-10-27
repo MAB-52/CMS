@@ -82,208 +82,205 @@
 </section> -->
 
 <!-- ── Toolbar ─────────────────────────────────────────────────────────── -->
-<div class="tab-toolbar">
-  <div class="toolbar-left">
-    <span class="toolbar-title">Channel Deep-Dive</span>
-    <span class="toolbar-sub">Per-template invite outcomes across delivery channels</span>
+<div class="dd-toolbar">
+  <div class="dd-toolbar__text">
+    <span class="dd-toolbar__ico" aria-hidden="true"><i class="pi pi-sitemap"></i></span>
+    <div>
+      <h2 class="dd-toolbar__title">Channel deep-dive</h2>
+      <p class="dd-toolbar__sub">Per-template invite outcomes across delivery channels</p>
+    </div>
   </div>
-  <div class="exports">
-    <button mat-stroked-button type="button" [disabled]="exporting()" (click)="exportCsv()">
-      <mat-icon>download</mat-icon> CSV
-    </button>
-    <button mat-stroked-button type="button" [disabled]="exporting()" (click)="exportExcel()">
-      <mat-icon>table_chart</mat-icon> Excel
-    </button>
+  <div class="dd-exports">
+    <p-button label="CSV" icon="pi pi-file" severity="secondary" [outlined]="true" [rounded]="true"
+      [loading]="exporting()" pTooltip="Download the matrix as CSV" tooltipPosition="top" (onClick)="exportCsv()" />
+    <p-button label="Excel" icon="pi pi-file-excel" severity="success" [outlined]="true" [rounded]="true"
+      [loading]="exporting()" pTooltip="Download the matrix as Excel" tooltipPosition="top" (onClick)="exportExcel()" />
   </div>
 </div>
 
 <!-- ── Skeleton ─────────────────────────────────────────────────────────── -->
 @if (loading()) {
-<section class="skeleton-panel" aria-hidden="true">
-  <div class="sk-kpi-row">
-    <div class="sk-kpi"></div>
-    <div class="sk-kpi"></div>
-    <div class="sk-kpi"></div>
-    <div class="sk-kpi"></div>
+<section class="dd-skel" aria-busy="true" aria-label="Loading channel deep-dive">
+  <div class="dd-kpis">
+    @for (i of [1, 2, 3, 4]; track i) { <p-skeleton height="96px" borderRadius="20px" /> }
   </div>
-  <div class="sk-block sk-block--chart"></div>
-  <div class="sk-block sk-block--table"></div>
+  <p-skeleton height="260px" borderRadius="24px" />
+  <p-skeleton height="320px" borderRadius="24px" />
 </section>
 } @else {
 
-<!-- ── KPI Cards ────────────────────────────────────────────────────────── -->
+<!-- ── KPI cards ─────────────────────────────────────────────────────────── -->
 @if (channels().length) {
-<div class="kpi-row">
-  <div class="kpi-card kpi-card--blue">
-    <div class="kpi-icon-wrap kpi-icon-wrap--blue">
-      <mat-icon>send</mat-icon>
+<div class="dd-kpis">
+  <div class="dd-kpi" style="--c: #0D6EFD; --i: 0">
+    <span class="dd-kpi__ico" aria-hidden="true"><i class="pi pi-send"></i></span>
+    <div class="dd-kpi__body">
+      <span class="dd-kpi__label">Total invites sent</span>
+      <span class="dd-kpi__value">{{ totalInvites() | number:'1.0-0' }}</span>
     </div>
-    <div class="kpi-body">
-      <span class="kpi-label">Total Invites Sent</span>
-      <span class="kpi-value">{{ totalInvites() | number:'1.0-0' }}</span>
-    </div>
-    <div class="kpi-accent kpi-accent--blue"></div>
   </div>
-
-  <div class="kpi-card kpi-card--green">
-    <div class="kpi-icon-wrap kpi-icon-wrap--green">
-      <mat-icon>check_circle</mat-icon>
+  <div class="dd-kpi" style="--c: #198754; --i: 1">
+    <span class="dd-kpi__ico" aria-hidden="true"><i class="pi pi-percentage"></i></span>
+    <div class="dd-kpi__body">
+      <span class="dd-kpi__label">Avg success rate</span>
+      <span class="dd-kpi__value">{{ avgSuccessRate() }}%</span>
     </div>
-    <div class="kpi-body">
-      <span class="kpi-label">Avg Success Rate</span>
-      <span class="kpi-value">{{ avgSuccessRate() }}%</span>
-    </div>
-    <div class="kpi-accent kpi-accent--green"></div>
   </div>
-
-  <div class="kpi-card kpi-card--amber">
-    <div class="kpi-icon-wrap kpi-icon-wrap--amber">
-      <mat-icon>emoji_events</mat-icon>
+  <div class="dd-kpi" style="--c: #C98A00; --i: 2">
+    <span class="dd-kpi__ico" aria-hidden="true"><i class="pi pi-trophy"></i></span>
+    <div class="dd-kpi__body">
+      <span class="dd-kpi__label">Top channel</span>
+      <span class="dd-kpi__value dd-kpi__value--sm">{{ topChannel() }}</span>
     </div>
-    <div class="kpi-body">
-      <span class="kpi-label">Top Channel</span>
-      <span class="kpi-value kpi-value--sm">{{ topChannel() }}</span>
-    </div>
-    <div class="kpi-accent kpi-accent--amber"></div>
   </div>
-
-  <div class="kpi-card kpi-card--purple">
-    <div class="kpi-icon-wrap kpi-icon-wrap--purple">
-      <mat-icon>layers</mat-icon>
+  <div class="dd-kpi" style="--c: #6F42C1; --i: 3">
+    <span class="dd-kpi__ico" aria-hidden="true"><i class="pi pi-sitemap"></i></span>
+    <div class="dd-kpi__body">
+      <span class="dd-kpi__label">Active channels</span>
+      <span class="dd-kpi__value">{{ channelOptions().length }}</span>
     </div>
-    <div class="kpi-body">
-      <span class="kpi-label">Active Channels</span>
-      <span class="kpi-value">{{ channelOptions().length }}</span>
-    </div>
-    <div class="kpi-accent kpi-accent--purple"></div>
   </div>
 </div>
 }
 
-<!-- ── Channel Performance Bars ─────────────────────────────────────────── -->
-<section class="panel">
-  <div class="panel-header">
-    <div class="panel-title-group">
-      <h3 class="panel-title">Overall Channel Performance</h3>
-      <p class="panel-sub">Invite volume with success rate heatmap</p>
+<!-- ── Channel performance ──────────────────────────────────────────────── -->
+<section class="dd-panel">
+  <div class="dd-panel__head">
+    <span class="dd-panel__ico" aria-hidden="true"><i class="pi pi-chart-bar"></i></span>
+    <div>
+      <h3 class="dd-panel__title">Overall channel performance</h3>
+      <p class="dd-panel__sub">Success rate per channel, with invite volume relative to the busiest channel</p>
     </div>
   </div>
-  <div class="channel-bars-grid">
+
+  <div class="dd-channels">
     @for (c of channels(); track c.channel; let i = $index) {
-    <div class="channel-bar-card" [class.channel-bar-card--active]="hoveredChannel() === c.channel"
+    @let v = channelVisual(c.channel);
+    @let idle = c.totalInvitesSent === 0;
+    <article class="dd-ch" [class.dd-ch--idle]="idle" [class.dd-ch--active]="hoveredChannel() === c.channel"
+      [style.--c]="v.color" [style.--i]="i"
       (mouseenter)="hoveredChannel.set(c.channel)" (mouseleave)="hoveredChannel.set(null)">
-      <div class="cbc-top">
-        <span class="cbc-name">
-          <mat-icon class="cbc-icon">{{ channelIcon(c.channel) }}</mat-icon>
-          {{ c.channel }}
-        </span>
-        <span class="cbc-rate" [style.color]="heatColor(c.successRatePercent)">
-          {{ c.successRatePercent | number:'1.0-1' }}%
-        </span>
+      <div class="dd-ch__top">
+        <span class="dd-ch__ico" aria-hidden="true"><i [class]="v.icon"></i></span>
+        <span class="dd-ch__name">{{ c.channel }}</span>
+        @if (idle) {
+          <p-tag value="No activity" severity="secondary" [rounded]="true" icon="pi pi-moon" />
+        } @else {
+          <p-tag [value]="rateLabel(c.successRatePercent)" [severity]="rateSeverity(c.successRatePercent)"
+            [icon]="rateIcon(c.successRatePercent)" [rounded]="true" />
+        }
       </div>
-      <div class="cbc-bar-track">
-        <div class="cbc-bar-fill" [style.width]="barWidth(c.totalInvitesSent, channels())"
-          [style.background]="heatGradient(c.successRatePercent)"></div>
+
+      <div class="dd-ch__mid">
+        <p-knob [ngModel]="idle ? 0 : c.successRatePercent" [readonly]="true" [size]="84" [strokeWidth]="9"
+          [valueColor]="idle ? '#CBD5E1' : heatColor(c.successRatePercent)" rangeColor="#EEF1F6"
+          valueTemplate="{value}%" styleClass="dd-ch__knob"
+          [pTooltip]="idle ? 'No invites sent on this channel yet' : (c.successRatePercent | number:'1.0-1') + '% of invites accepted'"
+          tooltipPosition="top" />
+        <div class="dd-ch__stats">
+          <span class="dd-ch__k">Invites sent</span>
+          <span class="dd-ch__v">{{ c.totalInvitesSent | number:'1.0-0' }}</span>
+          <p-progressbar [value]="invitePct(c.totalInvitesSent)" [showValue]="false" styleClass="dd-ch__bar"
+            [pTooltip]="invitePct(c.totalInvitesSent) + '% of peak channel volume'" tooltipPosition="bottom" />
+        </div>
       </div>
-      <div class="cbc-bottom">
-        <span class="cbc-invites">{{ c.totalInvitesSent | number:'1.0-0' }} invites</span>
-        <span class="cbc-badge" [style.background]="heatBg(c.successRatePercent)"
-          [style.color]="heatColor(c.successRatePercent)">
-          {{ rateLabel(c.successRatePercent) }}
-        </span>
-      </div>
-    </div>
+    </article>
     } @empty {
-    <div class="empty-card">
-      <mat-icon class="ph-icon">bar_chart</mat-icon>
+    <div class="dd-empty">
+      <span class="dd-empty__ico" aria-hidden="true"><i class="pi pi-chart-bar"></i></span>
       <p>No aggregate channel data available.</p>
     </div>
     }
   </div>
 </section>
 
-<!-- ── Channel × Template Matrix ───────────────────────────────────────── -->
-<section class="panel">
-  <div class="panel-header">
-    <div class="panel-title-group">
-      <h3 class="panel-title">Channel × Template Matrix</h3>
-      <p class="panel-sub">Heatmap scales red → green by success rate</p>
+<!-- ── Channel × template matrix ────────────────────────────────────────── -->
+<section class="dd-panel">
+  <div class="dd-panel__head dd-panel__head--split">
+    <span class="dd-panel__ico dd-panel__ico--alt" aria-hidden="true"><i class="pi pi-table"></i></span>
+    <div class="dd-panel__titles">
+      <h3 class="dd-panel__title">Channel × template matrix</h3>
+      <p class="dd-panel__sub">Success % is shaded red → green. Hover any cell for details.</p>
     </div>
-    <div class="filters">
-      <mat-form-field appearance="outline" class="ff">
-        <mat-label>Filter by channel</mat-label>
-        <mat-select [(ngModel)]="channelFilter">
-          <mat-option value="">All channels</mat-option>
-          @for (ch of channelOptions(); track ch) {
-          <mat-option [value]="ch">{{ ch }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
-      <button mat-flat-button color="primary" type="button" (click)="applyFilter()">
-        <mat-icon>filter_list</mat-icon> Apply
-      </button>
-    </div>
+    <p-select [options]="channelFilterOptions()" optionLabel="label" optionValue="value"
+      [ngModel]="channelFilter" (ngModelChange)="onChannelFilterChange($event)"
+      appendTo="body" styleClass="dd-filter" ariaLabel="Filter by channel">
+      <ng-template #selectedItem let-o>
+        <span class="dd-opt"><i [class]="o.icon" [style.color]="o.color" aria-hidden="true"></i>{{ o.label }}</span>
+      </ng-template>
+      <ng-template #item let-o>
+        <span class="dd-opt"><i [class]="o.icon" [style.color]="o.color" aria-hidden="true"></i>{{ o.label }}</span>
+      </ng-template>
+    </p-select>
   </div>
 
-  <div class="horiz-scroll">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Channel</th>
-          <th>Template</th>
-          <th class="th-num">Invites</th>
-          <th class="th-num">Accepted</th>
-          <th class="th-num">Non-success</th>
-          <th class="th-num">Success %</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (r of matrix(); track r.channel + '-' + r.consentDbId; let odd = $odd) {
-        <tr class="data-row" [class.data-row--odd]="odd" [class.data-row--highlighted]="hoveredChannel() === r.channel">
-          <td>
-            <div class="channel-cell">
-              <mat-icon class="ch-cell-icon">{{ channelIcon(r.channel) }}</mat-icon>
-              <span class="channel-badge" [class]="channelBadgeClass(r.channel)">
-                {{ r.channel }}
-              </span>
-            </div>
-          </td>
-          <td class="td-template">
-            <span class="template-name">{{ r.consentName }}</span>
-            <span class="consent-id">{{ r.consentId }}</span>
-          </td>
-          <td class="td-num">{{ r.invitesSent | number:'1.0-0' }}</td>
-          <td class="td-num">
-            <span class="num-accepted">{{ r.acceptedCount | number:'1.0-0' }}</span>
-          </td>
-          <td class="td-num">
-            <span class="num-declined">{{ r.declinedOrPendingCount | number:'1.0-0' }}</span>
-          </td>
-          <td class="td-heat" [style.background]="heatBg(r.successRatePercent)">
-            <div class="heat-cell">
-              <span class="heat-value" [style.color]="heatColor(r.successRatePercent)">
-                {{ r.successRatePercent | number:'1.0-1' }}%
-              </span>
-              <div class="heat-mini-bar">
-                <div class="heat-mini-fill" [style.width.%]="r.successRatePercent"
-                  [style.background]="heatColor(r.successRatePercent)"></div>
-              </div>
-            </div>
-          </td>
-        </tr>
-        } @empty {
-        <tr>
-          <td colspan="6" class="empty-row">
-            <div class="empty-card">
-              <mat-icon class="ph-icon">analytics</mat-icon>
-              <p>No invite rows match the selected filter.</p>
-            </div>
-          </td>
-        </tr>
-        }
-      </tbody>
-    </table>
-  </div>
+  <p-table [value]="matrix()" [rowHover]="true" [paginator]="matrix().length > 10" [rows]="10"
+    [rowsPerPageOptions]="[10, 25, 50]" paginatorDropdownAppendTo="body" sortMode="single" styleClass="dd-table"
+    [tableStyle]="{ 'min-width': '52rem' }">
+    <ng-template #header>
+      <tr>
+        <th pSortableColumn="channel" pTooltip="Delivery channel or capture source" tooltipPosition="top">
+          Channel <p-sortIcon field="channel" />
+        </th>
+        <th pSortableColumn="consentName" pTooltip="Consent template the invites were sent for" tooltipPosition="top">
+          Template <p-sortIcon field="consentName" />
+        </th>
+        <th pSortableColumn="invitesSent" pTooltip="Number of consent invites sent" tooltipPosition="top">
+          Invites <p-sortIcon field="invitesSent" />
+        </th>
+        <th pSortableColumn="acceptedCount" pTooltip="Invites the customer accepted" tooltipPosition="top">
+          Accepted <p-sortIcon field="acceptedCount" />
+        </th>
+        <th pSortableColumn="declinedOrPendingCount" pTooltip="Invites declined or still awaiting a response" tooltipPosition="top">
+          Non-success <p-sortIcon field="declinedOrPendingCount" />
+        </th>
+        <th pSortableColumn="successRatePercent" pTooltip="Accepted ÷ invites sent" tooltipPosition="top">
+          Success % <p-sortIcon field="successRatePercent" />
+        </th>
+      </tr>
+    </ng-template>
+
+    <ng-template #body let-r let-i="rowIndex">
+      @let v = channelVisual(r.channel);
+      <tr class="dd-row" [class.dd-row--hl]="hoveredChannel() === r.channel" [style.--i]="i % 10">
+        <td [pTooltip]="r.channel + ' channel'" tooltipPosition="top">
+          <span class="dd-chip" [style.--c]="v.color"><i [class]="v.icon" aria-hidden="true"></i>{{ r.channel }}</span>
+        </td>
+        <td [pTooltip]="r.consentName + ' · ' + r.consentId" tooltipPosition="top">
+          <span class="dd-tpl">
+            <span class="dd-tpl__name">{{ r.consentName }}</span>
+            <span class="dd-tpl__id">{{ r.consentId }}</span>
+          </span>
+        </td>
+        <td [pTooltip]="(r.invitesSent | number:'1.0-0') + ' invites sent via ' + r.channel" tooltipPosition="top">
+          <span class="dd-num">{{ r.invitesSent | number:'1.0-0' }}</span>
+        </td>
+        <td [pTooltip]="(r.acceptedCount | number:'1.0-0') + ' accepted'" tooltipPosition="top">
+          <span class="dd-pill dd-pill--ok"><i class="pi pi-check" aria-hidden="true"></i>{{ r.acceptedCount | number:'1.0-0' }}</span>
+        </td>
+        <td [pTooltip]="(r.declinedOrPendingCount | number:'1.0-0') + ' declined or pending'" tooltipPosition="top">
+          <span class="dd-pill dd-pill--no"><i class="pi pi-times" aria-hidden="true"></i>{{ r.declinedOrPendingCount | number:'1.0-0' }}</span>
+        </td>
+        <td class="dd-heat" [style.background]="heatBg(r.successRatePercent)" [style.--hc]="heatColor(r.successRatePercent)"
+          [pTooltip]="(r.acceptedCount | number:'1.0-0') + ' of ' + (r.invitesSent | number:'1.0-0') + ' accepted (' + (r.successRatePercent | number:'1.0-1') + '%)'"
+          tooltipPosition="top">
+          <span class="dd-heat__value" [style.color]="heatColor(r.successRatePercent)">{{ r.successRatePercent | number:'1.0-1' }}%</span>
+          <p-progressbar [value]="r.successRatePercent" [showValue]="false" styleClass="dd-heat__bar" />
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template #emptymessage>
+      <tr>
+        <td colspan="6">
+          <div class="dd-empty">
+            <span class="dd-empty__ico" aria-hidden="true"><i class="pi pi-filter-slash"></i></span>
+            <p>No invite rows match the selected channel.</p>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
 </section>
 
 }

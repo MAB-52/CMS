@@ -1,17 +1,15 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
+import { DynamicDialogRef } from 'primeng/dynamicdialog';
+import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
+import { SelectModule } from 'primeng/select';
+import { MessageModule } from 'primeng/message';
 import { HttpClient } from '@angular/common/http';
 import { ApiResponse } from '../../../core/models/api-response.model';
 import { MergeTag } from '../../../core/models/consent.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { MergeTagService } from '../../../core/services/merge-tag.service';
-import { CommonModule } from '@angular/common';
 import { environment } from '../../../environments/environment';
 
 export interface CustomerFieldResponse {
@@ -23,23 +21,14 @@ export interface CustomerFieldResponse {
 @Component({
   selector: 'app-add-merge-tag-dialog',
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    MatDialogModule,
-    MatButtonModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatIconModule,
-  ],
+  imports: [ReactiveFormsModule, ButtonModule, InputTextModule, SelectModule, MessageModule],
   templateUrl: './add-merge-tag-dialog.component.html',
-   styleUrl: './add-merge-tag-dialog.component.css',
+  styleUrl: './add-merge-tag-dialog.component.css',
 })
 export class AddMergeTagDialogComponent implements OnInit {
   private readonly fb      = inject(FormBuilder);
   private readonly http    = inject(HttpClient);
-  private readonly dialogRef = inject(MatDialogRef<AddMergeTagDialogComponent>);
+  private readonly dialogRef = inject<DynamicDialogRef<AddMergeTagDialogComponent>>(DynamicDialogRef);
   private readonly notify  = inject(NotificationService);
   private readonly mergeTagService = inject(MergeTagService);
 
@@ -47,7 +36,12 @@ export class AddMergeTagDialogComponent implements OnInit {
   loading = false;
   fieldsLoading = false;
 
-  categories: string[] = ['Company', 'Customer', 'Date', 'Links'];
+  readonly categoryOptions: { label: string; value: string; icon: string }[] = [
+    { label: 'Company', value: 'Company', icon: 'pi pi-building' },
+    { label: 'Customer', value: 'Customer', icon: 'pi pi-user' },
+    { label: 'Date', value: 'Date', icon: 'pi pi-calendar' },
+    { label: 'Links', value: 'Links', icon: 'pi pi-link' },
+  ];
   customerFields: CustomerFieldResponse[] = [];
 
   get previewKey(): string {
@@ -119,6 +113,21 @@ export class AddMergeTagDialogComponent implements OnInit {
         sampleValue: `[${selected.fieldLabel}]`,
       });
     }
+  }
+
+  fieldTypeIcon(fieldType: string | undefined): string {
+    switch (fieldType) {
+      case 'BOOLEAN': return 'pi pi-check-square';
+      case 'DATE':    return 'pi pi-calendar';
+      case 'NUMBER':  return 'pi pi-hashtag';
+      default:        return 'pi pi-align-left';
+    }
+  }
+
+  /** True once a control was touched and fails validation — drives PrimeNG's `invalid` state. */
+  invalid(name: string): boolean {
+    const c = this.form.get(name);
+    return !!c && c.invalid && (c.touched || c.dirty);
   }
 
   getFieldTypeLabel(fieldType: string): string {

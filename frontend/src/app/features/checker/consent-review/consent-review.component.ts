@@ -1,30 +1,28 @@
 
-import { JsonPipe, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatDialog } from '@angular/material/dialog';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { Consent, FieldDiff } from '../../../core/models/consent.model';
 import { ConsentService } from '../../../core/services/consent.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { MergeTagService } from '../../../core/services/merge-tag.service';
 import { MergeTag } from '../../../core/models/consent.model';
-import { channelsLabel } from '../../../core/utils/channel.util';
-import {
-  ReviewActionDialogComponent,
-  ReviewActionDialogData,
-  ReviewActionDialogResult,
-} from '../../../shared/components/review-action-dialog/review-action-dialog.component';
+import { getChannels } from '../../../core/utils/channel.util';
+import { ReviewActionDialogData, ReviewActionDialogResult } from '../../../shared/components/review-action-dialog/review-action-dialog.component';
+import { ReviewActionDialogService } from '../../../shared/components/review-action-dialog/review-action-dialog.service';
 import { ConsentChannelLanguagePreviewComponent } from '../../../shared/components/consent-channel-language-preview/consent-channel-language-preview.component';
-import { ChannelLanguageCombo, buildRenderMap } from '../../../core/models/consent-translation.types';
+import { DecisionBarComponent } from '../../../shared/components/decision-bar/decision-bar.component';
+import { ChannelLanguageCombo, buildRenderMap, countReviewCombinations } from '../../../core/models/consent-translation.types';
+import { ChannelChipComponent } from '../../../shared/components/channel-chip/channel-chip.component';
 
 @Component({
   selector: 'app-consent-review',
   standalone: true,
-  imports: [RouterLink, MatButtonModule, MatIconModule, MatExpansionModule, JsonPipe, DatePipe, ConsentChannelLanguagePreviewComponent],
+  imports: [RouterLink, MatButtonModule, MatIconModule, MatExpansionModule, DatePipe, ConsentChannelLanguagePreviewComponent, DecisionBarComponent, ChannelChipComponent],
   templateUrl: './consent-review.component.html',
   styleUrl: './consent-review.component.css',
 })
@@ -33,7 +31,7 @@ export class ConsentReviewComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly api = inject(ConsentService);
   private readonly mergeApi = inject(MergeTagService);
-  private readonly dialog = inject(MatDialog);
+  private readonly reviewDialog = inject(ReviewActionDialogService);
   private readonly notify = inject(NotificationService);
   private readonly sanitizer = inject(DomSanitizer);
 
@@ -48,16 +46,25 @@ export class ConsentReviewComponent implements OnInit {
   /** The channel+language currently open in the preview — used for the "flag this" checkbox. */
   private readonly currentCombo = signal<{ channel: string; languageCode: string } | null>(null);
 
-  readonly channelsLabel = channelsLabel;
+  readonly getChannels = getChannels;
 
   readonly renderMap = computed(() => buildRenderMap(this.consent()?.translations));
 
   readonly totalCombinations = computed(() => {
     const c = this.consent();
     if (!c) return 0;
-    const channels = [c.channelEmail, c.channelSms, c.channelPush, c.channelWhatsapp, c.channelRcs].filter(Boolean).length;
-    const languageCount = c.translations?.length || 1;
-    return Math.max(1, channels) * Math.max(1, languageCount);
+    const channels = (
+      [
+        ['EMAIL', c.channelEmail],
+        ['SMS', c.channelSms],
+        ['PUSH', c.channelPush],
+        ['WHATSAPP', c.channelWhatsapp],
+        ['RCS', c.channelRcs],
+      ] as const
+    )
+      .filter(([, on]) => on)
+      .map(([id]) => id);
+    return countReviewCombinations(channels, this.renderMap());
   });
 
   readonly viewedCount = computed(() => this.viewedCombos().size);
@@ -126,9 +133,7 @@ export class ConsentReviewComponent implements OnInit {
       showFlagCombo: false,
     };
 
-    const ref = this.dialog.open(ReviewActionDialogComponent, { width: '520px', disableClose: true, data });
-
-    ref.afterClosed().subscribe((result: ReviewActionDialogResult | null) => {
+    this.reviewDialog.open(data).subscribe((result: ReviewActionDialogResult | null) => {
       if (!result) return;
 
       this.busy.set(true);
@@ -164,9 +169,7 @@ export class ConsentReviewComponent implements OnInit {
       showFlagCombo: false,
     };
 
-    const ref = this.dialog.open(ReviewActionDialogComponent, { width: '520px', disableClose: true, data });
-
-    ref.afterClosed().subscribe((result: ReviewActionDialogResult | null) => {
+    this.reviewDialog.open(data).subscribe((result: ReviewActionDialogResult | null) => {
       if (!result) return;
 
       const flagged: ChannelLanguageCombo[] =
@@ -204,9 +207,7 @@ export class ConsentReviewComponent implements OnInit {
       showFlagCombo: false,
     };
 
-    const ref = this.dialog.open(ReviewActionDialogComponent, { width: '520px', disableClose: true, data });
-
-    ref.afterClosed().subscribe((result: ReviewActionDialogResult | null) => {
+    this.reviewDialog.open(data).subscribe((result: ReviewActionDialogResult | null) => {
       if (!result) return;
 
       this.busy.set(true);

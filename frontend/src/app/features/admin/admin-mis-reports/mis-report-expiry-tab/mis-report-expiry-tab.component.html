@@ -1,74 +1,182 @@
-<div class="tab-toolbar">
-  <div class="exports">
-    <button mat-stroked-button type="button" [disabled]="exporting()" (click)="exportCsv()">
-      <mat-icon>download</mat-icon> CSV
-    </button>
-    <button mat-stroked-button type="button" [disabled]="exporting()" (click)="exportExcel()">
-      <mat-icon>table_chart</mat-icon> Excel
-    </button>
-  </div>
-</div>
-
-<div class="filters expiry-filters">
-  <mat-button-toggle-group [(ngModel)]="mode" (change)="apply()" class="mode-toggle">
-    <mat-button-toggle value="EXPIRING">Expiring soon</mat-button-toggle>
-    <mat-button-toggle value="EXPIRED">Expired</mat-button-toggle>
-  </mat-button-toggle-group>
-  
-  @if (mode === 'EXPIRING') {
-    <div class="radio-row" role="radiogroup" aria-label="Expiring within">
-      <label class="radio-chip"><input type="radio" name="wd" [(ngModel)]="withinDays" [value]="30" (change)="apply()" /> 30 days</label>
-      <label class="radio-chip"><input type="radio" name="wd" [(ngModel)]="withinDays" [value]="60" (change)="apply()" /> 60 days</label>
-      <label class="radio-chip"><input type="radio" name="wd" [(ngModel)]="withinDays" [value]="90" (change)="apply()" /> 90 days</label>
+<!-- ── Toolbar ─────────────────────────────────────────────────────────── -->
+<div class="mr-toolbar">
+  <div class="mr-toolbar__text">
+    <span class="mr-toolbar__ico" aria-hidden="true"><i class="pi pi-hourglass"></i></span>
+    <div>
+      <h2 class="mr-toolbar__title">Consent expiry</h2>
+      <p class="mr-toolbar__sub">
+        Customers whose consent is about to lapse or has already expired
+        @if (!loading() || totalElements()) {
+        <span class="mr-count">{{ totalElements() | number: '1.0-0' }} customer{{ totalElements() === 1 ? '' : 's' }}</span>
+        }
+      </p>
     </div>
-  }
-</div>
-
-@if (loading()) {
-  <mat-progress-bar mode="indeterminate" />
-}
-
-<div class="table-wrap">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>Customer ID</th>
-        <th>Name</th>
-        <th>Mobile</th>
-        <th>Email</th>
-        <th>Status</th>
-        <th>Valid until</th>
-        <th>Last invite</th>
-        <th>Days until expiry</th>
-        <th>VIP</th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (r of rows(); track r.customerId) {
-        <tr>
-          <td>{{ r.customerId }}</td>
-          <td>{{ r.customerName }}</td>
-          <td>{{ r.mobileNumber }}</td>
-          <td>{{ r.email || '—' }}</td>
-          <td>{{ label(r.consentStatus) }}</td>
-          <td>{{ r.consentValidUntil || '—' }}</td>
-          <td>{{ r.lastConsentInviteSentAt ? (r.lastConsentInviteSentAt | date: 'medium') : '—' }}</td>
-          <td>{{ r.daysUntilExpiry ?? '—' }}</td>
-          <td>{{ r.vipFlag ? 'Yes' : 'No' }}</td>
-        </tr>
-      } @empty {
-        <tr>
-          <td colspan="9" class="empty">{{ loading() ? 'Loading…' : 'No rows.' }}</td>
-        </tr>
-      }
-    </tbody>
-  </table>
-</div>
-
-<div class="pager">
-  <span>Page {{ currentPage() + 1 }} / {{ totalPages() || 1 }}</span>
-  <div>
-    <button mat-stroked-button type="button" [disabled]="currentPage() <= 0 || loading()" (click)="prev()">Previous</button>
-    <button mat-stroked-button type="button" [disabled]="currentPage() >= totalPages() - 1 || loading()" (click)="next()">Next</button>
+  </div>
+  <div class="mr-exports">
+    <p-button label="CSV" icon="pi pi-download" severity="secondary" [outlined]="true" [rounded]="true"
+      [loading]="exporting() === 'csv'" [disabled]="!!exporting()" pTooltip="Download this view as CSV"
+      tooltipPosition="top" (onClick)="exportCsv()" />
+    <p-button label="Excel" icon="pi pi-file-excel" severity="success" [outlined]="true" [rounded]="true"
+      [loading]="exporting() === 'excel'" [disabled]="!!exporting()" pTooltip="Download this view as Excel"
+      tooltipPosition="top" (onClick)="exportExcel()" />
   </div>
 </div>
+
+<!-- ── Filters ─────────────────────────────────────────────────────────── -->
+<div class="mr-card ex-filters" style="--d: 60ms">
+  <div class="ex-group">
+    <span class="mr-field__label">Show</span>
+    <p-selectbutton [options]="modeOptions" [ngModel]="mode" (ngModelChange)="setMode($event)" optionLabel="label"
+      optionValue="value" [allowEmpty]="false" styleClass="mr-seg" aria-label="Expiry mode">
+      <ng-template #item let-o>
+        <span class="mr-seg__opt" [pTooltip]="o.value === 'EXPIRING' ? 'Consents that will expire within the chosen window' : 'Consents that have already expired'"
+          tooltipPosition="top"><i [class]="o.icon"></i>{{ o.label }}</span>
+      </ng-template>
+    </p-selectbutton>
+  </div>
+
+  @if (mode === 'EXPIRING') {
+  <div class="ex-group ex-group--window">
+    <span class="mr-field__label">Within</span>
+    <p-selectbutton [options]="windowOptions" [ngModel]="withinDays" (ngModelChange)="setWindow($event)"
+      optionLabel="label" optionValue="value" [allowEmpty]="false" styleClass="mr-seg mr-seg--orange"
+      aria-label="Expiring within" />
+  </div>
+  }
+
+  <p class="ex-hint">
+    <i class="pi pi-info-circle"></i>
+    @if (mode === 'EXPIRING') {
+    Showing consents that expire in the next <strong>{{ withinDays }} days</strong>.
+    } @else {
+    Showing consents that have <strong>already expired</strong> — consider re-inviting these customers.
+    }
+  </p>
+</div>
+
+<!-- ── Results ─────────────────────────────────────────────────────────── -->
+<section class="mr-card mr-card--flush" [class.mr-busy]="loading() && rows().length" style="--d: 120ms">
+  <div class="mr-progress" [class.mr-progress--on]="loading()">
+    <p-progressbar mode="indeterminate" />
+  </div>
+
+  <p-table [value]="rows()" dataKey="customerId" [lazy]="true" (onLazyLoad)="onLazyLoad($event)" [paginator]="true"
+    [rows]="pageSize()" [first]="currentPage() * pageSize()" [totalRecords]="totalElements()"
+    [rowsPerPageOptions]="[10, 25, 50]" paginatorDropdownAppendTo="body" [showCurrentPageReport]="true"
+    currentPageReportTemplate="Showing {first}–{last} of {totalRecords}" [rowHover]="true" styleClass="mr-table"
+    [tableStyle]="{ 'min-width': '64rem' }">
+
+    <ng-template #header>
+      <tr>
+        <th pTooltip="Customer name and customer ID" tooltipPosition="top">Customer</th>
+        <th pTooltip="Registered mobile number and email" tooltipPosition="top">Contact</th>
+        <th pTooltip="Current consent status" tooltipPosition="top">Status</th>
+        <th pTooltip="Date the consent stops being valid" tooltipPosition="top">Valid until</th>
+        <th pTooltip="Days remaining before expiry (or since it expired)" tooltipPosition="top">Days until expiry</th>
+        <th pTooltip="When the most recent consent invite was sent" tooltipPosition="top">Last invite</th>
+        <th class="ex-col-vip" pTooltip="Whether the customer is flagged as VIP" tooltipPosition="top">VIP</th>
+      </tr>
+    </ng-template>
+
+    <ng-template #body let-r let-i="rowIndex">
+      @let u = urgency(r.daysUntilExpiry);
+      <tr class="mr-row" [style.--i]="i % pageSize()">
+        <td [pTooltip]="(r.customerName || 'Unnamed customer') + ' · ' + r.customerId" tooltipPosition="top">
+          <div class="mr-person">
+            <p-avatar [label]="initials(r.customerName)" shape="circle" styleClass="mr-avatar"
+              [style]="{ background: avatarColor(r.customerId) }" />
+            <div class="mr-stack">
+              <span class="mr-strong">{{ r.customerName || '—' }}</span>
+              <span class="mr-mono">{{ r.customerId }}</span>
+            </div>
+          </div>
+        </td>
+        <td>
+          <div class="mr-stack">
+            <span class="mr-line" [pTooltip]="r.mobileNumber ? 'Mobile: ' + r.mobileNumber : 'No mobile number'"
+              tooltipPosition="top"><i class="pi pi-phone"></i>{{ r.mobileNumber || '—' }}</span>
+            <span class="mr-line mr-sub" [pTooltip]="r.email ? 'Email: ' + r.email : 'No email on file'"
+              tooltipPosition="top"><i class="pi pi-envelope"></i><span class="mr-ellipsis">{{ r.email || '—' }}</span></span>
+          </div>
+        </td>
+        <td [pTooltip]="'Consent status: ' + label(r.consentStatus)" tooltipPosition="top">
+          <p-tag [value]="label(r.consentStatus)" [severity]="statusMeta(r.consentStatus).severity"
+            [icon]="statusMeta(r.consentStatus).icon" [rounded]="true" />
+        </td>
+        <td tooltipPosition="top"
+          [pTooltip]="r.consentValidUntil ? 'Valid until ' + (r.consentValidUntil | date: 'fullDate') : 'No validity date'">
+          @if (r.consentValidUntil) {
+          <div class="mr-stack">
+            <span class="ex-date" [attr.data-u]="u"><i class="pi pi-calendar"></i>{{ r.consentValidUntil | date: 'dd MMM yyyy' }}</span>
+            <span class="mr-rel">{{ relative(r.consentValidUntil) }}</span>
+          </div>
+          } @else { <span class="mr-dash">—</span> }
+        </td>
+        <td [pTooltip]="daysLabel(r.daysUntilExpiry)" tooltipPosition="top">
+          @if (r.daysUntilExpiry != null) {
+          <div class="ex-countdown" [attr.data-u]="u">
+            <span class="ex-countdown__badge">
+              @if (u === 'critical') { <span class="ex-pulse"></span> }
+              {{ absDays(r.daysUntilExpiry) }}
+              <small>{{ u === 'expired' ? 'days ago' : 'days' }}</small>
+            </span>
+            @if (u !== 'expired') {
+            <p-progressbar [value]="remainingPct(r.daysUntilExpiry)" [showValue]="false" styleClass="ex-countdown__bar" />
+            }
+          </div>
+          } @else { <span class="mr-dash">—</span> }
+        </td>
+        <td tooltipPosition="top"
+          [pTooltip]="r.lastConsentInviteSentAt ? 'Invite sent ' + (r.lastConsentInviteSentAt | date: 'medium') : 'No invite sent yet'">
+          @if (r.lastConsentInviteSentAt) {
+          <div class="mr-stack">
+            <span class="mr-line"><i class="pi pi-send"></i>{{ r.lastConsentInviteSentAt | date: 'dd MMM yyyy' }}</span>
+            <span class="mr-rel">{{ relative(r.lastConsentInviteSentAt) }}</span>
+          </div>
+          } @else { <span class="mr-dash">Never</span> }
+        </td>
+        <td class="ex-col-vip" [pTooltip]="r.vipFlag ? 'VIP customer' : 'Not a VIP customer'" tooltipPosition="top">
+          @if (r.vipFlag) {
+          <p-tag value="VIP" icon="pi pi-star-fill" [rounded]="true" styleClass="mr-vip" />
+          } @else { <span class="mr-dash">—</span> }
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template #emptymessage>
+      @if (loading()) {
+      @for (s of skeletonRows; track s) {
+      <tr>
+        <td>
+          <div class="mr-person">
+            <p-skeleton shape="circle" size="2.25rem" />
+            <div class="mr-skel-stack"><p-skeleton width="8rem" /><p-skeleton width="5rem" height=".7rem" /></div>
+          </div>
+        </td>
+        <td><div class="mr-skel-stack"><p-skeleton width="8rem" /><p-skeleton width="10rem" height=".7rem" /></div></td>
+        <td><p-skeleton width="6rem" height="1.6rem" borderRadius="999px" /></td>
+        <td><p-skeleton width="6rem" /></td>
+        <td><p-skeleton width="7rem" height="1.6rem" borderRadius="999px" /></td>
+        <td><p-skeleton width="6rem" /></td>
+        <td class="ex-col-vip"><p-skeleton width="3.5rem" height="1.6rem" borderRadius="999px" /></td>
+      </tr>
+      }
+      } @else {
+      <tr>
+        <td colspan="7">
+          <div class="mr-empty">
+            <span class="mr-empty__ico"><i class="pi {{ mode === 'EXPIRING' ? 'pi-check-circle' : 'pi-shield' }}"></i></span>
+            @if (mode === 'EXPIRING') {
+            <p class="mr-empty__title">Nothing expiring in the next {{ withinDays }} days</p>
+            <p class="mr-empty__sub">All customer consents are valid beyond this window. Try a longer window.</p>
+            } @else {
+            <p class="mr-empty__title">No expired consents</p>
+            <p class="mr-empty__sub">Every customer consent is still within its validity period.</p>
+            }
+          </div>
+        </td>
+      </tr>
+      }
+    </ng-template>
+  </p-table>
+</section>

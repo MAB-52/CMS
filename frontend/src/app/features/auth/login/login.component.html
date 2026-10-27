@@ -4,6 +4,7 @@
   <aside class="left-panel" aria-label="ConsentIQ">
     <span class="orb orb--1" aria-hidden="true"></span>
     <span class="orb orb--2" aria-hidden="true"></span>
+    <span class="grid-dots" aria-hidden="true"></span>
 
     <div class="brand-row">
       <img src="assets/images/logo-white.png" alt="Aurionpro — Lead the next" class="brand-logo" />
@@ -11,90 +12,120 @@
       <span class="brand-product">ConsentIQ</span>
     </div>
 
-    <div class="brand-copy">
-      <h2 class="brand-title">Every consent,<br />captured and compliant.</h2>
+    <div class="brand-main">
+      <span class="eyebrow"><i class="pi pi-sparkles" aria-hidden="true"></i>Consent management platform</span>
+      <h2 class="brand-title">Every consent, captured and <span class="hl">compliant.</span></h2>
       <p class="brand-text">One secure home to capture, review and broadcast customer consent, with every decision recorded.</p>
+
+      <ul class="features">
+        @for (f of features; track f.title) {
+          <li class="feature" [style.--tone]="f.tone">
+            <span class="feature__icon" aria-hidden="true"><i [class]="f.icon"></i></span>
+            <span class="feature__copy">
+              <strong>{{ f.title }}</strong>
+              <span>{{ f.text }}</span>
+            </span>
+          </li>
+        }
+      </ul>
     </div>
 
-    <ul class="brand-points">
-      <li><span class="bp-icon"><mat-icon>lock</mat-icon></span> Role-based maker–checker approvals</li>
-      <li><span class="bp-icon"><mat-icon>fact_check</mat-icon></span> Every action is recorded in an audit trail</li>
-      <li><span class="bp-icon"><mat-icon>verified_user</mat-icon></span> Access follows your role, nothing more</li>
-    </ul>
+    <div class="brand-foot">
+      <span class="channels-label">Deliver on</span>
+      <ul class="channels">
+        @for (c of channels; track c.label) {
+          <li [style.--tone]="c.tone"><i [class]="c.icon" aria-hidden="true"></i>{{ c.label }}</li>
+        }
+      </ul>
+    </div>
   </aside>
 
   <!-- ── Right panel: form ── -->
   <main class="right-panel">
     <div class="login-card">
+      <div class="card-bar" aria-hidden="true"></div>
 
-      <img src="assets/images/logo.png" alt="Aurionpro Logo" class="card-logo" />
-      <h1 class="welcome">Welcome to ConsentIQ</h1>
-      <p class="welcome-sub">Sign in to your account to continue.</p>
+      <div class="card-head">
+        <img src="assets/images/logo.png" alt="Aurionpro" class="card-logo" />
+        <span class="eyebrow eyebrow--light"><i class="pi pi-lock" aria-hidden="true"></i>Secure sign-in</span>
+        <h1 class="welcome">Welcome to Consent<span class="iq">IQ</span></h1>
+        <p class="welcome-sub">Sign in to your account to continue.</p>
+      </div>
 
       @if (errorBanner()) {
-        <div class="err-banner" role="alert">
-          <mat-icon aria-hidden="true">error_outline</mat-icon>
-          <span>{{ errorBanner() }}</span>
-        </div>
+        <p-message severity="error" icon="pi pi-exclamation-circle" styleClass="err-banner" role="alert">
+          {{ errorBanner() }}
+        </p-message>
       }
 
-      <form [formGroup]="form" (ngSubmit)="submit()" class="form">
+      <form [formGroup]="form" (ngSubmit)="submit()" class="form" novalidate>
 
         <!-- Email -->
-        <div class="field-group">
+        <div class="field">
           <label class="field-label" for="login-email">Email</label>
-          <mat-form-field appearance="outline" floatLabel="always" class="field">
-            <mat-icon matPrefix class="pfx-icon">person_outline</mat-icon>
-            <input matInput id="login-email" type="email" formControlName="email"
-                   autocomplete="username" placeholder="Enter email here ..." />
-            @if (form.controls.email.touched && form.controls.email.hasError('required')) {
-              <mat-error>Email is required</mat-error>
-            }
-            @if (form.controls.email.touched && form.controls.email.hasError('email')) {
-              <mat-error>Enter a valid email</mat-error>
-            }
-          </mat-form-field>
+          <p-iconfield class="field-control">
+            <p-inputicon styleClass="pi pi-user" />
+            <input pInputText id="login-email" type="email" formControlName="email"
+                   autocomplete="username" placeholder="you@company.com"
+                   [invalid]="showError('email')" fluid />
+          </p-iconfield>
+          @if (showError('email')) {
+            <small class="field-error">
+              <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+              {{ form.controls.email.hasError('required') ? 'Email is required.' : 'Enter a valid email.' }}
+            </small>
+          }
         </div>
 
         <!-- Password -->
-        <div class="field-group">
-          <label class="field-label" for="login-password">Password</label>
-          <mat-form-field appearance="outline" floatLabel="always" class="field">
-            <mat-icon matPrefix class="pfx-icon">lock_outline</mat-icon>
-            <input matInput id="login-password" [type]="hidePw() ? 'password' : 'text'"
-                   formControlName="password" autocomplete="current-password"
-                   placeholder="Enter password" />
-            <button mat-icon-button matSuffix type="button"
-                    (click)="togglePw()" [attr.aria-label]="hidePw() ? 'Show password' : 'Hide password'">
-              <mat-icon>{{ hidePw() ? 'visibility_off' : 'visibility' }}</mat-icon>
-            </button>
-            @if (form.controls.password.touched && form.controls.password.hasError('required')) {
-              <mat-error>Password is required</mat-error>
-            }
-          </mat-form-field>
-          <div class="forgot-row">
-            <a routerLink="/forgot-password" class="forgot-link">Forgot Password?</a>
+        <div class="field">
+          <div class="label-row">
+            <label class="field-label" for="login-password">Password</label>
+            <a routerLink="/forgot-password" class="forgot-link">Forgot password?</a>
           </div>
+          <p-iconfield class="field-control">
+            <p-inputicon styleClass="pi pi-lock" />
+            <input pInputText id="login-password" [type]="hidePw() ? 'password' : 'text'"
+                   formControlName="password" autocomplete="current-password"
+                   placeholder="Enter your password"
+                   [invalid]="showError('password')" fluid />
+            <p-inputicon>
+              <button type="button" class="pw-toggle" (click)="togglePw()"
+                      [attr.aria-label]="hidePw() ? 'Show password' : 'Hide password'"
+                      [attr.aria-pressed]="!hidePw()">
+                <i [class]="hidePw() ? 'pi pi-eye' : 'pi pi-eye-slash'" aria-hidden="true"></i>
+              </button>
+            </p-inputicon>
+          </p-iconfield>
+          @if (showError('password')) {
+            <small class="field-error">
+              <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+              {{ form.controls.password.hasError('required') ? 'Password is required.' : 'Password is too short.' }}
+            </small>
+          }
         </div>
 
         <!-- Submit -->
-        <button mat-flat-button class="submit-btn"
-                type="submit" [disabled]="loading()"
-                [class.success-pulse]="successPulse()">
-          @if (loading()) {
-            <span class="btn-inner">
-              <mat-spinner diameter="18" strokeWidth="2.5" class="btn-spinner"></mat-spinner>
-              Signing in...
-            </span>
-          } @else {
-            <span class="btn-inner">Sign in</span>
-          }
-        </button>
-
+        <p-button
+          type="submit"
+          [label]="loading() ? 'Signing in…' : 'Sign in'"
+          icon="pi pi-arrow-right"
+          iconPos="right"
+          [loading]="loading()"
+          [rounded]="true"
+          [fluid]="true"
+          styleClass="submit-btn"
+          [class.success-pulse]="successPulse()"
+        />
       </form>
 
-      <p class="version">Trouble signing in? Ask your administrator.</p>
+      <div class="card-foot">
+        <i class="pi pi-question-circle" aria-hidden="true"></i>
+        Trouble signing in? Ask your administrator.
+      </div>
     </div>
+
+    <p class="legal"><i class="pi pi-shield" aria-hidden="true"></i>© {{ year }} Aurionpro · Access follows your role, nothing more.</p>
   </main>
 
 </div>

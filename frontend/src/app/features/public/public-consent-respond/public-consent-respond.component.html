@@ -1,251 +1,267 @@
 <div class="public-page" dir="ltr">
 
-  <!-- Ambient background orbs -->
+  <!-- Ambient background -->
+  <div class="bg-band" aria-hidden="true"></div>
   <div class="bg-orb bg-orb--1" aria-hidden="true"></div>
   <div class="bg-orb bg-orb--2" aria-hidden="true"></div>
-  <div class="bg-orb bg-orb--3" aria-hidden="true"></div>
-  <div class="bg-orb bg-orb--4" aria-hidden="true"></div>
 
-  <div class="shell-card">
+  <div class="shell">
 
-    <!-- Header -->
-    <header class="card-header">
+    <!-- ── Brand bar ──────────────────────────────────────── -->
+    <header class="brand-bar">
       <div class="brand">
-        <div class="brand-icon-wrap">
-          <span class="brand-icon-inner">CQ</span>
-        </div>
-        ConsentIQ
+        <span class="brand-mark" aria-hidden="true">CQ</span>
+        <span class="brand-name">Consent<span class="iq">IQ</span></span>
       </div>
-      <div class="header-badge">
-        <mat-icon aria-hidden="true">verified_user</mat-icon>
-        Secure Request
-      </div>
+      <p-tag severity="success" icon="pi pi-shield" value="Secure request" [rounded]="true" styleClass="secure-tag" />
     </header>
 
-    <!-- Decorative gradient strip -->
-    <div class="gradient-strip" aria-hidden="true"></div>
+    <main class="card">
+      <div class="card-bar" aria-hidden="true"></div>
 
-    <h1 class="title">Consent Request</h1>
-    <p class="lede">Review the details below and let us know your decision.</p>
+      <!-- ── Loading ──────────────────────────────────────── -->
+      @if (loading()) {
+        <div class="skeleton" aria-busy="true" aria-label="Loading your request">
+          <div class="sk-row"><p-skeleton shape="circle" size="48px" /><p-skeleton width="40%" height="1.1rem" /></div>
+          <p-skeleton width="70%" height="2rem" />
+          <p-skeleton width="100%" height="9rem" borderRadius="16px" />
+          <p-skeleton width="100%" height="5rem" borderRadius="16px" />
+        </div>
+      } @else {
 
-    <!-- Loading -->
-    @if (loading()) {
-    <div class="center">
-      <div class="spinner-wrap">
-        <mat-progress-spinner diameter="40" mode="indeterminate" />
-      </div>
-      <p class="muted">Loading your request…</p>
-    </div>
-    } @else {
-
-    <!-- Error -->
-    @if (errorMessage(); as err) {
-    <div class="banner banner--error" role="alert">
-      <mat-icon class="banner-icon banner-icon--error" aria-hidden="true">error_outline</mat-icon>
-      <span>{{ err }}</span>
-    </div>
-    } @else {
-
-    @if (detail(); as d) {
-
-    <!-- Inline notice banner -->
-    @if (inlineNotice(); as note) {
-    <div class="banner" [class.banner--ok]="d.state === 'ACCEPTED'" [class.banner--deny]="d.state === 'REJECTED'"
-      [class.banner--muted]="d.state === 'EXPIRED' || d.state === 'WITHDRAWN'" role="status">
-      <mat-icon class="banner-icon" aria-hidden="true">
-        @if (d.state === 'ACCEPTED') { check_circle }
-        @else if (d.state === 'REJECTED' || d.state === 'WITHDRAWN') { cancel }
-        @else { info }
-      </mat-icon>
-      <span>{{ note }}</span>
-    </div>
-    }
-
-    <!-- Consent details panel -->
-    <section class="panel">
-      <div class="panel__accent" aria-hidden="true"></div>
-
-      <div class="greet">
-        <span class="greet__avatar">{{ d.customerDisplayName?.charAt(0) }}</span>
-        Hello, <strong>{{ d.customerDisplayName }}</strong>
-      </div>
-
-      <h2 class="consent-title">{{ d.consentTitle }}</h2>
-
-      @if (d.descriptionPreview) {
-      <p class="body-text">{{ d.descriptionPreview }}</p>
+      <!-- ── Error ────────────────────────────────────────── -->
+      @if (!detail() && errorMessage(); as err) {
+        <div class="state state--error" role="alert">
+          <span class="state-icon state-icon--error" aria-hidden="true"><i class="pi pi-link"></i></span>
+          <h1 class="state-title">We couldn't open this request</h1>
+          <p class="state-text">{{ err }}</p>
+        </div>
       }
 
-      <!-- Message block: prefer resolved HTML (tags + images), fall back to plain text -->
-      @if (d.resolvedMessageHtml) {
-      <div class="message-block">
-        <div class="message-block__label">
-          <mat-icon class="label-icon" aria-hidden="true">forum</mat-icon>
-          What you are being asked to approve
-        </div>
-        <div class="message-preview message-preview--html"
-          [innerHTML]="safeResolvedHtml(d.resolvedMessageHtml)"></div>
-      </div>
-      } @else if (d.messagePreview) {
-      <div class="message-block">
-        <div class="message-block__label">
-          <mat-icon class="label-icon" aria-hidden="true">forum</mat-icon>
-          What you are being asked to approve
-        </div>
-        <div class="message-preview">{{ d.messagePreview }}</div>
-      </div>
-      }
+      @if (detail(); as d) {
 
-      @if (d.deliveryChannelsSummary) {
-      <div class="delivery-summary" role="region" aria-label="Communication channels for this request">
-        <div class="delivery-summary__k">
-          <mat-icon class="ds-icon" aria-hidden="true">cell_tower</mat-icon>
-          {{ d.deliveryChannelsSummary.includes(', ')
-          ? 'Channels'
-          : 'Channel' }}
-        </div>
-        <div class="delivery-chips">
-          @for (ch of d.deliveryChannelsSummary.split(', '); track ch) {
-          <span class="delivery-chip">{{ ch }}</span>
-          }
-        </div>
-      </div>
-      }
-
-      @if (d.validityPeriodDays && d.validityPeriodDays > 0) {
-      <div class="expiry-badge">
-        <span class="expiry-dot"></span>
-        Consent valid for {{ d.validityPeriodDays }} day{{ d.validityPeriodDays === 1 ? '' : 's' }} from acceptance
-      </div>
-      } @else if (d.expiresAt) {
-      <div class="expiry-badge">
-        <span class="expiry-dot"></span>
-        Valid until {{ d.expiresAt | date: 'dd MMM yyyy' }}
-      </div>
-      }
-    </section>
-
-    <!-- ── READY STATE ── -->
-    @if (d.state === 'READY') {
-
-    <!-- ── CHANNEL PREFERENCE ── -->
-    @if (d.availableChannels && d.availableChannels.length >= 1) {
-    <div class="pref-section pref-section--purple">
-      <div class="pref-section__head">
-        <div class="pref-section__icon-wrap pref-section__icon-wrap--purple" aria-hidden="true">
-          <mat-icon>campaign</mat-icon>
-        </div>
-        <div>
-          <h3 class="pref-section__title">Preferred channels</h3>
-          <p class="pref-section__hint">
-            Choose how you'd like to receive this consent communication.
-            <strong class="pref-required">At least one channel is required to accept.</strong>
-          </p>
-        </div>
-      </div>
-
-      <div class="chip-grid" role="group" aria-label="Channel preferences">
-        @for (ch of d.availableChannels; track ch) {
-        <button type="button" class="chip" [class.chip--active]="channelOn(ch)" (click)="toggleChannel(ch)"
-          [attr.aria-pressed]="channelOn(ch)">
-          <span class="chip__check" aria-hidden="true">
-            @if (channelOn(ch)) { <mat-icon>check</mat-icon> }
-          </span>
-          <span class="chip__label">{{ ch }}</span>
-        </button>
+        <!-- ── Result (already answered / expired / just answered) ── -->
+        @if (d.state !== 'READY') {
+          <section class="result" [attr.data-state]="d.state" role="status">
+            <span class="result-icon" aria-hidden="true">
+              @if (d.state === 'ACCEPTED') {
+                <svg viewBox="0 0 52 52" class="check-svg">
+                  <circle cx="26" cy="26" r="24" class="check-circle" />
+                  <path d="M15 27 l7 7 l15 -16" class="check-path" />
+                </svg>
+              } @else if (d.state === 'EXPIRED') {
+                <i class="pi pi-hourglass"></i>
+              } @else {
+                <i class="pi pi-times"></i>
+              }
+            </span>
+            <h2 class="result-title">
+              @switch (d.state) {
+                @case ('ACCEPTED') { Consent recorded }
+                @case ('REJECTED') { Choice recorded }
+                @case ('WITHDRAWN') { Consent withdrawn }
+                @case ('EXPIRED') { This link has expired }
+                @default { Request unavailable }
+              }
+            </h2>
+            @if (inlineNotice(); as note) {
+              <p class="result-text">{{ note }}</p>
+            }
+            @if (d.respondedAt) {
+              <p-tag severity="secondary" icon="pi pi-clock" [rounded]="true"
+                [value]="'Responded ' + (d.respondedAt | date: 'dd MMM yyyy, hh:mm a')" />
+            }
+          </section>
         }
-      </div>
 
-      @if (channelPrefError(); as chErr) {
-      <p class="feedback-err">{{ chErr }}</p>
-      }
-    </div>
-    }
+        <!-- ── Consent summary ─────────────────────────────── -->
+        <section class="hero" [class.hero--compact]="d.state !== 'READY'">
+          <div class="greet">
+            <p-avatar [label]="initial()" shape="circle" size="large" styleClass="greet-avatar" />
+            <div>
+              <div class="greet-hello">Hello, <strong>{{ d.customerDisplayName || 'there' }}</strong></div>
+              <div class="greet-sub">You've been asked to review a consent request</div>
+            </div>
+          </div>
 
-    <!-- ── LANGUAGE PREFERENCE ── -->
-    <div class="pref-section pref-section--teal">
-      <div class="pref-section__head">
-        <div class="pref-section__icon-wrap pref-section__icon-wrap--teal" aria-hidden="true">
-          <mat-icon>translate</mat-icon>
-        </div>
-        <div>
-          <h3 class="pref-section__title">Language preference</h3>
-          <p class="pref-section__hint">
-            Choose the language(s) you'd like to receive this communication in.
-          </p>
-        </div>
-      </div>
-
-      <div class="chip-grid chip-grid--teal" role="group" aria-label="Language preferences">
-        @for (lang of languages; track lang.value) {
-        <button type="button" class="chip" [class.chip--active]="selectedLangs.has(lang.value)"
-          [class.chip--locked]="lang.value === 'english'" [disabled]="lang.value === 'english'"
-          (click)="toggleLang(lang.value)" [attr.aria-pressed]="selectedLangs.has(lang.value)">
-          <span class="chip__check" aria-hidden="true">
-            @if (selectedLangs.has(lang.value)) { <mat-icon>check</mat-icon> }
-          </span>
-          <span class="chip__label">{{ lang.label }}</span>
-        </button>
-        }
-      </div>
-
-      @if (langError(); as langErr) {
-      <p class="feedback-err">{{ langErr }}</p>
-      }
-    </div>
-
-    <!-- ── DECISION ── -->
-    <div class="decision-section">
-      <div class="decision-divider">
-        <span class="decision-divider__text">Your decision</span>
-      </div>
-
-      <div class="actions">
-        <button mat-flat-button type="button" class="btn-action btn-accept" [disabled]="submitting()"
-          (click)="submit('ACCEPT')">
-          @if (submitting()) {
-          <span class="btn-spinner btn-spinner--white"></span>
-          Processing…
-          } @else {
-          <span class="material-icons-round btn-accept__icon" aria-hidden="true">check</span>
-          <span>
-            Accept consent
-            <span class="btn-accept__sub">I agree to receive communications</span>
-          </span>
+          <h1 class="consent-title">{{ d.consentTitle }}</h1>
+          @if (d.descriptionPreview && d.descriptionPreview !== d.consentTitle) {
+            <p class="consent-desc">{{ d.descriptionPreview }}</p>
           }
-        </button>
 
-        <button mat-stroked-button type="button" class="btn-action btn-decline" [disabled]="submitting()"
-          (click)="submit('DECLINE')">
-          <mat-icon>close</mat-icon>
-          Decline
-        </button>
+          <div class="facts">
+            @if (d.validityPeriodDays && d.validityPeriodDays > 0) {
+              <p-tag severity="warn" icon="pi pi-calendar" [rounded]="true"
+                [value]="'Valid ' + d.validityPeriodDays + ' day' + (d.validityPeriodDays === 1 ? '' : 's') + ' from acceptance'" />
+            } @else if (d.expiresAt) {
+              <p-tag severity="warn" icon="pi pi-calendar" [rounded]="true"
+                [value]="'Valid until ' + (d.expiresAt | date: 'dd MMM yyyy')" />
+            }
+            @for (ch of d.availableChannels; track ch) {
+              <span class="ch-pill" [style.--ch]="channelMeta(ch).color">
+                <i [class]="channelMeta(ch).icon" aria-hidden="true"></i>{{ channelMeta(ch).label }}
+              </span>
+            } @empty {
+              @if (d.deliveryChannelsSummary) {
+                <p-tag severity="secondary" icon="pi pi-send" [rounded]="true" [value]="d.deliveryChannelsSummary" />
+              }
+            }
+          </div>
+        </section>
 
-        <!-- <button mat-button type="button" class="btn-action btn-withdraw" [disabled]="submitting()"
-          (click)="submit('WITHDRAW')">
-          ↩ Withdraw
-        </button> -->
-      </div>
+        <!-- ── Message ──────────────────────────────────────── -->
+        @if (d.resolvedMessageHtml || d.messagePreview) {
+          <section class="message" [class.message--open]="messageExpanded()">
+            <div class="message-head">
+              <span class="sec-icon sec-icon--purple" aria-hidden="true"><i class="pi pi-file-edit"></i></span>
+              <h2 class="sec-title">What you're agreeing to</h2>
+            </div>
+            <div class="message-body" id="consent-message">
+              @if (d.resolvedMessageHtml) {
+                <div class="message-html" [innerHTML]="safeResolvedHtml(d.resolvedMessageHtml)"></div>
+              } @else {
+                <div class="message-text">{{ d.messagePreview }}</div>
+              }
+            </div>
+            <p-button
+              [label]="messageExpanded() ? 'Show less' : 'Show full message'"
+              [icon]="messageExpanded() ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
+              iconPos="right"
+              [text]="true"
+              size="small"
+              styleClass="message-toggle"
+              [attr.aria-controls]="'consent-message'"
+              [ariaLabel]="messageExpanded() ? 'Collapse message' : 'Expand full message'"
+              (onClick)="messageExpanded.set(!messageExpanded())"
+            />
+          </section>
+        }
 
-      <p class="fine-print">
-        <mat-icon class="fine-print__icon" aria-hidden="true">lock</mat-icon>
-        You can only submit once. Contact support if you need clarification before deciding.
-      </p>
-    </div>
+        <!-- ── READY: preferences + decision ───────────────── -->
+        @if (d.state === 'READY') {
 
-    }
-    }
-    }
-    }
+          @if (d.availableChannels && d.availableChannels.length >= 1) {
+            <section class="step" style="--delay: 80ms">
+              <div class="step-head">
+                <span class="step-num" aria-hidden="true">1</span>
+                <div>
+                  <h2 class="sec-title">How should we reach you?</h2>
+                  <p class="sec-hint">Pick at least one channel to accept.</p>
+                </div>
+              </div>
 
-    <!-- Footer -->
-    <footer class="card-footer">
-      <span>Powered by ConsentIQ</span>
-      <span class="footer-sep">·</span>
-      <span>Privacy Policy</span>
-      <span class="footer-sep">·</span>
-      <span>Help</span>
-    </footer>
+              <div class="pick-grid pick-grid--channels" role="group" aria-label="Channel preferences">
+                @for (ch of d.availableChannels; track ch) {
+                  <label class="pick" [class.pick--on]="channelOn(ch)" [style.--c]="channelMeta(ch).color">
+                    <p-checkbox [binary]="true" [ngModel]="channelOn(ch)" (ngModelChange)="toggleChannel(ch)"
+                      [inputId]="'pref-' + ch" [disabled]="submitting()" styleClass="pick-check" />
+                    <span class="pick-ico" aria-hidden="true"><i [class]="channelMeta(ch).icon"></i></span>
+                    <span class="pick-name">{{ channelMeta(ch).label }}</span>
+                    <span class="pick-state">{{ channelOn(ch) ? 'Selected' : 'Tap to select' }}</span>
+                  </label>
+                }
+              </div>
 
+              @if (channelPrefError(); as chErr) {
+                <p-message severity="error" icon="pi pi-exclamation-circle" styleClass="inline-msg">{{ chErr }}</p-message>
+              }
+            </section>
+          }
+
+          <section class="step" style="--delay: 160ms">
+            <div class="step-head">
+              <span class="step-num" aria-hidden="true">{{ d.availableChannels.length ? 2 : 1 }}</span>
+              <div class="step-copy">
+                <h2 class="sec-title" id="lang-heading">Which languages do you prefer?</h2>
+                <p class="sec-hint">Tap every language you'd like to receive messages in. English is always included.</p>
+              </div>
+              <p-tag severity="info" icon="pi pi-language" [rounded]="true"
+                [value]="selectedLangs.size + ' selected'" styleClass="count-tag" />
+            </div>
+
+            <div class="pick-grid pick-grid--langs" role="group" aria-labelledby="lang-heading">
+              @for (lang of languages; track lang.value) {
+                @let locked = lang.value === 'english';
+                <label class="pick pick--lang" [class.pick--on]="selectedLangs.has(lang.value)" [class.pick--locked]="locked">
+                  <p-checkbox [binary]="true" [ngModel]="selectedLangs.has(lang.value)" (ngModelChange)="toggleLang(lang.value)"
+                    [inputId]="'lang-' + lang.value" [disabled]="locked || submitting()" styleClass="pick-check" />
+                  <span class="lang-native" [dir]="lang.value === 'urdu' ? 'rtl' : 'ltr'">{{ lang.native }}</span>
+                  <span class="pick-name">{{ lang.label }}</span>
+                  @if (locked) {
+                    <span class="pick-state pick-state--lock"><i class="pi pi-lock" aria-hidden="true"></i>Always included</span>
+                  }
+                </label>
+              }
+            </div>
+
+            @if (langError(); as langErr) {
+              <p-message severity="error" icon="pi pi-exclamation-circle" styleClass="inline-msg">{{ langErr }}</p-message>
+            }
+          </section>
+
+          <section class="decision" style="--delay: 240ms">
+            <!-- Plain-language recap of what "Accept" will save. -->
+            <div class="summary" aria-live="polite">
+              <div class="summary-head"><i class="pi pi-list-check" aria-hidden="true"></i>Your choices</div>
+              <div class="summary-row">
+                <span class="summary-k">Contact me by</span>
+                <span class="summary-v">
+                  @for (ch of selectedChannelList(); track ch) {
+                    <span class="mini" [style.--c]="channelMeta(ch).color"><i [class]="channelMeta(ch).icon" aria-hidden="true"></i>{{ channelMeta(ch).label }}</span>
+                  } @empty {
+                    <span class="summary-empty"><i class="pi pi-exclamation-circle" aria-hidden="true"></i>No channel selected yet</span>
+                  }
+                </span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-k">In</span>
+                <span class="summary-v">
+                  @for (l of selectedLanguageLabels(); track l) {
+                    <span class="mini mini--lang">{{ l }}</span>
+                  }
+                </span>
+              </div>
+            </div>
+
+            @if (errorMessage(); as err) {
+              <p-message severity="error" icon="pi pi-exclamation-circle" styleClass="inline-msg" role="alert">{{ err }}</p-message>
+            }
+            <div class="decision-actions">
+              <p-button
+                label="Decline"
+                icon="pi pi-times"
+                severity="danger"
+                [outlined]="true"
+                [rounded]="true"
+                size="large"
+                [disabled]="submitting()"
+                styleClass="decline-btn"
+                (onClick)="submit('DECLINE')"
+              />
+              <p-button
+                [label]="submitting() ? 'Saving your answer…' : 'Accept consent'"
+                icon="pi pi-check"
+                [rounded]="true"
+                size="large"
+                [loading]="submitting()"
+                styleClass="accept-btn"
+                (onClick)="submit('ACCEPT')"
+              />
+            </div>
+            <p class="fine-print">
+              <i class="pi pi-lock" aria-hidden="true"></i>
+              You can only answer once. Contact support first if anything is unclear.
+            </p>
+          </section>
+        }
+      }
+      }
+
+      <footer class="card-foot">
+        <span>Powered by Consent<strong>IQ</strong></span>
+        <span class="dot" aria-hidden="true"></span>
+        <span><i class="pi pi-shield" aria-hidden="true"></i> Your response is recorded securely</span>
+      </footer>
+    </main>
   </div>
 </div>

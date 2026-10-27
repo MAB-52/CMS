@@ -48,6 +48,8 @@ import { AiContentGeneratorComponent, AiInsertEvent } from './consent-message-ca
 import { DeliveryChannelsCardComponent } from './delivery-channels-card/delivery-channels-card.component';
 import { RecurringScheduleEditorComponent } from '../../../shared/components/recurring-schedule-editor/recurring-schedule-editor.component';
 import { AuditActivityCardComponent } from './audit-activity-card/audit-activity-card.component';
+import { ButtonModule } from 'primeng/button';
+import { ShellDockComponent } from '../../../shared/layout/app-shell/shell-dock.component';
 
 const LINKED_RULE_CHANNELS = ['EMAIL', 'SMS', 'WHATSAPP', 'RCS'] as const;
 
@@ -55,6 +57,8 @@ const LINKED_RULE_CHANNELS = ['EMAIL', 'SMS', 'WHATSAPP', 'RCS'] as const;
   selector: 'app-create-consent',
   standalone: true,
   imports: [
+    ButtonModule,
+    ShellDockComponent,
     ReactiveFormsModule,
     FormsModule,
     MatButtonModule,

@@ -1,7 +1,9 @@
 package com.consentiq.service;
 
 import com.consentiq.model.dto.response.AuditLogResponse;
+import com.consentiq.model.dto.response.MakerTrailResponse;
 import com.consentiq.model.dto.response.PagedResponse;
+import com.consentiq.model.dto.response.ReviewHistoryResponse;
 import com.consentiq.model.entity.AuditLog;
 import com.consentiq.model.entity.User;
 import com.consentiq.repository.AuditLogRepository;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -135,6 +138,126 @@ public class AuditService {
 
 		log.debug("Transaction completing | method=getMyActivity | id={}", userId);
 		log.debug("Exiting getMyActivity | result=totalElements={}", result.getTotalElements());
+		return result;
+	}
+
+	/**
+	 * A checker's own review decisions, filtered and paged in the database, plus summary counts.
+	 *
+	 * @param type     ALL | CONSENT | RULE | BROADCAST — restricts to that entity's decision actions
+	 * @param decision ALL | APPROVED | REJECTED | REVISION_REQUESTED | PUBLISHED
+	 * @param from     inclusive lower bound on performedAt, or null
+	 * @param to       exclusive upper bound on performedAt, or null
+	 */
+	@Transactional(readOnly = true)
+	public ReviewHistoryResponse getMyReviews(Long userId, int page, int size, String type, String decision,
+			String search, Instant from, Instant to) {
+		String cu = currentUser();
+		log.debug("Entering getMyReviews | params: userId={} | page={} | size={} | type={} | decision={}", userId,
+				page, size, type, decision);
+		log.info("User={} | action=getMyReviews | entity=AuditLog | id={}", cu, userId);
+
+		String typePrefix = switch (type == null ? "ALL" : type.trim().toUpperCase()) {
+			case "CONSENT" -> "CONSENT_";
+			case "RULE" -> "RULE_";
+			case "BROADCAST" -> "BROADCAST_";
+			default -> "";
+		};
+		String decisionSuffix = decision == null || "ALL".equalsIgnoreCase(decision.trim()) ? ""
+				: "_" + decision.trim().toUpperCase();
+		List<String> actions = CHECKER_DECISION_ACTIONS.stream()
+				.filter(a -> a.startsWith(typePrefix) && a.endsWith(decisionSuffix)).toList();
+
+		PagedResponse<AuditLogResponse> pageData;
+		if (actions.isEmpty()) {
+			pageData = PagedResponse.<AuditLogResponse>builder().content(List.of()).totalElements(0L).totalPages(0)
+					.currentPage(0).pageSize(size).hasNext(false).hasPrevious(false).build();
+		} else {
+			String searchParam = search != null && !search.isBlank() ? search.trim() : null;
+			log.info("Executing DB query | method=findMyReviews | param=actions={}", actions.size());
+			Page<AuditLog> p = auditLogRepository.findMyReviews(userId, actions,
+					from != null ? from : Instant.EPOCH,
+					to != null ? to : Instant.parse("9999-12-31T00:00:00Z"),
+					searchParam,
+					PageRequest.of(Math.max(0, page), Math.min(100, Math.max(1, size))));
+			log.info("DB query completed | method=findMyReviews | size={}", p.getContent().size());
+			pageData = toPaged(p);
+		}
+
+		ReviewHistoryResponse.Summary.SummaryBuilder sb = ReviewHistoryResponse.Summary.builder();
+		long total = 0, approved = 0, rejected = 0, revision = 0, published = 0, consents = 0, rules = 0,
+				broadcasts = 0;
+		for (Object[] row : auditLogRepository.countMyActionsSince(userId, CHECKER_DECISION_ACTIONS, Instant.EPOCH)) {
+			String action = (String) row[0];
+			long n = ((Number) row[1]).longValue();
+			total += n;
+			if (action.endsWith("_APPROVED")) approved += n;
+			else if (action.endsWith("_REJECTED")) rejected += n;
+			else if (action.endsWith("_REVISION_REQUESTED")) revision += n;
+			else if (action.endsWith("_PUBLISHED")) published += n;
+			if (action.startsWith("CONSENT_")) consents += n;
+			else if (action.startsWith("RULE_")) rules += n;
+			else if (action.startsWith("BROADCAST_")) broadcasts += n;
+		}
+		long last7 = auditLogRepository
+				.countMyActionsSince(userId, CHECKER_DECISION_ACTIONS, Instant.now().minus(7, ChronoUnit.DAYS))
+				.stream().mapToLong(r -> ((Number) r[1]).longValue()).sum();
+		ReviewHistoryResponse result = ReviewHistoryResponse.builder().page(pageData)
+				.summary(sb.total(total).approved(approved).rejected(rejected).revisionRequested(revision)
+						.published(published).consents(consents).rules(rules).broadcasts(broadcasts)
+						.last7Days(last7).build())
+				.build();
+		log.debug("Exiting getMyReviews | result=totalElements={}", pageData.getTotalElements());
+		return result;
+	}
+
+	@Transactional(readOnly = true)
+	public MakerTrailResponse getMakerTrail(Long userId, int page, int size, String scope, String type,
+			String search, Instant from, Instant to) {
+		String cu = currentUser();
+		log.debug("Entering getMakerTrail | params: userId={} | page={} | size={} | scope={} | type={}", userId, page,
+				size, scope, type);
+		log.info("User={} | action=getMakerTrail | entity=AuditLog | id={}", cu, userId);
+
+		String scopeParam = switch (scope == null ? "ALL" : scope.trim().toUpperCase()) {
+			case "MINE" -> "MINE";
+			case "DECISIONS" -> "DECISIONS";
+			default -> "ALL";
+		};
+		String entityType = switch (type == null ? "ALL" : type.trim().toUpperCase()) {
+			case "CONSENT" -> "CONSENT";
+			case "RULE" -> "CONSENT_RULE";
+			case "BROADCAST" -> "BROADCAST_REQUEST";
+			default -> "ALL";
+		};
+		String searchParam = search != null && !search.isBlank() ? search.trim() : null;
+
+		log.info("Executing DB query | method=findMakerTrail | param=scope={} | entityType={}", scopeParam, entityType);
+		Page<AuditLog> p = auditLogRepository.findMakerTrail(userId, scopeParam, CHECKER_DECISION_ACTIONS, entityType,
+				from != null ? from : Instant.EPOCH,
+				to != null ? to : Instant.parse("9999-12-31T00:00:00Z"),
+				searchParam,
+				PageRequest.of(Math.max(0, page), Math.min(100, Math.max(1, size))));
+		log.info("DB query completed | method=findMakerTrail | size={}", p.getContent().size());
+
+		long mine = auditLogRepository.countByUser_Id(userId);
+		long decisions = 0, approved = 0, rejected = 0, revision = 0;
+		for (Object[] row : auditLogRepository.countDecisionsOnMakerEntities(userId, CHECKER_DECISION_ACTIONS)) {
+			String action = (String) row[0];
+			long n = ((Number) row[1]).longValue();
+			decisions += n;
+			if (action.endsWith("_APPROVED") || action.endsWith("_PUBLISHED")) approved += n;
+			else if (action.endsWith("_REJECTED")) rejected += n;
+			else if (action.endsWith("_REVISION_REQUESTED")) revision += n;
+		}
+
+		MakerTrailResponse result = MakerTrailResponse.builder()
+				.page(toPaged(p))
+				.summary(MakerTrailResponse.Summary.builder().total(mine + decisions).myActions(mine)
+						.checkerDecisions(decisions).approved(approved).rejected(rejected).revisionRequested(revision)
+						.build())
+				.build();
+		log.debug("Exiting getMakerTrail | result=totalElements={}", p.getTotalElements());
 		return result;
 	}
 

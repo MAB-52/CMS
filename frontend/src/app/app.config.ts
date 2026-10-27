@@ -12,6 +12,10 @@ import { jwtInterceptor } from './core/interceptors/jwt.interceptor';
 import { loadingInterceptor } from './core/interceptors/loading.interceptor';
 import { publicConsentCredentialsInterceptor } from './core/interceptors/public-consent-credentials.interceptor';
 import { Action, ActionReducerMap, provideStore } from '@ngrx/store';
+import { providePrimeNG } from 'primeng/config';
+import { MessageService } from 'primeng/api';
+import { DialogService } from 'primeng/dynamicdialog';
+import { ConsentIqPreset } from './primeng-preset';
 
 interface ConsentIqRootState {
   readonly bootstrapped: boolean;
@@ -47,5 +51,19 @@ export const appConfig: ApplicationConfig = {
     // importProvidersFrom(MatDialogModule, QuillModule.forRoot()),
         importProvidersFrom(MatDialogModule),
     provideStore(rootReducers),
+    // PrimeNG styled mode, tuned to the Interact Suite palette. Kept in its own CSS layer so
+    // app styles (unlayered) always win, and pinned to light mode to match the rest of the UI.
+    providePrimeNG({
+      ripple: true,
+      theme: {
+        preset: ConsentIqPreset,
+        options: {
+          darkModeSelector: '.ciq-dark',
+          cssLayer: { name: 'primeng', order: 'primeng' },
+        },
+      },
+    }),
+    MessageService,
+    DialogService,
   ],
 };

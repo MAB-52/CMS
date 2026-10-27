@@ -1,52 +1,107 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { AvatarModule } from 'primeng/avatar';
+import { ButtonModule } from 'primeng/button';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
+import { InputTextModule } from 'primeng/inputtext';
+import { ProgressBarModule } from 'primeng/progressbar';
+import { SelectModule } from 'primeng/select';
+import { SkeletonModule } from 'primeng/skeleton';
+import { TableLazyLoadEvent, TableModule } from 'primeng/table';
+import { TagModule } from 'primeng/tag';
+import { TooltipModule } from 'primeng/tooltip';
 import { AdminCustomerRow, AdminMisDashboard, customerConsentStatusLabel } from '../../../core/models/admin.model';
 import { AdminService } from '../../../core/services/admin.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { LoggerService } from '../../../core/services/logger.service';
+import { channelVisual } from '../../../core/utils/channel.util';
+
+type ConsentFilter =
+  | 'ALL'
+  | 'ACTIVE'
+  | 'ACCEPTED'
+  | 'PENDING'
+  | 'INVITED'
+  | 'EXPIRING_SOON'
+  | 'EXPIRED'
+  | 'DECLINED'
+  | 'WITHDRAWN';
+
+type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
+
+const STATUS_META: Record<string, { severity: TagSeverity; icon: string }> = {
+  ACTIVE: { severity: 'success', icon: 'pi pi-check-circle' },
+  ACCEPTED: { severity: 'success', icon: 'pi pi-check-circle' },
+  PENDING: { severity: 'warn', icon: 'pi pi-clock' },
+  INVITED: { severity: 'info', icon: 'pi pi-send' },
+  EXPIRING_SOON: { severity: 'warn', icon: 'pi pi-hourglass' },
+  EXPIRED: { severity: 'contrast', icon: 'pi pi-ban' },
+  DECLINED: { severity: 'danger', icon: 'pi pi-times-circle' },
+  WITHDRAWN: { severity: 'secondary', icon: 'pi pi-undo' },
+};
+
+const AVATAR_COLORS = ['#45329E', '#0D6EFD', '#D63384', '#20C997', '#EA6B28', '#6F42C1', '#0DCAF0'];
+const DAY_MS = 86_400_000;
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, FormsModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [
+    DatePipe,
+    DecimalPipe,
+    FormsModule,
+    AvatarModule,
+    ButtonModule,
+    IconFieldModule,
+    InputIconModule,
+    InputTextModule,
+    ProgressBarModule,
+    SelectModule,
+    SkeletonModule,
+    TableModule,
+    TagModule,
+    TooltipModule,
+  ],
   templateUrl: './admin-dashboard.component.html',
-  styleUrl: './admin-dashboard.component.css',
+  styleUrls: ['../shared/report-kit.css', './admin-dashboard.component.css'],
 })
 export class AdminDashboardComponent implements OnInit {
   private readonly adminApi = inject(AdminService);
   private readonly notify = inject(NotificationService);
   private readonly logger = inject(LoggerService);
+  private readonly relTime = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
 
   readonly mis = signal<AdminMisDashboard | null>(null);
   readonly misLoading = signal(true);
+  readonly misLoadedAt = signal<Date | null>(null);
   readonly rows = signal<AdminCustomerRow[]>([]);
   readonly totalElements = signal(0);
-  readonly totalPages = signal(0);
   readonly currentPage = signal(0);
-  readonly pageSize = 10;
+  readonly pageSize = signal(10);
   readonly loading = signal(false);
   readonly exporting = signal(false);
+  readonly skeletonRows = Array.from({ length: 6 }, (_, i) => i);
 
   filterMobile = '';
   filterCustomerId = '';
-  filterConsentStatus:
-    | 'ALL'
-    | 'ACTIVE'
-    | 'ACCEPTED'
-    | 'PENDING'
-    | 'INVITED'
-    | 'EXPIRING_SOON'
-    | 'EXPIRED'
-    | 'DECLINED'
-    | 'WITHDRAWN' = 'ALL';
+  filterConsentStatus: ConsentFilter = 'ALL';
+
+  readonly statusOptions: { value: ConsentFilter; label: string; icon: string; severity: TagSeverity }[] = [
+    { value: 'ALL', label: 'All statuses', icon: 'pi pi-th-large', severity: 'secondary' },
+    { value: 'ACTIVE', label: 'Active (legacy)', ...STATUS_META['ACTIVE'] },
+    { value: 'ACCEPTED', label: 'Active (accepted)', ...STATUS_META['ACCEPTED'] },
+    { value: 'PENDING', label: 'Pending', ...STATUS_META['PENDING'] },
+    { value: 'INVITED', label: 'Invited', ...STATUS_META['INVITED'] },
+    { value: 'EXPIRING_SOON', label: 'Expiring soon', ...STATUS_META['EXPIRING_SOON'] },
+    { value: 'EXPIRED', label: 'Expired', ...STATUS_META['EXPIRED'] },
+    { value: 'DECLINED', label: 'Declined', ...STATUS_META['DECLINED'] },
+    { value: 'WITHDRAWN', label: 'Withdrawn', ...STATUS_META['WITHDRAWN'] },
+  ];
 
   ngOnInit(): void {
     this.loadMis();
-    this.loadPage(0);
   }
 
   loadMis(): void {
@@ -56,6 +111,7 @@ export class AdminDashboardComponent implements OnInit {
         this.misLoading.set(false);
         if (res.success && res.data) {
           this.mis.set(res.data);
+          this.misLoadedAt.set(new Date());
         } else {
           this.notify.warning('MIS dashboard', res.message || 'Could not load MIS metrics.');
         }
@@ -68,8 +124,25 @@ export class AdminDashboardComponent implements OnInit {
     });
   }
 
+  refresh(): void {
+    this.loadMis();
+    this.loadPage(this.currentPage());
+  }
+
   applyFilters(): void {
     this.loadPage(0);
+  }
+
+  resetFilters(): void {
+    this.filterMobile = '';
+    this.filterCustomerId = '';
+    this.filterConsentStatus = 'ALL';
+    this.loadPage(0);
+  }
+
+  activeFilterCount(): number {
+    return [!!this.filterMobile.trim(), !!this.filterCustomerId.trim(), this.filterConsentStatus !== 'ALL'].filter(Boolean)
+      .length;
   }
 
   loadPage(page: number): void {
@@ -77,7 +150,7 @@ export class AdminDashboardComponent implements OnInit {
     this.adminApi
       .getCustomers({
         page,
-        size: this.pageSize,
+        size: this.pageSize(),
         mobileNumber: this.filterMobile,
         customerId: this.filterCustomerId,
         consentStatus: this.filterConsentStatus,
@@ -93,7 +166,6 @@ export class AdminDashboardComponent implements OnInit {
           }
           this.rows.set(res.data.content);
           this.totalElements.set(res.data.totalElements);
-          this.totalPages.set(res.data.totalPages);
           this.currentPage.set(res.data.currentPage);
         },
         error: (err) => {
@@ -104,18 +176,11 @@ export class AdminDashboardComponent implements OnInit {
       });
   }
 
-  prevPage(): void {
-    const p = this.currentPage();
-    if (p > 0) {
-      this.loadPage(p - 1);
-    }
-  }
-
-  nextPage(): void {
-    const p = this.currentPage();
-    if (p < this.totalPages() - 1) {
-      this.loadPage(p + 1);
-    }
+  /** p-table fires this on init and on every paginator change. */
+  onLazyLoad(event: TableLazyLoadEvent): void {
+    const rows = event.rows ?? this.pageSize();
+    this.pageSize.set(rows);
+    this.loadPage(Math.floor((event.first ?? 0) / rows));
   }
 
   exportCsv(): void {
@@ -145,34 +210,55 @@ export class AdminDashboardComponent implements OnInit {
       });
   }
 
-  badgeClass(status: string): string {
-    switch (status) {
-      case 'ACTIVE':
-      case 'ACCEPTED':
-        return 'badge badge--active';
-      case 'PENDING':
-        return 'badge badge--pending';
-      case 'INVITED':
-        return 'badge badge--invited';
-      case 'EXPIRING_SOON':
-        return 'badge badge--expiring';
-      case 'EXPIRED':
-        return 'badge badge--expired';
-      case 'DECLINED':
-        return 'badge badge--declined';
-      case 'WITHDRAWN':
-        return 'badge badge--withdrawn';
-      default:
-        return 'badge';
-    }
+  // ── Presentation helpers ────────────────────────────────────────────────
+
+  consentStatusDisplay(status: string | null | undefined): string {
+    return status ? customerConsentStatusLabel(status) : 'No consent';
   }
 
-  consentStatusDisplay(status: string): string {
-    return customerConsentStatusLabel(status);
+  statusMeta(status: string | null | undefined): { severity: TagSeverity; icon: string } {
+    return STATUS_META[status ?? ''] ?? { severity: 'secondary', icon: 'pi pi-minus-circle' };
   }
 
-  barWidth(pct: number): string {
-    const v = Math.max(0, Math.min(100, pct));
-    return `${v}%`;
+  channelVisual(channel: string): { icon: string; color: string } {
+    return channelVisual(channel);
+  }
+
+  clampPct(pct: number | null | undefined): number {
+    return Math.max(0, Math.min(100, pct ?? 0));
+  }
+
+  /** Good-is-high colour for percentages. */
+  rateColor(pct: number | null | undefined): string {
+    const p = pct ?? 0;
+    if (p >= 70) return 'var(--is-success)';
+    if (p >= 40) return 'var(--is-warning)';
+    return 'var(--is-danger)';
+  }
+
+  initials(name: string | null | undefined): string {
+    const parts = (name ?? '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '?';
+    return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+  }
+
+  avatarColor(seed: string): string {
+    let h = 0;
+    for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) | 0;
+    return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+  }
+
+  relative(value: string | null | undefined): string {
+    if (!value) return '';
+    const t = new Date(value).getTime();
+    if (Number.isNaN(t)) return '';
+    const diffMin = Math.round((t - Date.now()) / 60_000);
+    if (Math.abs(diffMin) < 1) return 'just now';
+    if (Math.abs(diffMin) < 60) return this.relTime.format(diffMin, 'minute');
+    const diffH = Math.round(diffMin / 60);
+    if (Math.abs(diffH) < 24) return this.relTime.format(diffH, 'hour');
+    const days = Math.round((t - Date.now()) / DAY_MS);
+    if (Math.abs(days) < 30) return this.relTime.format(days, 'day');
+    return this.relTime.format(Math.round(days / 30), 'month');
   }
 }

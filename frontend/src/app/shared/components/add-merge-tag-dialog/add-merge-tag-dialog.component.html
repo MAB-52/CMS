@@ -1,134 +1,176 @@
-<div class="dialog-container">
-  <div class="dlg-head">
-    <span class="dlg-ico" aria-hidden="true"><mat-icon>sell</mat-icon></span>
-    <h2 mat-dialog-title>Add Variable Tag</h2>
+<div class="dlg" [formGroup]="form">
+  <div class="brand-bar" aria-hidden="true"></div>
+
+  <div class="head">
+    <span class="dlg-ico" aria-hidden="true"><i class="pi pi-tag"></i></span>
+    <div class="head-copy">
+      <h2 class="ttl">Add Variable Tag</h2>
+      <p class="head-sub">A reusable placeholder for your consent messages.</p>
+    </div>
+    <p-button
+      icon="pi pi-times"
+      [rounded]="true"
+      [text]="true"
+      severity="secondary"
+      ariaLabel="Close dialog"
+      [disabled]="loading"
+      (onClick)="cancel()"
+    />
   </div>
 
-  <mat-dialog-content [formGroup]="form">
-
+  <div class="body">
     <!-- Tag Label -->
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Tag Label *</mat-label>
-      <input matInput formControlName="tagLabel" placeholder="e.g. Customer Status" />
-      <mat-error *ngIf="form.get('tagLabel')?.hasError('required')">
-        Label is required
-      </mat-error>
-    </mat-form-field>
-
-    @if (previewKey) {
-      <p class="key-preview">
-        Tag key will be: <code>{{ previewKey }}</code>
-      </p>
-    }
+    <div class="field">
+      <label for="mt-label">Tag label <span class="req" aria-hidden="true">*</span></label>
+      <input
+        pInputText
+        id="mt-label"
+        formControlName="tagLabel"
+        placeholder="e.g. Customer Status"
+        maxlength="100"
+        autocomplete="off"
+        [invalid]="invalid('tagLabel')"
+        fluid
+      />
+      @if (invalid('tagLabel')) {
+        <small class="error"><i class="pi pi-exclamation-circle" aria-hidden="true"></i>Label is required.</small>
+      } @else if (previewKey) {
+        <small class="key-preview">
+          <i class="pi pi-code" aria-hidden="true"></i>Inserted as <code>{{ previewKey }}</code>
+        </small>
+      }
+    </div>
 
     <!-- Category -->
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Category *</mat-label>
-      <mat-select formControlName="tagCategory">
-        @for (cat of categories; track cat) {
-          <mat-option [value]="cat">{{ cat }}</mat-option>
-        }
-      </mat-select>
-      <mat-error *ngIf="form.get('tagCategory')?.hasError('required')">
-        Category is required
-      </mat-error>
-    </mat-form-field>
+    <div class="field">
+      <label for="mt-category">Category <span class="req" aria-hidden="true">*</span></label>
+      <p-select
+        inputId="mt-category"
+        formControlName="tagCategory"
+        [options]="categoryOptions"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Select a category"
+        appendTo="body"
+        [invalid]="invalid('tagCategory')"
+        fluid
+      >
+        <ng-template #selectedItem let-opt>
+          <span class="opt"><i [class]="opt.icon" aria-hidden="true"></i>{{ opt.label }}</span>
+        </ng-template>
+        <ng-template #item let-opt>
+          <span class="opt"><i [class]="opt.icon" aria-hidden="true"></i>{{ opt.label }}</span>
+        </ng-template>
+      </p-select>
+      @if (invalid('tagCategory')) {
+        <small class="error"><i class="pi pi-exclamation-circle" aria-hidden="true"></i>Category is required.</small>
+      }
+    </div>
 
     <!-- Customer Field Mapping -->
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>
-        Maps to Customer Field
-        @if (fieldsLoading) { (loading…) }
-      </mat-label>
-      <mat-select formControlName="customerField"
-                  (selectionChange)="onCustomerFieldChange($event.value)">
-        <mat-option [value]="null">
-          — None (use sample value as static text) —
-        </mat-option>
-        @for (field of customerFields; track field.fieldKey) {
-          <mat-option [value]="field.fieldKey">
-            {{ field.fieldLabel }}
-            <span class="field-type">
-              {{ getFieldTypeLabel(field.fieldType) }}
-            </span>
-          </mat-option>
-        }
-      </mat-select>
-      <mat-hint>
+    <div class="field">
+      <label for="mt-field">Maps to customer field <span class="optional">Optional</span></label>
+      <p-select
+        inputId="mt-field"
+        formControlName="customerField"
+        [options]="customerFields"
+        optionLabel="fieldLabel"
+        optionValue="fieldKey"
+        [placeholder]="fieldsLoading ? 'Loading fields…' : 'None — use sample value as static text'"
+        [loading]="fieldsLoading"
+        [filter]="customerFields.length > 6"
+        filterBy="fieldLabel"
+        [showClear]="true"
+        appendTo="body"
+        (onChange)="onCustomerFieldChange($event.value)"
+        fluid
+      >
+        <ng-template #selectedItem let-f>
+          <span class="opt"><i [class]="fieldTypeIcon(f.fieldType)" aria-hidden="true"></i>{{ f.fieldLabel }}</span>
+        </ng-template>
+        <ng-template #item let-f>
+          <span class="opt">
+            <i [class]="fieldTypeIcon(f.fieldType)" aria-hidden="true"></i>
+            <span class="opt__label">{{ f.fieldLabel }}</span>
+            @if (getFieldTypeLabel(f.fieldType)) {
+              <span class="opt__type">{{ getFieldTypeLabel(f.fieldType) }}</span>
+            }
+          </span>
+        </ng-template>
+      </p-select>
+
+      <p-message
+        size="small"
+        variant="simple"
+        [severity]="selectedField ? 'success' : 'secondary'"
+        [icon]="isBoolean ? 'pi pi-sliders-h' : selectedField ? 'pi pi-user' : 'pi pi-info-circle'"
+        styleClass="hint"
+      >
         @if (isBoolean) {
-          <mat-icon class="hint-ico" aria-hidden="true">toggle_on</mat-icon> Boolean field — define what to show for each value below.
+          Yes/No field — choose what customers see for each value below.
         } @else if (selectedField) {
-          <mat-icon class="hint-ico" aria-hidden="true">person</mat-icon> Each customer sees their own <strong>{{ selectedField.fieldLabel }}</strong>.
+          Each customer sees their own <strong>{{ selectedField.fieldLabel }}</strong>.
         } @else {
-          <mat-icon class="hint-ico" aria-hidden="true">info</mat-icon> No mapping — sample value sent to every customer as-is.
+          No mapping — the sample value is sent to every customer as-is.
         }
-      </mat-hint>
-    </mat-form-field>
+      </p-message>
+    </div>
 
-    <!-- Boolean Label Inputs — only shown when a BOOLEAN field is selected -->
+    <!-- Boolean labels — only when a BOOLEAN field is selected -->
     @if (isBoolean) {
-      <div class="boolean-labels">
-        <p class="boolean-hint">
-          <mat-icon class="hint-ico" aria-hidden="true">tune</mat-icon> Define what to display when the value is true or false:
-        </p>
+      <div class="boolean-box">
         <div class="boolean-row">
-          <mat-form-field appearance="outline" class="half-width">
-            <mat-label>When true (1)</mat-label>
-            <input matInput formControlName="trueLabel"
-                   placeholder="e.g. VIP" />
-            <mat-hint>Shown when field = true/1</mat-hint>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="half-width">
-            <mat-label>When false (0)</mat-label>
-            <input matInput formControlName="falseLabel"
-                   placeholder="e.g. Normal User" />
-            <mat-hint>Shown when field = false/0</mat-hint>
-          </mat-form-field>
+          <div class="field">
+            <label for="mt-true"><i class="pi pi-check-circle tone-ok" aria-hidden="true"></i>When true</label>
+            <input pInputText id="mt-true" formControlName="trueLabel" placeholder="e.g. VIP" fluid />
+          </div>
+          <div class="field">
+            <label for="mt-false"><i class="pi pi-times-circle tone-no" aria-hidden="true"></i>When false</label>
+            <input pInputText id="mt-false" formControlName="falseLabel" placeholder="e.g. Normal User" fluid />
+          </div>
         </div>
-
-        <!-- Live preview -->
         <div class="boolean-preview">
-          <span>Preview: </span>
-          <span class="preview-true">
-            {{ form.get('trueLabel')?.value || 'Yes' }}
-          </span>
-          <span> / </span>
-          <span class="preview-false">
-            {{ form.get('falseLabel')?.value || 'No' }}
-          </span>
+          Preview:
+          <span class="chip chip--ok">{{ form.get('trueLabel')?.value || 'Yes' }}</span>
+          <span class="chip chip--no">{{ form.get('falseLabel')?.value || 'No' }}</span>
         </div>
       </div>
     }
 
     <!-- Sample Value -->
-    <mat-form-field appearance="outline" class="full-width sample-field">
-      <mat-label>Sample Value</mat-label>
-      <input matInput formControlName="sampleValue"
-             [placeholder]="isBoolean
-               ? (form.get('trueLabel')?.value || 'Yes')
-               : 'e.g. Mumbai'" />
-      <mat-hint>
+    <div class="field">
+      <label for="mt-sample">Sample value</label>
+      <input
+        pInputText
+        id="mt-sample"
+        formControlName="sampleValue"
+        maxlength="200"
+        autocomplete="off"
+        [placeholder]="isBoolean ? (form.get('trueLabel')?.value || 'Yes') : 'e.g. Mumbai'"
+        fluid
+      />
+      <small class="help">
         @if (selectedField && !isBoolean) {
-          Shown in Preview only. Real emails use actual customer data.
+          Shown in previews only — real messages use each customer's data.
         } @else if (isBoolean) {
-          Shown in Preview mode — typically set to your "When true" label.
+          Shown in previews — usually your "When true" label.
         } @else {
-          This exact text appears in every customer's email.
+          This exact text appears in every customer's message.
         }
-      </mat-hint>
-    </mat-form-field>
+      </small>
+    </div>
+  </div>
 
-  </mat-dialog-content>
-
-  <mat-dialog-actions align="end">
-    <button mat-stroked-button type="button"
-            (click)="cancel()" [disabled]="loading">
-      Cancel
-    </button>
-    <button mat-flat-button color="primary" type="button"
-            (click)="submit()" [disabled]="loading || fieldsLoading">
-      {{ loading ? 'Saving…' : 'Add Tag' }}
-    </button>
-  </mat-dialog-actions>
+  <div class="actions">
+    <p-button label="Cancel" severity="secondary" [outlined]="true" [rounded]="true" [disabled]="loading" (onClick)="cancel()" />
+    <p-button
+      label="Add Tag"
+      icon="pi pi-plus"
+      [rounded]="true"
+      [loading]="loading"
+      [disabled]="fieldsLoading"
+      styleClass="confirm-btn"
+      (onClick)="submit()"
+    />
+  </div>
 </div>

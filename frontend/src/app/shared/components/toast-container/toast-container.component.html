@@ -1,5 +1,7 @@
-<div class="toast-stack" aria-live="polite" aria-atomic="false">
-  @for (t of (notifications.toasts | async) ?? []; track t.id) {
-    <app-toast-item [toast]="t" (dismiss)="onDismiss($event)"></app-toast-item>
-  }
-</div>
+<p-toast
+  [key]="toastKey"
+  position="top-right"
+  styleClass="app-toast"
+  [breakpoints]="{ '600px': { width: 'calc(100vw - 32px)', right: '16px', left: '16px' } }"
+  (onClose)="onClose($event.message.data?.contentKey)"
+/>

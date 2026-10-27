@@ -14,8 +14,10 @@
 .head {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--is-s-3);
 }
+.head-copy { flex: 1; min-width: 220px; }
 .head-ico {
   flex: none;
   display: grid;
@@ -26,6 +28,7 @@
   background: var(--is-tint-orange);
   color: var(--is-secondary);
 }
+.head-ico .pi { font-size: 18px; }
 .title {
   margin: 0;
   font-size: var(--is-fs-lg);
@@ -38,70 +41,79 @@
 /* Channel selection cards */
 .channel-row {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: var(--is-s-3);
 }
 .ch-card {
+  --ch: var(--is-primary);
   position: relative;
   display: grid;
   gap: var(--is-s-3);
   padding: var(--is-s-4);
-  text-align: left;
   border: 1px solid var(--is-border);
   border-radius: var(--is-r-md);
   background: var(--is-surface);
-  font-family: inherit;
   cursor: pointer;
   transition: transform var(--is-dur) var(--is-ease), box-shadow var(--is-dur) var(--is-ease),
               border-color var(--is-dur) ease, background var(--is-dur) ease;
 }
 .ch-card:hover {
   transform: translateY(-2px);
-  border-color: var(--is-border-tint);
-  box-shadow: var(--is-shadow-soft);
+  border-color: color-mix(in srgb, var(--ch) 40%, white);
+  box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--ch) 45%, transparent);
+}
+.ch-card:focus-within {
+  outline: 2px solid color-mix(in srgb, var(--ch) 55%, white);
+  outline-offset: 2px;
 }
 .ch-card--on {
-  border-color: transparent;
-  background: var(--is-tint-purple);
-  box-shadow: inset 0 0 0 2px var(--is-primary), var(--is-shadow-soft);
+  border-color: var(--ch);
+  background: color-mix(in srgb, var(--ch) 6%, white);
+  box-shadow: inset 0 0 0 1px var(--ch), 0 10px 22px -14px color-mix(in srgb, var(--ch) 55%, transparent);
 }
-.check {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--is-primary);
-  color: #fff;
-  animation: is-scale-in var(--is-dur) var(--is-ease) both;
-}
-.check .mat-icon { font-size: 15px; width: 15px; height: 15px; }
-.ch-top { display: flex; align-items: flex-start; gap: var(--is-s-3); padding-right: 22px; }
+
+.ch-top { display: flex; align-items: flex-start; gap: var(--is-s-3); }
 .ch-ico {
   flex: none;
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: var(--is-r-sm);
-  background: var(--is-surface-2);
-  border: 1px solid var(--is-border);
-  color: var(--is-primary);
-  transition: all var(--is-dur) var(--is-ease);
+  background: color-mix(in srgb, var(--ch) 11%, white);
+  color: var(--ch);
+  transition: background var(--is-dur) var(--is-ease), color var(--is-dur) var(--is-ease),
+              transform var(--is-dur) var(--is-ease);
 }
+.ch-ico .pi { font-size: 19px; }
+.ch-card:hover .ch-ico { transform: scale(1.05); }
 .ch-card--on .ch-ico {
-  border-color: transparent;
-  background: var(--is-grad-primary);
+  background: var(--ch);
   color: #fff;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--ch) 40%, transparent);
 }
+.ch-copy { flex: 1; min-width: 0; }
 .ch-name { font-size: var(--is-fs-md); font-weight: var(--is-fw-bold); color: var(--is-text); }
 .ch-desc { margin-top: 2px; font-size: var(--is-fs-xs); line-height: 1.45; color: var(--is-text-2); }
+
+/* Checkbox picks up the channel colour. */
+:host ::ng-deep .ch-check.p-checkbox-checked .p-checkbox-box {
+  border-color: var(--ch);
+  background: var(--ch);
+}
+:host ::ng-deep .ch-check:not(.p-checkbox-checked):hover .p-checkbox-box { border-color: var(--ch); }
+
 .ch-foot { padding-top: var(--is-s-2); border-top: 1px dashed var(--is-border); }
-.sel-yes { font-size: var(--is-fs-xs); font-weight: var(--is-fw-bold); color: var(--is-primary); }
-.sel-no { font-size: var(--is-fs-xs); font-weight: var(--is-fw-semibold); color: var(--is-text-3); }
+.sel-yes,
+.sel-no {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--is-fs-xs);
+}
+.sel-yes { font-weight: var(--is-fw-bold); color: color-mix(in srgb, var(--ch) 85%, black); }
+.sel-yes .pi { color: var(--ch); }
+.sel-no { font-weight: var(--is-fw-semibold); color: var(--is-text-3); }
 
 /* Empty */
 .empty-prev {
@@ -124,6 +136,7 @@
   background: var(--is-tint-purple);
   color: var(--is-primary);
 }
+.empty-ico .pi { font-size: 22px; }
 .empty-prev p { margin: 0; font-weight: var(--is-fw-semibold); }
 
 @media (max-width: 600px) {

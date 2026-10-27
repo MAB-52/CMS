@@ -9,28 +9,29 @@ import {
   SimpleChanges,
   inject,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatIconModule } from '@angular/material/icon';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { TabsModule } from 'primeng/tabs';
+import { SelectButtonModule } from 'primeng/selectbutton';
+import { TagModule } from 'primeng/tag';
 import { MergeTag } from '../../../core/models/consent.model';
-import { ChannelLanguageRenderMap } from '../../../core/models/consent-translation.types';
+import {
+  ChannelLanguageRenderMap,
+  FALLBACK_REVIEW_LANGUAGE,
+  hasRenderedContent,
+} from '../../../core/models/consent-translation.types';
+import { CHANNEL_META, ChannelId } from '../../../core/utils/channel.util';
 import { CONSENT_LANGUAGES, isRtl, labelFor, requiresTranslationVerification } from '../../../core/constants/consent-languages';
 
-type ChannelId = 'EMAIL' | 'SMS' | 'PUSH' | 'WHATSAPP' | 'RCS';
-
-const CHANNEL_META: Record<ChannelId, { icon: string; name: string }> = {
-  EMAIL: { icon: '📧', name: 'Email' },
-  SMS: { icon: '📱', name: 'SMS' },
-  PUSH: { icon: '🔔', name: 'Push' },
-  WHATSAPP: { icon: '💬', name: 'WhatsApp' },
-  RCS: { icon: '🌐', name: 'RCS' },
-};
+/** GSM-7 single-message limit; longer texts are split into 153-char segments. */
+const SMS_SINGLE = 160;
+const SMS_SEGMENT = 153;
 
 @Component({
   selector: 'app-consent-channel-language-preview',
   standalone: true,
-  imports: [CommonModule, MatTabsModule, MatIconModule],
+  imports: [DatePipe, NgTemplateOutlet, FormsModule, TabsModule, SelectButtonModule, TagModule],
   templateUrl: './consent-channel-language-preview.component.html',
   styleUrl: './consent-channel-language-preview.component.css',
 })
@@ -45,6 +46,8 @@ export class ConsentChannelLanguagePreviewComponent implements OnChanges {
 
   /** channel -> language -> rendered content, from consent.translations via buildRenderMap() */
   @Input({ required: true }) renders: ChannelLanguageRenderMap = {};
+  /** Consent body (HTML) shown for channels that have no per-language render yet. */
+  @Input() fallbackContent: string | null = null;
 
   @Input() mergeTags: MergeTag[] = [];
   @Input() readOnly = false;
@@ -60,6 +63,14 @@ export class ConsentChannelLanguagePreviewComponent implements OnChanges {
 
   activeChannelTab = 0;
   activeLanguageTab = 0;
+
+  readonly senderName = 'ConsentIQ';
+  readonly senderEmail = 'noreply@consentiq.com';
+  readonly recipientEmail = 'john.doe@example.com';
+  readonly emailSubject = 'Action Required: Consent Request';
+  readonly today = new Date();
+
+  private readonly textCache = new Map<string, string>();
 
   get activeChannels(): ChannelId[] {
     const order: { id: ChannelId; flag: boolean }[] = [
@@ -97,7 +108,10 @@ export class ConsentChannelLanguagePreviewComponent implements OnChanges {
   private syncLanguageTabForChannel(channel: ChannelId): void {
     const langs = this.languagesForChannel(channel);
     if (!langs.length) {
+      // No translated render for this channel — opening its tab still counts as reviewing it,
+      // otherwise the checker could never reach the required combination count.
       this.activeLanguageTab = 0;
+      this.emitViewed(channel, FALLBACK_REVIEW_LANGUAGE);
       return;
     }
     let langIdx = 0;
@@ -128,6 +142,26 @@ export class ConsentChannelLanguagePreviewComponent implements OnChanges {
     }
   }
 
+  /** p-tabs emits the selected channel id. */
+  onChannelSelect(id: string | number | undefined): void {
+    const idx = this.activeChannels.indexOf(id as ChannelId);
+    if (idx >= 0 && idx !== this.activeChannelTab) {
+      this.onChannelTabChange(idx);
+    }
+  }
+
+  /** p-selectbutton emits the selected language code. */
+  onLanguageSelect(code: string | null): void {
+    const channel = this.currentChannel();
+    if (!channel || !code) {
+      return;
+    }
+    const idx = this.languagesForChannel(channel).indexOf(code);
+    if (idx >= 0) {
+      this.onLanguageTabChange(idx);
+    }
+  }
+
   private emitViewed(channel: string, languageCode: string): void {
     this.combinationViewed.emit({ channel, languageCode });
   }
@@ -139,11 +173,22 @@ export class ConsentChannelLanguagePreviewComponent implements OnChanges {
       .filter((code) => this.hasContentForLangChannel(code, channel));
   }
 
-  private hasContentForLangChannel(lang: string, channel: string): boolean {
-    const val = this.renders?.[lang]?.[channel];
-    return typeof val === 'string' && val.trim().length > 0;
+  /** Cached so p-selectbutton receives a stable options array between change-detection passes. */
+  private langOptionsCache: { key: string; options: { label: string; value: string }[] } = { key: '', options: [] };
+
+  languageOptions(): { label: string; value: string }[] {
+    const channel = this.currentChannel();
+    const codes = channel ? this.languagesForChannel(channel) : [];
+    const key = `${channel}|${codes.join(',')}`;
+    if (key !== this.langOptionsCache.key) {
+      this.langOptionsCache = { key, options: codes.map((code) => ({ label: labelFor(code), value: code })) };
+    }
+    return this.langOptionsCache.options;
   }
 
+  private hasContentForLangChannel(lang: string, channel: string): boolean {
+    return hasRenderedContent(this.renders, lang, channel);
+  }
 
   currentChannel(): ChannelId | null {
     return this.activeChannels[this.activeChannelTab] ?? null;
@@ -158,13 +203,17 @@ export class ConsentChannelLanguagePreviewComponent implements OnChanges {
     return langs[this.activeLanguageTab] ?? null;
   }
 
+  /** Raw content for the current tab: the language render, else the consent body. */
   currentContent(): string {
     const channel = this.currentChannel();
     const lang = this.currentLanguage();
-    if (!channel || !lang) {
-      return '';
+    if (channel && lang) {
+      const rendered = this.renders?.[lang]?.[channel] ?? this.renders?.[channel]?.[lang];
+      if (rendered) {
+        return rendered;
+      }
     }
-    return this.renders?.[lang]?.[channel] ?? this.renders?.[channel]?.[lang] ?? '';
+    return this.fallbackContent ?? '';
   }
 
   showLanguageTabs(): boolean {
@@ -189,18 +238,51 @@ export class ConsentChannelLanguagePreviewComponent implements OnChanges {
     return labelFor(code);
   }
 
-  tabLabel(id: ChannelId): string {
-    const m = CHANNEL_META[id];
-    return `${m.icon} ${m.name}`;
+  channelName(id: ChannelId): string {
+    return CHANNEL_META[id].label;
+  }
+
+  channelIcon(id: ChannelId): string {
+    return CHANNEL_META[id].icon;
+  }
+
+  private applyMergeTags(value: string): string {
+    let out = value;
+    for (const t of this.mergeTags) {
+      const key = t.tagKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      out = out.replace(new RegExp(key, 'g'), t.sampleValue || '');
+    }
+    return out;
   }
 
   processedEmailHtml(): SafeHtml {
-    let html = this.currentContent() || '';
-    for (const t of this.mergeTags) {
-      const key = t.tagKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      html = html.replace(new RegExp(key, 'g'), t.sampleValue || '');
+    return this.sanitizer.bypassSecurityTrustHtml(this.applyMergeTags(this.currentContent() || ''));
+  }
+
+  /** Plain-text body for chat-style channels, with merge tags filled by sample values. */
+  messageText(): string {
+    return this.applyMergeTags(this.toPlainText(this.currentContent()));
+  }
+
+  /** Channel renders are already plain text; the HTML fallback is flattened keeping line breaks. */
+  private toPlainText(value: string): string {
+    if (!value || !/<[a-z][\s\S]*>/i.test(value)) {
+      return (value || '').trim();
     }
-    return this.sanitizer.bypassSecurityTrustHtml(html);
+    const cached = this.textCache.get(value);
+    if (cached !== undefined) {
+      return cached;
+    }
+    const withBreaks = value
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/(p|div|li|h[1-6])>/gi, '\n');
+    const doc = new DOMParser().parseFromString(withBreaks, 'text/html');
+    const text = (doc.body.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
+    if (this.textCache.size > 20) {
+      this.textCache.clear();
+    }
+    this.textCache.set(value, text);
+    return text;
   }
 
   extractImages(html: string): string[] {
@@ -212,16 +294,17 @@ export class ConsentChannelLanguagePreviewComponent implements OnChanges {
       .filter((src) => !!src);
   }
 
-  smsBody(): string {
-    return this.currentContent();
-  }
-
   smsLen(): number {
-    return this.currentContent().length;
+    return this.messageText().length;
   }
 
-  pushBody(): string {
-    return this.currentContent();
+  smsSegments(): number {
+    const len = this.smsLen();
+    return len <= SMS_SINGLE ? 1 : Math.ceil(len / SMS_SEGMENT);
+  }
+
+  smsOverLimit(): boolean {
+    return this.smsLen() > SMS_SINGLE;
   }
 
   waImages(): string[] {

@@ -289,51 +289,45 @@
     <app-consent-template-records class="block" [consentDbId]="cid" />
   }
 
-  <div class="sticky-actions">
-    <div class="prog">
+  <app-shell-dock>
+    <div class="is-action-dock" role="region" aria-label="Consent actions">
       @let p = progress();
-      <span class="prog-step" [class.done]="p.details"><mat-icon aria-hidden="true">{{ p.details ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>Details</span>
-      <span class="prog-step" [class.done]="p.message"><mat-icon aria-hidden="true">{{ p.message ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>Message</span>
-      <span class="prog-step" [class.done]="p.channels"><mat-icon aria-hidden="true">{{ p.channels ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>Channels</span>
-      <span class="prog-step" [class.done]="p.ready"><mat-icon aria-hidden="true">{{ p.ready ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>Ready</span>
+      <ol class="prog" aria-label="Completion">
+        <li class="prog-step" [class.done]="p.details"><i class="pi" [class]="p.details ? 'pi-check-circle' : 'pi-circle'" aria-hidden="true"></i>Details</li>
+        <li class="prog-step" [class.done]="p.message"><i class="pi" [class]="p.message ? 'pi-check-circle' : 'pi-circle'" aria-hidden="true"></i>Message</li>
+        <li class="prog-step" [class.done]="p.channels"><i class="pi" [class]="p.channels ? 'pi-check-circle' : 'pi-circle'" aria-hidden="true"></i>Channels</li>
+        <li class="prog-step" [class.done]="p.ready"><i class="pi" [class]="p.ready ? 'pi-check-circle' : 'pi-circle'" aria-hidden="true"></i>Ready</li>
+      </ol>
+
+      <div class="is-action-dock__actions">
+        @if (showLinkedActions()) {
+          <p-button
+            [label]="linkedRuleDbId() ? 'Resubmit linked for approval' : 'Submit linked for approval'"
+            icon="pi pi-send"
+            [rounded]="true"
+            [loading]="linkedBusy()"
+            [disabled]="!consentSectionReadyForLinked() || !linkedRuleSubmitReady() || linkedBusy() || !editable()"
+            (onClick)="submitLinkedForApproval()" />
+        }
+
+        @if (showStandaloneDraftSubmit()) {
+          <p-button
+            label="Save Draft"
+            icon="pi pi-save"
+            severity="secondary"
+            [outlined]="true"
+            [rounded]="true"
+            [disabled]="!nameOk() || !editable()"
+            (onClick)="saveDraft()" />
+
+          <p-button
+            label="Submit for Approval"
+            icon="pi pi-send"
+            [rounded]="true"
+            [disabled]="!canSubmit() || !editable()"
+            (onClick)="submitForApproval()" />
+        }
+      </div>
     </div>
-
-    <div class="act">
-      @if (showLinkedActions()) {
-        <button
-          mat-flat-button
-          color="primary"
-          type="button"
-          class="ciq-btn-primary"
-          (click)="submitLinkedForApproval()"
-          [disabled]="!consentSectionReadyForLinked() || !linkedRuleSubmitReady() || linkedBusy() || !editable()">
-          @if (linkedRuleDbId()) {
-            Resubmit linked for approval
-          } @else {
-            Submit linked for approval
-          }
-        </button>
-      }
-
-      @if (showStandaloneDraftSubmit()) {
-        <button
-          mat-stroked-button
-          type="button"
-          class="ciq-btn-secondary"
-          [disabled]="!nameOk() || !editable()"
-          (click)="saveDraft()">
-          <mat-icon>save</mat-icon> Save Draft
-        </button>
-
-        <button
-          mat-flat-button
-          color="primary"
-          type="button"
-          [disabled]="!canSubmit() || !editable()"
-          (click)="submitForApproval()">
-          <mat-icon>send</mat-icon> Submit for Approval
-        </button>
-      }
-    </div>
-  </div>
+  </app-shell-dock>
 </div>

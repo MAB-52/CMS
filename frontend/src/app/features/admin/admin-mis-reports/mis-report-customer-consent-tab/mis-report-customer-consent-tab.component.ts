@@ -1,12 +1,19 @@
-import { DatePipe } from '@angular/common';
-import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { DatePipe, DecimalPipe } from '@angular/common';
+import { Component, OnDestroy, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSelectModule } from '@angular/material/select';
+import { AvatarModule } from 'primeng/avatar';
+import { ButtonModule } from 'primeng/button';
+import { DatePickerModule } from 'primeng/datepicker';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
+import { InputTextModule } from 'primeng/inputtext';
+import { MultiSelectModule } from 'primeng/multiselect';
+import { ProgressBarModule } from 'primeng/progressbar';
+import { SelectModule } from 'primeng/select';
+import { SkeletonModule } from 'primeng/skeleton';
+import { TableLazyLoadEvent, TableModule, TableRowExpandEvent } from 'primeng/table';
+import { TagModule } from 'primeng/tag';
+import { TooltipModule } from 'primeng/tooltip';
 import { Subject, takeUntil } from 'rxjs';
 import {
   CustomerConsentRecordStatus,
@@ -19,65 +26,88 @@ import { CustomerConsentRecordService } from '../../../../core/services/customer
 import { LoggerService } from '../../../../core/services/logger.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 
-const ALL_STATUSES: CustomerConsentRecordStatus[] = [
-  'ACCEPTED',
-  'PENDING',
-  'REJECTED',
-  'WITHDRAWN',
-  'EXPIRING_SOON',
-  'EXPIRED',
-];
+type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
+
+interface StatusMeta {
+  severity: TagSeverity;
+  icon: string;
+}
+
+const STATUS_META: Record<CustomerConsentRecordStatus, StatusMeta> = {
+  ACCEPTED: { severity: 'success', icon: 'pi pi-check-circle' },
+  PENDING: { severity: 'info', icon: 'pi pi-clock' },
+  REJECTED: { severity: 'danger', icon: 'pi pi-times-circle' },
+  WITHDRAWN: { severity: 'secondary', icon: 'pi pi-undo' },
+  EXPIRING_SOON: { severity: 'warn', icon: 'pi pi-hourglass' },
+  EXPIRED: { severity: 'contrast', icon: 'pi pi-ban' },
+};
+
+const ALL_STATUSES = Object.keys(STATUS_META) as CustomerConsentRecordStatus[];
+
+const AVATAR_COLORS = ['#45329E', '#0D6EFD', '#D63384', '#20C997', '#FD7E14', '#6F42C1', '#0DCAF0'];
+
+/** Days before expiry at which "valid until" is flagged as expiring. */
+const EXPIRY_WARN_DAYS = 30;
+const DAY_MS = 86_400_000;
 
 @Component({
   selector: 'app-mis-report-customer-consent-tab',
   standalone: true,
   imports: [
     DatePipe,
+    DecimalPipe,
     FormsModule,
-    MatButtonModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatIconModule,
-    MatProgressBarModule,
-    MatProgressSpinnerModule,
+    AvatarModule,
+    ButtonModule,
+    DatePickerModule,
+    IconFieldModule,
+    InputIconModule,
+    InputTextModule,
+    MultiSelectModule,
+    ProgressBarModule,
+    SelectModule,
+    SkeletonModule,
+    TableModule,
+    TagModule,
+    TooltipModule,
   ],
   templateUrl: './mis-report-customer-consent-tab.component.html',
   styleUrls: ['../mis-tab-shared.css', './mis-report-customer-consent-tab.component.css'],
 })
-export class MisReportCustomerConsentTabComponent implements OnInit, OnDestroy {
+export class MisReportCustomerConsentTabComponent implements OnDestroy {
   private readonly adminApi = inject(AdminService);
   private readonly consentRecordsApi = inject(CustomerConsentRecordService);
   private readonly notify = inject(NotificationService);
   private readonly logger = inject(LoggerService);
   private readonly destroy$ = new Subject<void>();
+  private readonly relTime = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
 
   readonly rows = signal<MisCustomerConsentReportRow[]>([]);
   readonly loading = signal(false);
-  readonly exporting = signal(false);
-  readonly totalPages = signal(0);
+  readonly exporting = signal<'csv' | 'excel' | null>(null);
   readonly totalElements = signal(0);
   readonly currentPage = signal(0);
-  readonly pageSize = 10;
+  readonly pageSize = signal(10);
+  readonly skeletonRows = Array.from({ length: 6 }, (_, i) => i);
 
-  readonly allStatuses = ALL_STATUSES;
+  readonly statusOptions = ALL_STATUSES.map((s) => ({ value: s, label: customerConsentRecordStatusLabel(s), ...STATUS_META[s] }));
+  readonly vipOptions = [
+    { value: '', label: 'All customers' },
+    { value: 'true', label: 'VIP only' },
+    { value: 'false', label: 'Non-VIP' },
+  ];
+
   selectedStatuses: CustomerConsentRecordStatus[] = [];
   vipFilter: '' | 'true' | 'false' = '';
-  validFrom = '';
-  validTo = '';
+  validFrom: Date | null = null;
+  validTo: Date | null = null;
   search = '';
 
   // ── Inline history expansion ────────────────────────────────────────────
-  readonly expandedCustomerIds = signal<Set<string>>(new Set());
+  expandedRows: Record<string, boolean> = {};
   readonly historyLoadingFor = signal<string | null>(null);
-  readonly historyByCustomer = signal<Record<string, CustomerConsentRecordRow[]>>({});
-  
-  // ── History Pagination (New State Added) ───────────────────────────────
+  readonly historyByCustomer = signal<Partial<Record<string, CustomerConsentRecordRow[]>>>({});
   readonly historyPageSize = 5;
-  readonly historyPageByCustomer = signal<Record<string, number>>({});
-
-  ngOnInit(): void {
-    this.load(0);
-  }
 
   ngOnDestroy(): void {
     this.destroy$.next();
@@ -95,18 +125,38 @@ export class MisReportCustomerConsentTabComponent implements OnInit, OnDestroy {
     return undefined;
   }
 
+  activeFilterCount(): number {
+    return [
+      this.selectedStatuses.length > 0,
+      this.vipFilter !== '',
+      !!this.validFrom,
+      !!this.validTo,
+      !!this.search.trim(),
+    ].filter(Boolean).length;
+  }
+
+  private filterParams() {
+    return {
+      status: this.statusCsv(),
+      vip: this.vipBool(),
+      fromDate: this.toIsoDate(this.validFrom),
+      toDate: this.toIsoDate(this.validTo),
+      search: this.search.trim() || undefined,
+    };
+  }
+
+  /** Local calendar date as yyyy-MM-dd (avoids the UTC shift of toISOString). */
+  private toIsoDate(d: Date | null): string | undefined {
+    if (!d) return undefined;
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${mm}-${dd}`;
+  }
+
   load(page: number): void {
     this.loading.set(true);
     this.adminApi
-      .getMisCustomerConsentReport({
-        page,
-        size: this.pageSize,
-        status: this.statusCsv(),
-        vip: this.vipBool(),
-        fromDate: this.validFrom || undefined,
-        toDate: this.validTo || undefined,
-        search: this.search.trim() || undefined,
-      })
+      .getMisCustomerConsentReport({ page, size: this.pageSize(), ...this.filterParams() })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
@@ -116,7 +166,6 @@ export class MisReportCustomerConsentTabComponent implements OnInit, OnDestroy {
             return;
           }
           this.rows.set(res.data.content);
-          this.totalPages.set(res.data.totalPages);
           this.totalElements.set(res.data.totalElements);
           this.currentPage.set(res.data.currentPage);
         },
@@ -128,32 +177,67 @@ export class MisReportCustomerConsentTabComponent implements OnInit, OnDestroy {
       });
   }
 
-  apply(): void { this.load(0); }
-
-  prev(): void {
-    const p = this.currentPage();
-    if (p > 0) this.load(p - 1);
+  /** p-table fires this on init and on every paginator change. */
+  onLazyLoad(event: TableLazyLoadEvent): void {
+    const rows = event.rows ?? this.pageSize();
+    this.pageSize.set(rows);
+    this.load(Math.floor((event.first ?? 0) / rows));
   }
 
-  next(): void {
-    const p = this.currentPage();
-    if (p < this.totalPages() - 1) this.load(p + 1);
+  apply(): void {
+    this.expandedRows = {};
+    this.load(0);
+  }
+
+  reset(): void {
+    this.selectedStatuses = [];
+    this.vipFilter = '';
+    this.validFrom = null;
+    this.validTo = null;
+    this.search = '';
+    this.apply();
   }
 
   label(s: string | null | undefined): string {
     return customerConsentRecordStatusLabel(s);
   }
 
-  badgeClass(status: string | null | undefined): string {
-    switch (status) {
-      case 'ACCEPTED':      return 'badge badge--active';
-      case 'PENDING':       return 'badge badge--pending';
-      case 'REJECTED':      return 'badge badge--declined';
-      case 'WITHDRAWN':     return 'badge badge--withdrawn';
-      case 'EXPIRING_SOON': return 'badge badge--expiring';
-      case 'EXPIRED':       return 'badge badge--expired';
-      default:              return 'badge';
-    }
+  statusMeta(status: string | null | undefined): StatusMeta {
+    return STATUS_META[status as CustomerConsentRecordStatus] ?? { severity: 'secondary', icon: 'pi pi-circle' };
+  }
+
+  initials(name: string | null | undefined): string {
+    const parts = (name ?? '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '?';
+    return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+  }
+
+  avatarColor(seed: string): string {
+    let h = 0;
+    for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) | 0;
+    return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+  }
+
+  /** "in 3 days", "2 months ago" … for secondary date captions. */
+  relative(value: string | null | undefined): string {
+    if (!value) return '';
+    const t = new Date(value).getTime();
+    if (Number.isNaN(t)) return '';
+    const diffDays = Math.round((t - Date.now()) / DAY_MS);
+    const abs = Math.abs(diffDays);
+    if (abs < 1) return 'today';
+    if (abs < 30) return this.relTime.format(diffDays, 'day');
+    if (abs < 365) return this.relTime.format(Math.round(diffDays / 30), 'month');
+    return this.relTime.format(Math.round(diffDays / 365), 'year');
+  }
+
+  validity(value: string | null | undefined): 'expired' | 'soon' | 'ok' | 'none' {
+    if (!value) return 'none';
+    const t = new Date(value).getTime();
+    if (Number.isNaN(t)) return 'none';
+    const days = (t - Date.now()) / DAY_MS;
+    if (days < 0) return 'expired';
+    return days <= EXPIRY_WARN_DAYS ? 'soon' : 'ok';
   }
 
   private download(blob: Blob, name: string): void {
@@ -166,24 +250,18 @@ export class MisReportCustomerConsentTabComponent implements OnInit, OnDestroy {
   }
 
   exportCsv(): void {
-    this.exporting.set(true);
+    this.exporting.set('csv');
     this.adminApi
-      .exportMisCustomerConsentCsv({
-        status: this.statusCsv(),
-        vip: this.vipBool(),
-        fromDate: this.validFrom || undefined,
-        toDate: this.validTo || undefined,
-        search: this.search.trim() || undefined,
-      })
+      .exportMisCustomerConsentCsv(this.filterParams())
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (blob) => {
-          this.exporting.set(false);
+          this.exporting.set(null);
           this.download(blob, 'customer-consent-report.csv');
           this.notify.success('Export', 'CSV download started.');
         },
         error: (err) => {
-          this.exporting.set(false);
+          this.exporting.set(null);
           this.logger.error('MisCustomerConsent', 'csv', err);
           this.notify.error('Export', err?.error?.message || 'Export failed.');
         },
@@ -191,24 +269,18 @@ export class MisReportCustomerConsentTabComponent implements OnInit, OnDestroy {
   }
 
   exportExcel(): void {
-    this.exporting.set(true);
+    this.exporting.set('excel');
     this.adminApi
-      .exportMisCustomerConsentExcel({
-        status: this.statusCsv(),
-        vip: this.vipBool(),
-        fromDate: this.validFrom || undefined,
-        toDate: this.validTo || undefined,
-        search: this.search.trim() || undefined,
-      })
+      .exportMisCustomerConsentExcel(this.filterParams())
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (blob) => {
-          this.exporting.set(false);
+          this.exporting.set(null);
           this.download(blob, 'customer-consent-report.xlsx');
           this.notify.success('Export', 'Excel download started.');
         },
         error: (err) => {
-          this.exporting.set(false);
+          this.exporting.set(null);
           this.logger.error('MisCustomerConsent', 'excel', err);
           this.notify.error('Export', err?.error?.message || 'Export failed.');
         },
@@ -217,24 +289,8 @@ export class MisReportCustomerConsentTabComponent implements OnInit, OnDestroy {
 
   // ── View consent history (Inline expand) ────────────────────────────────
 
-  toggleHistory(row: MisCustomerConsentReportRow): void {
-    const id = row.customerId;
-    const currentSet = new Set(this.expandedCustomerIds());
-
-    if (currentSet.has(id)) {
-      currentSet.delete(id);
-      this.expandedCustomerIds.set(currentSet);
-      return;
-    }
-
-    currentSet.add(id);
-    this.expandedCustomerIds.set(currentSet);
-
-    // Initialize history page to 0 if not set
-    if (this.historyPageByCustomer()[id] === undefined) {
-      this.historyPageByCustomer.set({ ...this.historyPageByCustomer(), [id]: 0 });
-    }
-
+  onRowExpand(event: TableRowExpandEvent): void {
+    const id = (event.data as MisCustomerConsentReportRow).customerId;
     if (this.historyByCustomer()[id]) return;
 
     this.historyLoadingFor.set(id);
@@ -254,39 +310,11 @@ export class MisReportCustomerConsentTabComponent implements OnInit, OnDestroy {
       });
   }
 
-  historyStatusClass(status: string | null | undefined): string {
-    return 'cc-status cc-status--' + (status?.toString()?.toLowerCase() ?? '');
-  }
-
-  // ── History Pagination Helpers (New Logic) ─────────────────────────────
-  
-  getPaginatedHistory(customerId: string): CustomerConsentRecordRow[] {
-    const allRecords = this.historyByCustomer()[customerId] ?? [];
-    const currentPage = this.historyPageByCustomer()[customerId] ?? 0;
-    const startIndex = currentPage * this.historyPageSize;
-    return allRecords.slice(startIndex, startIndex + this.historyPageSize);
-  }
-
-  getHistoryTotalPages(customerId: string): number {
-    const totalRecords = (this.historyByCustomer()[customerId] ?? []).length;
-    return Math.ceil(totalRecords / this.historyPageSize) || 1;
-  }
-
-  getHistoryCurrentPage(customerId: string): number {
-    return this.historyPageByCustomer()[customerId] ?? 0;
-  }
-
-  prevHistoryPage(customerId: string): void {
-    const cur = this.getHistoryCurrentPage(customerId);
-    if (cur > 0) {
-      this.historyPageByCustomer.set({ ...this.historyPageByCustomer(), [customerId]: cur - 1 });
-    }
-  }
-
-  nextHistoryPage(customerId: string): void {
-    const cur = this.getHistoryCurrentPage(customerId);
-    if (cur < this.getHistoryTotalPages(customerId) - 1) {
-      this.historyPageByCustomer.set({ ...this.historyPageByCustomer(), [customerId]: cur + 1 });
-    }
+  /** Per-status counts for the summary chips above a customer's history. */
+  historySummary(customerId: string): { status: CustomerConsentRecordStatus; count: number }[] {
+    const records = this.historyByCustomer()[customerId] ?? [];
+    return ALL_STATUSES
+      .map((status) => ({ status, count: records.filter((r) => r.status === status).length }))
+      .filter((s) => s.count > 0);
   }
 }

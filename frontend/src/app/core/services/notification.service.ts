@@ -1,5 +1,5 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { MessageService } from 'primeng/api';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -8,12 +8,6 @@ export interface ToastConfig {
   title: string;
   message?: string;
   duration?: number;
-  dismissible?: boolean;
-}
-
-export interface Toast extends ToastConfig {
-  id: string;
-  progressKey: number;
 }
 
 const DEFAULT_DURATION: Record<ToastType, number> = {
@@ -23,32 +17,39 @@ const DEFAULT_DURATION: Record<ToastType, number> = {
   info: 4000,
 };
 
-/** Max simultaneous toasts; overflow evicts oldest of same type or oldest overall. */
-const MAX_VISIBLE_TOASTS = 3;
-
 /** Suppress repeat adds of the same toast content within this window (ms). */
 const TOAST_THROTTLE_MS = 1500;
 
+/** Must match the `key` on the <p-toast> in ToastContainerComponent. */
+export const APP_TOAST_KEY = 'app';
+
+const PRIME_SEVERITY: Record<ToastType, 'success' | 'error' | 'warn' | 'info'> = {
+  success: 'success',
+  error: 'error',
+  warning: 'warn',
+  info: 'info',
+};
+
+/** Thin facade over PrimeNG's MessageService that adds de-duplication and throttling. */
 @Injectable({ providedIn: 'root' })
 export class NotificationService {
-  private readonly toasts$ = new BehaviorSubject<Toast[]>([]);
+  private readonly messages = inject(MessageService);
   private readonly onceKeys = new Set<string>();
+  /** Content keys of toasts currently on screen. */
+  private readonly visibleContent = new Set<string>();
   /** Last time a toast with this content key was actually queued. */
   private readonly lastQueuedAtByContent = new Map<string, number>();
-  private seq = 0;
-
-  readonly toasts = this.toasts$.asObservable();
 
   success(title: string, message?: string): void {
-    this.push({ type: 'success', title, message, duration: DEFAULT_DURATION.success, dismissible: false });
+    this.push({ type: 'success', title, message, duration: DEFAULT_DURATION.success });
   }
 
   error(title: string, message?: string): void {
-    this.push({ type: 'error', title, message, duration: DEFAULT_DURATION.error, dismissible: true });
+    this.push({ type: 'error', title, message, duration: DEFAULT_DURATION.error });
   }
 
   warning(title: string, message?: string): void {
-    this.push({ type: 'warning', title, message, duration: DEFAULT_DURATION.warning, dismissible: true });
+    this.push({ type: 'warning', title, message, duration: DEFAULT_DURATION.warning });
   }
 
   /** Shows a warning toast at most once per key until {@link clearOnceKeys} runs (e.g. after login). */
@@ -65,14 +66,17 @@ export class NotificationService {
   }
 
   info(title: string, message?: string): void {
-    this.push({ type: 'info', title, message, duration: DEFAULT_DURATION.info, dismissible: false });
+    this.push({ type: 'info', title, message, duration: DEFAULT_DURATION.info });
   }
 
-  dismiss(id: string): void {
-    this.toasts$.next(this.toasts$.value.filter((t) => t.id !== id));
+  /** Called by the toast container when PrimeNG removes a toast (timeout or close click). */
+  released(contentKey: string | undefined): void {
+    if (contentKey) {
+      this.visibleContent.delete(contentKey);
+    }
   }
 
-  private static contentKey(cfg: Pick<ToastConfig, 'type' | 'title' | 'message'>): string {
+  static contentKey(cfg: Pick<ToastConfig, 'type' | 'title' | 'message'>): string {
     const msg = cfg.message ?? '';
     return `${cfg.type}\u001f${cfg.title}\u001f${msg}`;
   }
@@ -87,45 +91,30 @@ export class NotificationService {
   }
 
   private push(cfg: ToastConfig): void {
-    const visible = this.toasts$.value;
-    const msgNorm = cfg.message ?? '';
-    const duplicateVisible = visible.some(
-      (t) => t.type === cfg.type && t.title === cfg.title && (t.message ?? '') === msgNorm,
-    );
-    if (duplicateVisible) {
+    const contentKey = NotificationService.contentKey(cfg);
+    if (this.visibleContent.has(contentKey)) {
       return;
     }
 
-    const contentKey = NotificationService.contentKey(cfg);
     const now = Date.now();
     const lastQueued = this.lastQueuedAtByContent.get(contentKey);
     if (lastQueued !== undefined && now - lastQueued < TOAST_THROTTLE_MS) {
       return;
     }
 
-    let next = [...visible];
-    if (next.length >= MAX_VISIBLE_TOASTS) {
-      const idxOldestSameType = next.findIndex((t) => t.type === cfg.type);
-      if (idxOldestSameType >= 0) {
-        next.splice(idxOldestSameType, 1);
-      } else {
-        next.shift();
-      }
-    }
-
-    const id = crypto.randomUUID();
-    const duration = cfg.duration ?? DEFAULT_DURATION[cfg.type];
-    const toast: Toast = {
-      ...cfg,
-      id,
-      duration,
-      dismissible: cfg.dismissible ?? (cfg.type === 'error' || cfg.type === 'warning'),
-      progressKey: ++this.seq,
-    };
-
     this.pruneThrottleMap(now);
     this.lastQueuedAtByContent.set(contentKey, now);
-    this.toasts$.next([...next, toast]);
-    setTimeout(() => this.dismiss(id), duration);
+    this.visibleContent.add(contentKey);
+
+    const duration = cfg.duration ?? DEFAULT_DURATION[cfg.type];
+    this.messages.add({
+      key: APP_TOAST_KEY,
+      severity: PRIME_SEVERITY[cfg.type],
+      summary: cfg.title,
+      detail: cfg.message,
+      life: duration,
+      closable: true,
+      data: { contentKey },
+    });
   }
 }

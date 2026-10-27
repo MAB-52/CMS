@@ -112,7 +112,7 @@
               <span class="k">Delivery channels</span>
               <div class="chip-row">
                 @for (ch of getChannels(c); track ch) {
-                  <span class="chip chip--channel">{{ channelChipLabel[ch] }}</span>
+                  <app-channel-chip [channel]="ch" />
                 }
                 @if (!getChannels(c).length) {
                   <span class="muted-inline">—</span>
@@ -128,6 +128,7 @@
             [channelWhatsapp]="c.channelWhatsapp"
             [channelRcs]="c.channelRcs"
             [renders]="renderMap()"
+            [fallbackContent]="c.consentMessage"
             [mergeTags]="mergeTags"
             [readOnly]="true"
             [viewedCount]="viewedCount()"
@@ -214,50 +215,23 @@
 
       @if (canDecide(c)) {
         <!-- ─── DECISION BAR ────────────────────────────────────────────────── -->
-        <footer class="decision" [class.dim]="!canDecide(c)">
-          <div class="decision__info">
-            <div class="d-title">Decision for this pair</div>
-            <div class="d-sub">
-              Consent <strong>{{ c.consentName }}</strong> v{{ c.version }}
-              · Rule <strong>{{ r.ruleName }}</strong>
-            </div>
-            <div class="reviewed-tracker" [class.reviewed-tracker--done]="viewedCount() >= totalCombinations()">{{ viewedCount() }}/{{ totalCombinations() }} combinations viewed</div>
-          </div>
-          <div class="d-btns">
-            <button
-              class="ciq-btn ciq-btn--approve"
-              type="button"
-              [disabled]="!canDecide(c) || actingBusy() || viewedCount() < totalCombinations()"
-              (click)="approve(c)"
-            >
-              <mat-icon>check_circle</mat-icon>
-              Approve
-            </button>
-            <button
-              class="ciq-btn ciq-btn--revision"
-              type="button"
-              [disabled]="!canDecide(c) || actingBusy()"
-              (click)="requestRevision(c)"
-            >
-              <mat-icon>undo</mat-icon>
-              Request revision
-            </button>
-            <button
-              class="ciq-btn ciq-btn--reject"
-              type="button"
-              [disabled]="!canDecide(c) || actingBusy()"
-              (click)="reject(c)"
-            >
-              <mat-icon>cancel</mat-icon>
-              Reject
-            </button>
-          </div>
-        </footer>
+        <app-decision-bar
+          title="Decision for this pair"
+          revisionLabel="Request revision"
+          [disabled]="!canDecide(c)"
+          [busy]="actingBusy()"
+          [viewed]="viewedCount()"
+          [total]="totalCombinations()"
+          (approve)="approve(c)"
+          (revise)="requestRevision(c)"
+          (reject)="reject(c)">
+          Consent <strong>{{ c.consentName }}</strong>@if (c.version) { v{{ c.version }}} · Rule <strong>{{ r.ruleName }}</strong>
+        </app-decision-bar>
       } @else if (c.status === 'REVISION_REQUESTED') {
-        <footer class="decision decision--readonly">
-          <div class="decision__info">
-            <div class="d-title">Awaiting maker</div>
-            <div class="d-sub">This pair was sent back for revision. No checker action until the maker resubmits.</div>
+        <footer class="is-action-dock is-action-dock--muted">
+          <div class="is-action-dock__info">
+            <div class="is-action-dock__title">Awaiting maker</div>
+            <div class="is-action-dock__sub">This pair was sent back for revision. No checker action until the maker resubmits.</div>
           </div>
         </footer>
       }

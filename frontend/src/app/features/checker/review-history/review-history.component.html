@@ -1,110 +1,260 @@
-<div class="page">
-  <div class="head">
-    <div>
-      <div class="eyebrow">Checker · Audit</div>
-      <h1>Review History</h1>
+<div class="rh">
+  <!-- ── Toolbar ─────────────────────────────────────────────────────────── -->
+  <div class="mr-toolbar">
+    <div class="mr-toolbar__text">
+      <span class="mr-toolbar__ico" aria-hidden="true"><i class="pi pi-history"></i></span>
+      <div>
+        <span class="rh-eyebrow">Checker · Audit</span>
+        <h1 class="mr-toolbar__title">Review history</h1>
+        <p class="mr-toolbar__sub">
+          Every consent, rule and broadcast decision you made as Checker, from the audit log
+          @if (!loading() || totalElements()) {
+          <span class="mr-count">{{ totalElements() | number: '1.0-0' }} matching</span>
+          }
+        </p>
+      </div>
     </div>
-    <a mat-stroked-button routerLink="/checker/dashboard"><mat-icon>dashboard</mat-icon>Dashboard</a>
+    <a routerLink="/checker/dashboard" class="rh-link" pTooltip="Back to the checker dashboard" tooltipPosition="left">
+      <p-button label="Dashboard" icon="pi pi-th-large" [outlined]="true" [rounded]="true" styleClass="mr-btn-outline" />
+    </a>
   </div>
 
-  <p class="sub">
-    Broadcast, rule, and consent decisions you performed as Checker (from audit
-    log).
-  </p>
-
-  @if (loading()) {
-  <div class="state-loading"><span class="is-spinner"></span>Loading…</div>
-  } @else {
-  <!-- Top Filters -->
-  <div class="filters">
-    <span class="search-wrap"><mat-icon aria-hidden="true">search</mat-icon>
-    <input type="search" class="field" aria-label="Search reviews" placeholder="Search by entity name or description" [ngModel]="searchQuery()"
-      (ngModelChange)="searchQuery.set($event)" name="reviewSearch" /></span>
-
-    <select class="field select" aria-label="Filter by type" [ngModel]="typeFilter()" (ngModelChange)="typeFilter.set($event)" name="reviewType">
-      <option [ngValue]="'all'">All types</option>
-      <option [ngValue]="'consents'">Consents</option>
-      <option [ngValue]="'broadcasts'">Broadcasts</option>
-      <option [ngValue]="'rules'">Rules</option>
-    </select>
+  <!-- ── Summary ─────────────────────────────────────────────────────────── -->
+  @if (!summary() && loading()) {
+  <div class="mr-kpis">
+    @for (i of [1, 2, 3, 4, 5]; track i) { <p-skeleton height="82px" borderRadius="16px" /> }
   </div>
-
-  <!-- Top Pagination -->
-  <div class="pager-bar pager-bar--top">
-    <button mat-stroked-button type="button" [disabled]="page() === 0" (click)="prevPage()">
-      <mat-icon>chevron_left</mat-icon>
-      Previous
+  } @else if (summary(); as s) {
+  <div class="mr-kpis rh-kpis">
+    <button type="button" class="mr-kpi rh-kpi" style="--c: var(--is-primary); --i: 0"
+      [class.rh-kpi--on]="decision === 'ALL'" (click)="filterDecision('ALL')"
+      pTooltip="All review decisions you've made — click to show everything" tooltipPosition="top">
+      <span class="mr-kpi__ico"><i class="pi pi-list-check"></i></span>
+      <span class="mr-kpi__body">
+        <span class="mr-kpi__label">Total decisions</span>
+        <span class="mr-kpi__value">{{ s.total | number }}</span>
+      </span>
     </button>
-
-    <span class="page-label">Page {{ page() + 1 }}</span>
-
-    <button mat-stroked-button type="button" [disabled]="!hasNext()" (click)="nextPage()">
-      Next
-      <mat-icon iconPositionEnd>chevron_right</mat-icon>
+    <button type="button" class="mr-kpi rh-kpi" style="--c: var(--is-green); --i: 1"
+      [class.rh-kpi--on]="decision === 'APPROVED'" (click)="filterDecision('APPROVED')"
+      [pTooltip]="(approvalRate() | number: '1.0-1') + '% of your approve / reject / revise decisions were approvals — click to filter'"
+      tooltipPosition="top">
+      <span class="mr-kpi__ico"><i class="pi pi-check-circle"></i></span>
+      <span class="mr-kpi__body">
+        <span class="mr-kpi__label">Approved</span>
+        <span class="mr-kpi__value">{{ s.approved | number }}<span class="mr-kpi__unit">{{ approvalRate() | number: '1.0-0' }}%</span></span>
+      </span>
     </button>
+    <button type="button" class="mr-kpi rh-kpi" style="--c: var(--is-secondary); --i: 2"
+      [class.rh-kpi--on]="decision === 'REVISION_REQUESTED'" (click)="filterDecision('REVISION_REQUESTED')"
+      pTooltip="Sent back to the maker for changes — click to filter" tooltipPosition="top">
+      <span class="mr-kpi__ico"><i class="pi pi-replay"></i></span>
+      <span class="mr-kpi__body">
+        <span class="mr-kpi__label">Revisions requested</span>
+        <span class="mr-kpi__value">{{ s.revisionRequested | number }}</span>
+      </span>
+    </button>
+    <button type="button" class="mr-kpi rh-kpi" style="--c: var(--is-red); --i: 3"
+      [class.rh-kpi--on]="decision === 'REJECTED'" (click)="filterDecision('REJECTED')"
+      pTooltip="Submissions you rejected — click to filter" tooltipPosition="top">
+      <span class="mr-kpi__ico"><i class="pi pi-times-circle"></i></span>
+      <span class="mr-kpi__body">
+        <span class="mr-kpi__label">Rejected</span>
+        <span class="mr-kpi__value">{{ s.rejected | number }}</span>
+      </span>
+    </button>
+    <div class="mr-kpi" style="--c: var(--is-blue); --i: 4" pTooltip="Decisions you made in the last 7 days" tooltipPosition="top">
+      <span class="mr-kpi__ico"><i class="pi pi-calendar"></i></span>
+      <span class="mr-kpi__body">
+        <span class="mr-kpi__label">Last 7 days</span>
+        <span class="mr-kpi__value">{{ s.last7Days | number }}</span>
+      </span>
+    </div>
   </div>
 
-  <!-- Empty States -->
-  @if (!displayedRows().length) {
-  @if (!rows().length) {
-  <div class="empty">
-    <span class="empty-ico" aria-hidden="true"><mat-icon>history</mat-icon></span>
-    @if (page() > 0) {
-    No matching review actions on this page. Try another page or adjust
-    filters.
+  @if (distribution().length) {
+  <div class="rh-dist" aria-label="Decision mix">
+    <div class="rh-dist__bar">
+      @for (d of distribution(); track d.kind; let i = $index) {
+      <span class="rh-dist__seg" [style.width.%]="d.pct" [style.--c]="d.color" [style.--i]="i"
+        [pTooltip]="d.label + ': ' + d.count + ' (' + (d.pct | number: '1.0-1') + '%)'" tooltipPosition="top"></span>
+      }
+    </div>
+    <div class="rh-dist__legend">
+      @for (d of distribution(); track d.kind) {
+      <span class="rh-dist__item" [style.--c]="d.color"><span class="rh-dist__dot"></span>{{ d.label }}
+        <strong>{{ d.pct | number: '1.0-0' }}%</strong></span>
+      }
+    </div>
+  </div>
+  }
+  }
+
+  <!-- ── Filters ─────────────────────────────────────────────────────────── -->
+  <form class="mr-card rh-filters" style="--d: 120ms" (ngSubmit)="apply()">
+    <div class="rh-filters__top">
+      <p-selectbutton [options]="typeOptions()" [ngModel]="type" (ngModelChange)="setType($event)" name="type"
+        optionLabel="label" optionValue="value" [allowEmpty]="false" styleClass="mr-seg" aria-label="Filter by type">
+        <ng-template #item let-o>
+          <span class="mr-seg__opt"><i [class]="o.icon"></i>{{ o.label }}
+            @if (o.count != null) { <span class="rh-seg-count">{{ o.count }}</span> }
+          </span>
+        </ng-template>
+      </p-selectbutton>
+    </div>
+    <div class="rh-filters__grid">
+      <div class="mr-field rh-filters__search">
+        <label class="mr-field__label" for="rh-search">Search</label>
+        <p-iconfield class="rh-input">
+          <p-inputicon class="pi pi-search" />
+          <input pInputText id="rh-search" name="search" type="text" [(ngModel)]="search"
+            placeholder="Entity name or description…" autocomplete="off" />
+        </p-iconfield>
+      </div>
+      <div class="mr-field">
+        <label class="mr-field__label" for="rh-decision">Decision</label>
+        <p-select inputId="rh-decision" name="decision" [(ngModel)]="decision" [options]="decisionOptions"
+          optionLabel="label" optionValue="value" appendTo="body" styleClass="mr-input" (onChange)="apply()">
+          <ng-template #selectedItem let-o>
+            <span class="mr-opt"><i [class]="o.icon" [style.color]="o.color"></i>{{ o.label }}</span>
+          </ng-template>
+          <ng-template #item let-o>
+            <span class="mr-opt"><i [class]="o.icon" [style.color]="o.color"></i>{{ o.label }}</span>
+          </ng-template>
+        </p-select>
+      </div>
+      <div class="mr-field">
+        <label class="mr-field__label" for="rh-range">Date range</label>
+        <p-datepicker inputId="rh-range" name="range" [(ngModel)]="range" selectionMode="range" [readonlyInput]="true"
+          dateFormat="dd M yy" placeholder="Any time" [showIcon]="true" iconDisplay="input" [showButtonBar]="true"
+          [maxDate]="today" appendTo="body" styleClass="mr-input" (onSelect)="onRangeChange()"
+          (onClearClick)="range = null; apply()" />
+      </div>
+      <div class="rh-filters__actions">
+        @if (activeFilterCount()) {
+        <p-button type="button" label="Reset" icon="pi pi-filter-slash" [outlined]="true" [rounded]="true"
+          styleClass="mr-btn-outline" pTooltip="Clear all filters" tooltipPosition="top" (onClick)="reset()" />
+        }
+        <p-button type="submit" label="Search" icon="pi pi-search" [rounded]="true" [loading]="loading()"
+          styleClass="mr-btn-primary" />
+      </div>
+    </div>
+  </form>
+
+  <!-- ── Timeline ────────────────────────────────────────────────────────── -->
+  <section class="mr-card rh-results" [class.rh-results--busy]="loading() && rows().length" style="--d: 180ms">
+    <div class="mr-progress" [class.mr-progress--on]="loading()">
+      <p-progressbar mode="indeterminate" />
+    </div>
+
+    @if (loading() && !rows().length) {
+    <div class="rh-skel">
+      <p-skeleton width="9rem" height="1rem" />
+      @for (i of skeletonRows; track i) {
+      <div class="rh-skel__row">
+        <p-skeleton shape="circle" size="2.5rem" />
+        <div class="mr-skel-stack rh-skel__body">
+          <p-skeleton width="40%" /><p-skeleton width="70%" height=".75rem" /><p-skeleton width="30%" height=".75rem" />
+        </div>
+      </div>
+      }
+    </div>
+    } @else if (!rows().length) {
+    <div class="mr-empty">
+      <span class="mr-empty__ico"><i class="pi pi-history"></i></span>
+      @if (activeFilterCount()) {
+      <p class="mr-empty__title">No decisions match these filters</p>
+      <p class="mr-empty__sub">Try a wider date range or clear the filters.</p>
+      <p-button label="Clear filters" icon="pi pi-filter-slash" [outlined]="true" [rounded]="true"
+        styleClass="mr-btn-outline" (onClick)="reset()" />
+      } @else {
+      <p class="mr-empty__title">No review decisions yet</p>
+      <p class="mr-empty__sub">Approve, reject or request revisions from the checker queues and they'll appear here.</p>
+      }
+    </div>
     } @else {
-    No matching review actions yet. Approve, reject, or request revisions
-    from the checker workbenches to populate this list.
-    }
-  </div>
-  } @else {
-  <div class="empty empty--soft">
-    No rows match your search or type filter on this page.
-  </div>
-  }
-  } @else {
-  <!-- Review List -->
-  <div class="list is-stagger">
-    @for (e of displayedRows(); track e.id) {
-    <div class="row">
-      <div class="row-main">
-        <div class="row-badges">
-          <span class="action-badge" [class]="'action-badge action-badge--' + actionBadgeTone(e.action)">
-            {{ formatActionLabel(e.action) }}
-          </span>
-
-          <span class="type-chip" [class]="'type-chip type-chip--' + entityChipKind(e.entityType)">
-            {{ entityChipLabel(e.entityType) }}
-          </span>
+    <div class="rh-timeline">
+      @for (g of groups(); track g.key; let gi = $index) {
+      <div class="rh-day" [style.--gi]="gi">
+        <div class="rh-day__head">
+          <span class="rh-day__label"><i class="pi pi-calendar"></i>{{ g.label }}</span>
+          @if (g.label === 'Today' || g.label === 'Yesterday') {
+          <span class="rh-day__date">{{ g.date | date: 'EEEE, dd MMM yyyy' }}</span>
+          }
+          <span class="rh-day__count">{{ g.entries.length }} decision{{ g.entries.length === 1 ? '' : 's' }}</span>
         </div>
 
-        <div class="row-body">
-          <div class="entity-name">{{ e.entityName }}</div>
-          <div class="desc">{{ e.description }}</div>
-        </div>
-      </div>
+        <ol class="rh-list">
+          @for (e of g.entries; track e.id; let i = $index) {
+          @let d = decisionOf(e.action);
+          @let en = entityOf(e.entityType);
+          @let open = expanded().has(e.id);
+          <li class="rh-item" [class.rh-item--open]="open" [style.--c]="d.color" [style.--i]="i">
+            <span class="rh-node" [pTooltip]="d.label" tooltipPosition="left"><i [class]="d.icon"></i></span>
 
-      <div class="row-aside">
-        <span class="when">{{ e.performedAt | timeAgo }}</span>
+            <div class="rh-card">
+              <button type="button" class="rh-card__main" [attr.aria-expanded]="open" (click)="toggle(e.id)">
+                <div class="rh-card__top">
+                  <span class="rh-decision" [pTooltip]="'Action code: ' + e.action" tooltipPosition="top">
+                    <i [class]="d.icon"></i>{{ d.label }}</span>
+                  <span class="rh-entity" [style.--e]="en.color" [pTooltip]="en.label + ' #' + e.entityId" tooltipPosition="top">
+                    <i [class]="en.icon"></i>{{ en.label }}</span>
+                  <span class="rh-time" [pTooltip]="(e.performedAt | date: 'EEEE, dd MMMM yyyy, hh:mm:ss a (zzzz)') ?? ''"
+                    tooltipPosition="top">
+                    <i class="pi pi-clock"></i>{{ e.performedAt | date: 'hh:mm:ss a' }}
+                    <span class="rh-time__rel">· {{ relative(e.performedAt) }}</span>
+                  </span>
+                </div>
+                <div class="rh-card__name" [pTooltip]="e.entityName" tooltipPosition="top">{{ e.entityName || '—' }}</div>
+                @if (e.description) {
+                <p class="rh-card__desc" [class.rh-card__desc--full]="open">{{ e.description }}</p>
+                }
+                <i class="pi pi-chevron-down rh-card__chev" [pTooltip]="open ? 'Hide audit details' : 'Show audit details'"
+                  tooltipPosition="left"></i>
+              </button>
+
+              @if (open) {
+              <dl class="rh-details">
+                <div pTooltip="Exact time the decision was recorded" tooltipPosition="top">
+                  <dt><i class="pi pi-calendar-clock"></i>Recorded at</dt>
+                  <dd>{{ e.performedAt | date: 'dd MMM yyyy, hh:mm:ss a' }}<small>{{ e.performedAt | date: 'zzzz' }}</small></dd>
+                </div>
+                <div pTooltip="What you decided" tooltipPosition="top">
+                  <dt><i [class]="d.icon"></i>Action taken</dt>
+                  <dd>{{ d.label }} <code>{{ e.action }}</code></dd>
+                </div>
+                <div [pTooltip]="'Internal ID of the ' + en.label.toLowerCase()" tooltipPosition="top">
+                  <dt><i [class]="en.icon"></i>{{ en.label }} ID</dt>
+                  <dd><code>#{{ e.entityId }}</code></dd>
+                </div>
+                <div pTooltip="Audit log entry ID" tooltipPosition="top">
+                  <dt><i class="pi pi-hashtag"></i>Audit ID</dt>
+                  <dd><code>#{{ e.id }}</code></dd>
+                </div>
+                <div pTooltip="Who performed the action" tooltipPosition="top">
+                  <dt><i class="pi pi-user"></i>Performed by</dt>
+                  <dd>{{ e.userName || '—' }}</dd>
+                </div>
+                <div pTooltip="Network address the decision came from" tooltipPosition="top">
+                  <dt><i class="pi pi-globe"></i>IP address</dt>
+                  <dd><code>{{ e.ipAddress || '—' }}</code></dd>
+                </div>
+              </dl>
+              }
+            </div>
+          </li>
+          }
+        </ol>
       </div>
+      }
     </div>
     }
-  </div>
-  }
 
-  <!-- Bottom Pagination Only -->
-  <div class="pager-bar">
-    <button mat-stroked-button type="button" [disabled]="page() === 0" (click)="prevPage()">
-      <mat-icon>chevron_left</mat-icon>
-      Previous
-    </button>
-
-    <span class="page-label">Page {{ page() + 1 }}</span>
-
-    <button mat-stroked-button type="button" [disabled]="!hasNext()" (click)="nextPage()">
-      Next
-      <mat-icon iconPositionEnd>chevron_right</mat-icon>
-    </button>
-  </div>
-  }
+    @if (totalElements() > 0) {
+    <p-paginator [first]="page() * size()" [rows]="size()" [totalRecords]="totalElements()"
+      [rowsPerPageOptions]="[15, 30, 50]" [showCurrentPageReport]="true"
+      currentPageReportTemplate="Showing {first}–{last} of {totalRecords}" dropdownAppendTo="body"
+      styleClass="rh-paginator" (onPageChange)="onPage($event)" />
+    }
+  </section>
 </div>

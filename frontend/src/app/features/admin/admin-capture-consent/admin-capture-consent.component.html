@@ -1,227 +1,258 @@
 <div class="cc-page">
 
-  <!-- ── HEADER ──────────────────────────────────────────────────────────── -->
-  <div class="cc-header">
-    <div class="cc-header__text">
-      <h1 class="cc-header__title">Capture Consent</h1>
-      <p class="cc-header__sub">Search a customer, review their consent history, and send or record a new consent.</p>
+  <!-- ── HEADER ──────────────────────────────────────────────── -->
+  <header class="cc-hero">
+    <div class="cc-hero__text">
+      <span class="cc-eyebrow"><i class="pi pi-check-square" aria-hidden="true"></i>Admin · Operations</span>
+      <h1 class="cc-hero__title">Capture Consent</h1>
+      <p class="cc-hero__sub">Search a customer, review their consent history, then send a secure link or record consent on their behalf.</p>
     </div>
-  </div>
 
-  <!-- ── SEARCH ──────────────────────────────────────────────────────────── -->
-  <div class="cc-search-bar">
-    <div class="cc-search-bar__inner">
-      <span class="cc-search-bar__icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      </span>
-      <input
-        class="cc-search-bar__input"
-        type="text"
-        placeholder="Enter Customer ID or mobile number…"
-        [ngModel]="searchQuery()"
-        (ngModelChange)="searchQuery.set($event)"
-        (keyup.enter)="onSearch()"
-        autocomplete="off"
-      />
-      <button class="cc-search-bar__btn" (click)="onSearch()" [disabled]="searchBusy()">
-        @if (searchBusy()) { <mat-spinner diameter="16" /> } @else { Search }
-      </button>
-    </div>
-  </div>
+    <!-- Search -->
+    <form class="cc-search" (submit)="$event.preventDefault(); onSearch()" role="search">
+      <p-iconfield class="cc-search__field">
+        <p-inputicon styleClass="pi pi-search" />
+        <input
+          pInputText
+          type="text"
+          name="q"
+          placeholder="Customer ID or mobile number, e.g. CUST-1001"
+          aria-label="Customer ID or mobile number"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          autocomplete="off"
+          fluid
+        />
+      </p-iconfield>
+      <p-button type="submit" label="Search" icon="pi pi-search" [rounded]="true" [loading]="searchBusy()"
+        styleClass="cc-search__btn" />
+    </form>
+  </header>
 
   @if (customer(); as c) {
-    <div class="cc-results cc-results--visible">
+    <div class="cc-results">
 
-      <!-- ── CUSTOMER PROFILE ─────────────────────────────────────────── -->
-      <div class="cc-profile cc-card cc-animate" >
-        <div class="cc-profile__avatar">
-          <span>{{ (c.fullName || 'U').charAt(0).toUpperCase() }}</span>
-        </div>
+      <!-- ── CUSTOMER PROFILE ─────────────────────────────────── -->
+      <section class="cc-card cc-profile cc-animate">
+        <div class="cc-card__bar" aria-hidden="true"></div>
+        <p-avatar [label]="initials(c.fullName)" shape="circle" size="xlarge" styleClass="cc-avatar" />
         <div class="cc-profile__body">
           <div class="cc-profile__top">
-            <div>
-              <p class="cc-profile__name">{{ c.fullName }}</p>
-              <p class="cc-profile__id">{{ c.customerId }}</p>
+            <div class="cc-profile__id-block">
+              <h2 class="cc-profile__name">{{ c.fullName }}</h2>
+              <span class="cc-profile__id"><i class="pi pi-id-card" aria-hidden="true"></i>{{ c.customerId }}</span>
             </div>
             @if (c.vip) {
-              <span class="cc-badge cc-badge--vip">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                VIP
-              </span>
+              <p-tag value="VIP" icon="pi pi-star-fill" [rounded]="true" styleClass="cc-vip" />
             }
           </div>
           <div class="cc-profile__meta">
-            <div class="cc-meta-item">
-              <span class="cc-meta-item__icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.65 3.1 2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 5.55 5.55l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 15.92z"/></svg></span>
-              <span>{{ c.mobileNumber || '—' }}</span>
-            </div>
-            <div class="cc-meta-item">
-              <span class="cc-meta-item__icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></span>
-              <span>{{ c.email || '—' }}</span>
-            </div>
+            <span class="cc-meta"><span class="cc-meta__ico"><i class="pi pi-phone" aria-hidden="true"></i></span>{{ c.mobileNumber || '—' }}</span>
+            <span class="cc-meta"><span class="cc-meta__ico"><i class="pi pi-envelope" aria-hidden="true"></i></span>{{ c.email || '—' }}</span>
           </div>
-          @if (c.activeDeliveryChannels?.length) {
+          @if (c.activeDeliveryChannels.length) {
             <div class="cc-profile__channels">
+              <span class="cc-profile__channels-k">Active channels</span>
               @for (ch of c.activeDeliveryChannels; track ch) {
-                <span class="cc-channel-tag">{{ ch }}</span>
+                <span class="cc-chip" [style.--c]="channelMeta(ch).color">
+                  <i [class]="channelMeta(ch).icon" aria-hidden="true"></i>{{ channelMeta(ch).label }}
+                </span>
               }
             </div>
           }
         </div>
-      </div>
+      </section>
 
-      <!-- ── CONSENT HISTORY ──────────────────────────────────────────── -->
-      <div class="cc-card cc-animate cc-d1">
-        <div class="cc-card__header">
-          <span class="cc-card__title">Consent record history</span>
-          <span class="cc-record-count">{{ consentHistory().length }} record{{ consentHistory().length !== 1 ? 's' : '' }}</span>
+      <!-- ── CONSENT HISTORY ──────────────────────────────────── -->
+      <section class="cc-card cc-animate cc-d1">
+        <div class="cc-card__head">
+          <span class="cc-card__ico" aria-hidden="true"><i class="pi pi-history"></i></span>
+          <div class="cc-card__titles">
+            <h3 class="cc-card__title">Consent record history</h3>
+            <p class="cc-card__sub">Every consent this customer has been asked for, newest first.</p>
+          </div>
+          <p-tag severity="secondary" [rounded]="true"
+            [value]="consentHistory().length + ' record' + (consentHistory().length !== 1 ? 's' : '')" />
         </div>
+
         @if (consentHistoryLoading()) {
-          <div class="cc-loading-row"><mat-spinner diameter="18" /><span>Loading records…</span></div>
+          <div class="cc-skel">
+            @for (i of [1, 2, 3]; track i) {
+              <div class="cc-skel__row">
+                <p-skeleton width="30%" height="1rem" />
+                <p-skeleton width="14%" height="1.5rem" borderRadius="999px" />
+                <p-skeleton width="16%" height="1rem" />
+                <p-skeleton width="16%" height="1rem" />
+              </div>
+            }
+          </div>
         } @else if (consentHistory().length === 0) {
           <div class="cc-empty">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/></svg>
-            <p>No consent records found for this customer</p>
+            <span class="cc-empty__ico" aria-hidden="true"><i class="pi pi-inbox"></i></span>
+            <p class="cc-empty__title">No consent records yet</p>
+            <p class="cc-empty__text">Send a link or record consent below to create the first one.</p>
           </div>
         } @else {
-          <div class="cc-table-wrap">
-            <table class="cc-table">
-              <thead>
-                <tr><th>Consent</th><th>Status</th><th>Responded</th><th>Valid until</th><th>Last invite</th></tr>
-              </thead>
-              <tbody>
-                @for (row of consentHistory(); track row.id; let i = $index) {
-                  <tr class="cc-table__row" [style.animation-delay]="(i * 40) + 'ms'">
-                    <td class="cc-table__name">{{ row.consentName || '—' }}</td>
-                    <td><span [class]="'cc-status cc-status--' + (row.status?.toString()?.toLowerCase() ?? '')">{{ row.status }}</span></td>
-                    <td class="cc-table__muted">{{ row.respondedAt ? (row.respondedAt | date: 'dd MMM yyyy') : '—' }}</td>
-                    <td class="cc-table__muted">{{ row.consentValidUntil ? (row.consentValidUntil | date: 'dd MMM yyyy') : '—' }}</td>
-                    <td class="cc-table__muted">{{ row.lastInviteSentAt ? (row.lastInviteSentAt | date: 'dd MMM yyyy') : '—' }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
+          <p-table [value]="consentHistory()" [rowHover]="true" styleClass="cc-table" [tableStyle]="{ 'min-width': '40rem' }">
+            <ng-template #header>
+              <tr>
+                <th>Consent</th>
+                <th>Status</th>
+                <th>Responded</th>
+                <th>Valid until</th>
+                <th>Last invite</th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-row let-i="rowIndex">
+              <tr class="cc-row" [style.--i]="i">
+                <td class="cc-row__name">
+                  <span class="cc-row__ico" aria-hidden="true"><i class="pi pi-file"></i></span>{{ row.consentName || '—' }}
+                </td>
+                <td>
+                  <p-tag [severity]="statusSeverity(row.status)" [icon]="statusIcon(row.status)"
+                    [value]="humanize(row.status)" [rounded]="true" />
+                </td>
+                <td class="cc-row__muted">{{ row.respondedAt ? (row.respondedAt | date: 'dd MMM yyyy') : '—' }}</td>
+                <td class="cc-row__muted">{{ row.consentValidUntil ? (row.consentValidUntil | date: 'dd MMM yyyy') : '—' }}</td>
+                <td class="cc-row__muted">{{ row.lastInviteSentAt ? (row.lastInviteSentAt | date: 'dd MMM yyyy') : '—' }}</td>
+              </tr>
+            </ng-template>
+          </p-table>
         }
-      </div>
+      </section>
 
-      <!-- ── ACTION PANELS ────────────────────────────────────────────── -->
+      <!-- ── ACTION PANELS ────────────────────────────────────── -->
       <div class="cc-actions">
 
         <!-- LEFT: Send via link -->
-        <div class="cc-card cc-action-card cc-animate cc-d2">
-          <div class="cc-action-card__accent cc-action-card__accent--blue"></div>
-          <div class="cc-card__header">
-            <span class="cc-card__title">Send consent via link</span>
-            <span class="cc-card__icon cc-card__icon--blue">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M22 7.5V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-1.5"/><path d="m22 12-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 12"/></svg>
-            </span>
-          </div>
-          <p class="cc-action-card__desc">A secure one-time link is emailed to the customer's registered address.</p>
-
-          <div class="cc-field">
-            <label class="cc-field__label">Consent template</label>
-            <div class="cc-select-wrap">
-              <select class="cc-select" [ngModel]="leftTemplateId()?.toString() ?? ''" (ngModelChange)="onLeftTemplateChange($event)">
-                <option value="">Choose template…</option>
-                @for (t of templates(); track t.id) { <option [value]="t.id">{{ t.consentName }}</option> }
-              </select>
-              <span class="cc-select-wrap__arrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+        <section class="cc-card cc-action cc-action--link cc-animate cc-d2">
+          <div class="cc-card__bar" aria-hidden="true"></div>
+          <div class="cc-card__head">
+            <span class="cc-card__ico cc-card__ico--link" aria-hidden="true"><i class="pi pi-send"></i></span>
+            <div class="cc-card__titles">
+              <h3 class="cc-card__title">Send consent via link</h3>
+              <p class="cc-card__sub">A secure one-time link is emailed to the customer's registered address.</p>
             </div>
           </div>
 
           <div class="cc-field">
-            <label class="cc-field__label">Delivery channels</label>
+            <label class="cc-label" for="cc-left-tpl"><span class="cc-step">1</span>Consent template</label>
+            <p-select inputId="cc-left-tpl" [options]="templates()" optionLabel="consentName" optionValue="id"
+              [ngModel]="leftTemplateId()" (ngModelChange)="onLeftTemplateChange($event)"
+              placeholder="Choose a template" [filter]="templates().length > 6" filterBy="consentName"
+              [showClear]="true" appendTo="body" panelStyleClass="cc-select-panel" fluid>
+              <ng-template #selectedItem let-t><span class="cc-opt"><i class="pi pi-file" aria-hidden="true"></i>{{ t.consentName }}</span></ng-template>
+              <ng-template #item let-t><span class="cc-opt"><i class="pi pi-file" aria-hidden="true"></i>{{ t.consentName }}</span></ng-template>
+            </p-select>
+          </div>
+
+          <div class="cc-field">
+            <span class="cc-label"><span class="cc-step">2</span>Delivery channels</span>
             @if (!deliveryChannels().length) {
-              <p class="cc-hint">Select a template to see available channels.</p>
+              <div class="cc-placeholder"><i class="pi pi-arrow-up" aria-hidden="true"></i>Pick a template to see its channels.</div>
             } @else {
-              <div class="cc-channel-toggles">
+              <div class="cc-pick-grid" role="group" aria-label="Delivery channels">
                 @for (ch of deliveryChannels(); track ch) {
-                  <label class="cc-toggle" [class.cc-toggle--on]="isChannelSelected(ch)">
-                    <input type="checkbox" [checked]="isChannelSelected(ch)" (change)="toggleChannel(ch, $any($event.target).checked)" />
-                    {{ channelLabel(ch) }}
+                  <label class="cc-pick" [class.cc-pick--on]="isChannelSelected(ch)" [style.--c]="channelMeta(ch).color">
+                    <p-checkbox [binary]="true" [ngModel]="isChannelSelected(ch)" (ngModelChange)="toggleChannel(ch, $event)"
+                      [inputId]="'cc-l-' + ch" styleClass="cc-pick__check" />
+                    <span class="cc-pick__ico" aria-hidden="true"><i [class]="channelMeta(ch).icon"></i></span>
+                    <span class="cc-pick__name">
+                      {{ channelMeta(ch).label }}
+                      @if (ch === 'EMAIL') { <span class="cc-pick__req">Required</span> }
+                    </span>
                   </label>
                 }
               </div>
-              @if (channelSelectionHint()) { <p class="cc-hint cc-hint--warn">{{ channelSelectionHint() }}</p> }
+              @if (channelSelectionHint()) {
+                <p class="cc-hint"><i class="pi pi-info-circle" aria-hidden="true"></i>{{ channelSelectionHint() }}</p>
+              }
             }
           </div>
 
           @if (infoMessage()) {
-            <div class="cc-info-banner">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-              {{ infoMessage() }}
+            <div class="cc-summary">
+              <span class="cc-summary__ico" aria-hidden="true"><i class="pi pi-envelope"></i></span>
+              <div class="cc-summary__body">
+                <span class="cc-summary__title">A secure link will be emailed to the customer</span>
+                <span class="cc-summary__chips">
+                  <span class="cc-summary__k">Channels recorded</span>
+                  @for (ch of selectedCaptureChannels(); track ch) {
+                    <span class="cc-chip" [style.--c]="channelMeta(ch).color"><i [class]="channelMeta(ch).icon" aria-hidden="true"></i>{{ channelMeta(ch).label }}</span>
+                  }
+                </span>
+              </div>
             </div>
           }
 
           @if (lastInviteLink()) {
-            <div class="cc-link-box">
-              <span class="cc-link-box__url">{{ lastInviteLink() }}</span>
-              <button class="cc-link-box__copy" (click)="copyLink()" [disabled]="!canCopyLink()">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                Copy
-              </button>
+            <div class="cc-link">
+              <div class="cc-link__head">
+                <span class="cc-link__ok" aria-hidden="true"><i class="pi pi-check"></i></span>
+                <span class="cc-link__title">Link generated</span>
+                <span class="cc-link__sub">Personal to this customer</span>
+              </div>
+              <div class="cc-link__row">
+                <i class="pi pi-link cc-link__ico" aria-hidden="true"></i>
+                <span class="cc-link__url" [title]="lastInviteLink()">{{ lastInviteLink() }}</span>
+                <p-button icon="pi pi-copy" label="Copy" size="small" [rounded]="true" severity="secondary" [outlined]="true"
+                  styleClass="cc-link__copy" [disabled]="!canCopyLink()" (onClick)="copyLink()" />
+              </div>
             </div>
           }
 
-          <button class="cc-btn cc-btn--primary" (click)="sendLink()" [disabled]="sendBusy()">
-            @if (sendBusy()) { <mat-spinner diameter="15" /><span>Sending…</span> }
-            @else { <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg><span>Send consent email</span> }
-          </button>
-        </div>
+          <div class="cc-action__foot">
+            <p-button label="Send consent email" icon="pi pi-send" [rounded]="true" [loading]="sendBusy()"
+              styleClass="cc-btn cc-btn--primary" (onClick)="sendLink()" />
+          </div>
+        </section>
 
         <!-- RIGHT: On behalf -->
-        <div class="cc-card cc-action-card cc-animate cc-d3">
-          <div class="cc-action-card__accent cc-action-card__accent--green"></div>
-          <div class="cc-card__header">
-            <span class="cc-card__title">Take consent on behalf</span>
-            <span class="cc-card__icon cc-card__icon--green">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-            </span>
-          </div>
-          <p class="cc-action-card__desc">Record consent captured offline — branch visit, call, or written form.</p>
-
-          <!-- Consent type -->
-          <div class="cc-field">
-            <label class="cc-field__label">Consent type</label>
-            <div class="cc-select-wrap">
-              <select class="cc-select" [ngModel]="rightTemplateId()?.toString() ?? ''" (ngModelChange)="onRightTemplateChange($event)">
-                <option value="">Choose consent type…</option>
-                @for (t of templates(); track t.id) { <option [value]="t.id">{{ t.consentName }}</option> }
-              </select>
-              <span class="cc-select-wrap__arrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+        <section class="cc-card cc-action cc-action--behalf cc-animate cc-d3">
+          <div class="cc-card__bar" aria-hidden="true"></div>
+          <div class="cc-card__head">
+            <span class="cc-card__ico cc-card__ico--behalf" aria-hidden="true"><i class="pi pi-file-edit"></i></span>
+            <div class="cc-card__titles">
+              <h3 class="cc-card__title">Take consent on behalf</h3>
+              <p class="cc-card__sub">Record consent captured offline — branch visit, call or written form.</p>
             </div>
           </div>
 
-          <!-- Delivery channels (shown after template selection) -->
+          <div class="cc-field">
+            <label class="cc-label" for="cc-right-tpl">Consent type</label>
+            <p-select inputId="cc-right-tpl" [options]="templates()" optionLabel="consentName" optionValue="id"
+              [ngModel]="rightTemplateId()" (ngModelChange)="onRightTemplateChange($event)"
+              placeholder="Choose a consent type" [filter]="templates().length > 6" filterBy="consentName"
+              [showClear]="true" appendTo="body" panelStyleClass="cc-select-panel" fluid>
+              <ng-template #selectedItem let-t><span class="cc-opt"><i class="pi pi-file" aria-hidden="true"></i>{{ t.consentName }}</span></ng-template>
+              <ng-template #item let-t><span class="cc-opt"><i class="pi pi-file" aria-hidden="true"></i>{{ t.consentName }}</span></ng-template>
+            </p-select>
+          </div>
+
           @if (rightAvailableChannels().length) {
-            <div class="cc-field">
-              <label class="cc-field__label">
-                Delivery channels
-                <span class="cc-field__optional">select customer's preferred channels</span>
-              </label>
-              <div class="cc-channel-toggles">
+            <div class="cc-field cc-reveal">
+              <span class="cc-label">Delivery channels <span class="cc-opt-tag">customer's preference</span></span>
+              <div class="cc-pick-grid" role="group" aria-label="Customer's preferred channels">
                 @for (ch of rightAvailableChannels(); track ch) {
-                  <label class="cc-toggle" [class.cc-toggle--on]="isRightChannelSelected(ch)">
-                    <input type="checkbox" [checked]="isRightChannelSelected(ch)" (change)="toggleRightChannel(ch, $any($event.target).checked)" />
-                    {{ channelLabel(ch) }}
+                  <label class="cc-pick" [class.cc-pick--on]="isRightChannelSelected(ch)" [style.--c]="channelMeta(ch).color">
+                    <p-checkbox [binary]="true" [ngModel]="isRightChannelSelected(ch)" (ngModelChange)="toggleRightChannel(ch, $event)"
+                      [inputId]="'cc-r-' + ch" styleClass="cc-pick__check" />
+                    <span class="cc-pick__ico" aria-hidden="true"><i [class]="channelMeta(ch).icon"></i></span>
+                    <span class="cc-pick__name">{{ channelMeta(ch).label }}</span>
                   </label>
                 }
               </div>
             </div>
           }
 
-          <!-- Languages (shown after template selection) -->
           @if (rightTemplateId() != null) {
-            <div class="cc-field">
-              <label class="cc-field__label">
-                Languages
-                <span class="cc-field__optional">select customer's preferred languages</span>
-              </label>
-              <div class="cc-lang-toggles">
+            <div class="cc-field cc-reveal">
+              <span class="cc-label">Languages <span class="cc-opt-tag">customer's preference</span></span>
+              <div class="cc-lang-grid" role="group" aria-label="Customer's preferred languages">
                 @for (lang of allLanguages; track lang) {
-                  <label class="cc-toggle cc-toggle--lang" [class.cc-toggle--on]="isLanguageSelected(lang)">
-                    <input type="checkbox" [checked]="isLanguageSelected(lang)" (change)="toggleLanguage(lang, $any($event.target).checked)" />
+                  <label class="cc-lang" [class.cc-lang--on]="isLanguageSelected(lang)">
+                    <p-checkbox [binary]="true" [ngModel]="isLanguageSelected(lang)" (ngModelChange)="toggleLanguage(lang, $event)"
+                      [inputId]="'cc-lang-' + lang" styleClass="cc-lang__check" />
                     {{ formatLanguage(lang) }}
                   </label>
                 }
@@ -229,57 +260,77 @@
             </div>
           }
 
-          <!-- Mode + Source -->
           <div class="cc-field-row">
             <div class="cc-field">
-              <label class="cc-field__label">Mode</label>
-              <div class="cc-select-wrap">
-                <select class="cc-select" [ngModel]="rightMode()" (ngModelChange)="rightMode.set($event)">
-                  <option value="">Choose mode…</option>
-                  @for (m of modeOptions; track m) { <option [value]="m">{{ m }}</option> }
-                </select>
-                <span class="cc-select-wrap__arrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg></span>
-              </div>
+              <label class="cc-label" for="cc-mode">Mode</label>
+              <p-select inputId="cc-mode" [options]="modeItems" optionLabel="value" optionValue="value"
+                [ngModel]="rightMode() || null" (ngModelChange)="rightMode.set($event ?? '')"
+                placeholder="How was it given?" appendTo="body" panelStyleClass="cc-select-panel" fluid>
+                <ng-template #selectedItem let-o><span class="cc-opt"><i [class]="o.icon" aria-hidden="true"></i>{{ o.value }}</span></ng-template>
+                <ng-template #item let-o><span class="cc-opt"><i [class]="o.icon" aria-hidden="true"></i>{{ o.value }}</span></ng-template>
+              </p-select>
             </div>
             <div class="cc-field">
-              <label class="cc-field__label">Source channel</label>
-              <div class="cc-select-wrap">
-                <select class="cc-select" [ngModel]="rightSource()" (ngModelChange)="rightSource.set($event)">
-                  <option value="">Choose source…</option>
-                  @for (s of sourceOptions; track s) { <option [value]="s">{{ s }}</option> }
-                </select>
-                <span class="cc-select-wrap__arrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg></span>
-              </div>
+              <label class="cc-label" for="cc-source">Source channel</label>
+              <p-select inputId="cc-source" [options]="sourceItems" optionLabel="value" optionValue="value"
+                [ngModel]="rightSource() || null" (ngModelChange)="rightSource.set($event ?? '')"
+                placeholder="Where was it taken?" appendTo="body" panelStyleClass="cc-select-panel" fluid>
+                <ng-template #selectedItem let-o><span class="cc-opt"><i [class]="o.icon" aria-hidden="true"></i>{{ o.value }}</span></ng-template>
+                <ng-template #item let-o><span class="cc-opt"><i [class]="o.icon" aria-hidden="true"></i>{{ o.value }}</span></ng-template>
+              </p-select>
             </div>
           </div>
 
-          <!-- Consent status -->
           <div class="cc-field">
-            <label class="cc-field__label">Consent status</label>
-            <div class="cc-status-options">
+            <span class="cc-label" id="cc-status-label">Consent status</span>
+            <div class="cc-status-grid" role="radiogroup" aria-labelledby="cc-status-label">
               @for (opt of STATUS_OPTIONS; track opt.value) {
-                <label class="cc-status-option" [class.cc-status-option--selected]="rightConsentStatus() === opt.value" [attr.data-status]="opt.value.toLowerCase()">
-                  <input type="radio" name="consentStatus" [value]="opt.value" [checked]="rightConsentStatus() === opt.value" (change)="rightConsentStatus.set(opt.value)" />
-                  {{ opt.label }}
+                <label class="cc-status" [class.cc-status--on]="rightConsentStatus() === opt.value" [style.--c]="opt.color">
+                  <span class="cc-status__radio">
+                    <p-radiobutton name="consentStatus" [value]="opt.value" [ngModel]="rightConsentStatus()"
+                      (ngModelChange)="rightConsentStatus.set($event)" [inputId]="'cc-st-' + opt.value" />
+                  </span>
+                  <span class="cc-status__ico" aria-hidden="true"><i [class]="opt.icon"></i></span>
+                  <span class="cc-status__label">{{ opt.label }}</span>
                 </label>
               }
             </div>
           </div>
 
-          <!-- Evidence -->
           <div class="cc-field">
-            <label class="cc-field__label">Evidence reference <span class="cc-field__optional">optional</span></label>
-            <input class="cc-input" type="text" placeholder="Call ID, document no., etc." [ngModel]="evidenceRef()" (ngModelChange)="evidenceRef.set($event)" />
+            <label class="cc-label" for="cc-evidence">Evidence reference <span class="cc-opt-tag">optional</span></label>
+            <p-iconfield>
+              <p-inputicon styleClass="pi pi-paperclip" />
+              <input pInputText id="cc-evidence" type="text" placeholder="Call ID, document no., etc."
+                [ngModel]="evidenceRef()" (ngModelChange)="evidenceRef.set($event)" autocomplete="off" fluid />
+            </p-iconfield>
           </div>
 
-          <button class="cc-btn cc-btn--success" (click)="recordConsent()" [disabled]="recordBusy()">
-            @if (recordBusy()) { <mat-spinner diameter="15" /><span>Recording…</span> }
-            @else { <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span>Record consent</span> }
-          </button>
-        </div>
+          <div class="cc-action__foot">
+            <p-button label="Record consent" icon="pi pi-check" [rounded]="true" [loading]="recordBusy()"
+              styleClass="cc-btn cc-btn--success" (onClick)="recordConsent()" />
+          </div>
+        </section>
 
       </div>
     </div>
+  } @else {
+    <!-- ── EMPTY STATE (before any search) ───────────────────── -->
+    <section class="cc-start cc-animate">
+      <span class="cc-start__ico" aria-hidden="true"><i class="pi pi-user"></i></span>
+      <h2 class="cc-start__title">Find a customer to get started</h2>
+      <p class="cc-start__text">Search by Customer ID or mobile number above. You'll then see their consent history and can:</p>
+      <div class="cc-start__ways">
+        <div class="cc-way">
+          <span class="cc-way__ico cc-way__ico--link" aria-hidden="true"><i class="pi pi-send"></i></span>
+          <div><strong>Send a secure link</strong><span>The customer responds from their email.</span></div>
+        </div>
+        <div class="cc-way">
+          <span class="cc-way__ico cc-way__ico--behalf" aria-hidden="true"><i class="pi pi-file-edit"></i></span>
+          <div><strong>Record on their behalf</strong><span>For branch visits, calls or written forms.</span></div>
+        </div>
+      </div>
+    </section>
   }
 
 </div>

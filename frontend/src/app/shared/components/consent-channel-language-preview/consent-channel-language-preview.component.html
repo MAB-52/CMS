@@ -1,115 +1,335 @@
 <!-- frontend/src/app/shared/components/consent-channel-language-preview/consent-channel-language-preview.component.html -->
 
+<!-- iOS-style status bar shared by the phone mockups. -->
+<ng-template #statusBar let-tone="tone">
+  <div class="status-bar" [class.status-bar--light]="tone === 'light'">
+    <span class="status-time">9:41</span>
+    <span class="island" aria-hidden="true"></span>
+    <span class="status-icons" aria-hidden="true">
+      <span class="signal"><i></i><i></i><i></i><i></i></span>
+      <i class="pi pi-wifi"></i>
+      <span class="battery"><span class="battery-level"></span></span>
+    </span>
+  </div>
+</ng-template>
+
 <div class="preview-wrap">
   <div class="preview-head">
     <div class="preview-head-text">
-      <span class="preview-title"><mat-icon aria-hidden="true">devices</mat-icon>Channel Previews</span>
-      <span class="preview-sub">Click a channel tab to see how the message will appear</span>
+      <span class="preview-title"><i class="pi pi-desktop" aria-hidden="true"></i>Channel Previews</span>
+      <span class="preview-sub">See exactly how the message lands on each channel</span>
     </div>
     @if (totalCombinations > 0) {
-      <span class="combo-badge" [class.combo-badge--complete]="viewedCount === totalCombinations">
-        <mat-icon aria-hidden="true">visibility</mat-icon>{{ viewedCount }}/{{ totalCombinations }} viewed
-      </span>
+      <p-tag
+        [severity]="viewedCount >= totalCombinations ? 'success' : 'warn'"
+        [icon]="viewedCount >= totalCombinations ? 'pi pi-check-circle' : 'pi pi-eye'"
+        [value]="viewedCount + '/' + totalCombinations + ' viewed'"
+        [rounded]="true"
+      />
     }
   </div>
 
   @if (!activeChannels.length) {
-  <div class="empty-prev">
-    <div class="empty-ico" aria-hidden="true"><mat-icon>cell_tower</mat-icon></div>
-    <p>No delivery channels configured for this consent</p>
-  </div>
+    <div class="empty-prev">
+      <div class="empty-ico" aria-hidden="true"><i class="pi pi-send"></i></div>
+      <p>No delivery channels configured for this consent</p>
+    </div>
   } @else {
-  <mat-tab-group [selectedIndex]="activeChannelTab" (selectedIndexChange)="onChannelTabChange($event)" class="tabs"
-    animationDuration="200ms">
-    @for (id of activeChannels; track id) {
-    <mat-tab [label]="tabLabel(id)"></mat-tab>
-    }
-  </mat-tab-group>
+    <p-tabs [value]="currentChannel() ?? ''" (valueChange)="onChannelSelect($event)" class="channel-tabs" [scrollable]="true">
+      <p-tablist>
+        @for (id of activeChannels; track id) {
+          <p-tab [value]="id" class="ch-tab" [attr.data-channel]="id">
+            <span class="ch-tab__icon" aria-hidden="true"><i [class]="channelIcon(id)"></i></span>
+            <span class="ch-tab__label">{{ channelName(id) }}</span>
+          </p-tab>
+        }
+      </p-tablist>
+    </p-tabs>
 
-  @if (showLanguageTabs()) {
-  <div class="language-tabs">
-    @for (lang of languagesForChannel(currentChannel()!); track lang; let i = $index) {
-    <button type="button" class="lang-tab" [class.lang-tab--active]="i === activeLanguageTab"
-      (click)="onLanguageTabChange(i)">
-      {{ languageLabel(lang) }}
-    </button>
-    }
-  </div>
-  }
-
-  @if (showTranslationBanner()) {
-  <div class="translation-banner">
-    <mat-icon aria-hidden="true">translate</mat-icon> AI-generated translation — please verify accuracy before {{ readOnly ? 'approving' : 'submitting' }}.
-  </div>
-  }
-
-  <div class="channel-body" [dir]="isCurrentRtl() ? 'rtl' : 'ltr'">
-    @if (currentChannel() === 'EMAIL') {
-    <div class="mock-email">
-      <div class="mock-h">From: noreply&#64;consentiq.com</div>
-      <div class="mock-h">To: john.doe&#64;example.com</div>
-      <div class="mock-h">Subject: Action Required: Consent Request</div>
-      <div class="mock-body">
-        <div class="logo-ph">[Company Logo Area]</div>
-        <div class="html-prev" [innerHTML]="processedEmailHtml()"></div>
-        <div class="foot">ConsentIQ · Unsubscribe · Privacy Policy</div>
+    @if (showLanguageTabs()) {
+      <div class="language-row">
+        <span class="language-row__label"><i class="pi pi-language" aria-hidden="true"></i>Language</span>
+        <p-selectbutton
+          [options]="languageOptions()"
+          [ngModel]="currentLanguage()"
+          (ngModelChange)="onLanguageSelect($event)"
+          optionLabel="label"
+          optionValue="value"
+          [allowEmpty]="false"
+          size="small"
+          styleClass="language-switch"
+        />
       </div>
-    </div>
     }
 
-    @if (currentChannel() === 'SMS') {
-    <div class="mock-sms-wrap">
-      <div class="mock-phone">
-        <div class="sms-bubble">
-          <div class="sms-title">ConsentIQ</div>
-          <div class="sms-txt">{{ smsBody() }}</div>
+    @if (showTranslationBanner()) {
+      <div class="translation-banner">
+        <i class="pi pi-sparkles" aria-hidden="true"></i>
+        AI-generated translation — please verify accuracy before {{ readOnly ? 'approving' : 'submitting' }}.
+      </div>
+    }
+
+    <div class="stage" [attr.data-channel]="currentChannel()">
+      <!-- ── EMAIL · webmail reading pane ───────────────────────────── -->
+      @if (currentChannel() === 'EMAIL') {
+        <div class="mail">
+          <div class="mail-chrome">
+            <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <div class="mail-search"><i class="pi pi-search" aria-hidden="true"></i>Search mail</div>
+            <span class="mail-chrome__avatar" aria-hidden="true">J</span>
+          </div>
+
+          <div class="mail-toolbar" aria-hidden="true">
+            <i class="pi pi-arrow-left"></i>
+            <i class="pi pi-inbox"></i>
+            <i class="pi pi-trash"></i>
+            <i class="pi pi-envelope"></i>
+            <i class="pi pi-clock"></i>
+            <span class="mail-toolbar__spacer"></span>
+            <span class="mail-toolbar__count">1 of 24</span>
+          </div>
+
+          <div class="mail-subject">
+            <h3>{{ emailSubject }}</h3>
+            <span class="mail-label">Inbox</span>
+          </div>
+
+          <div class="mail-sender">
+            <span class="mail-avatar" aria-hidden="true">C</span>
+            <div class="mail-sender__meta">
+              <div class="mail-from">
+                <strong>{{ senderName }}</strong>
+                <span class="mail-addr">&lt;{{ senderEmail }}&gt;</span>
+              </div>
+              <div class="mail-to">to {{ recipientEmail }} <i class="pi pi-angle-down" aria-hidden="true"></i></div>
+            </div>
+            <div class="mail-sender__side" aria-hidden="true">
+              <span class="mail-time">9:41 AM</span>
+              <i class="pi pi-star"></i>
+              <i class="pi pi-reply"></i>
+              <i class="pi pi-ellipsis-v"></i>
+            </div>
+          </div>
+
+          <div class="mail-body" [dir]="isCurrentRtl() ? 'rtl' : 'ltr'">
+            <div class="mail-template">
+              <div class="mail-template__brand">
+                <span class="brand-mark" aria-hidden="true">C</span>
+                <span>{{ senderName }}</span>
+              </div>
+              <div class="mail-template__content">
+                @if (currentContent()) {
+                  <div class="html-prev" [innerHTML]="processedEmailHtml()"></div>
+                } @else {
+                  <p class="placeholder">Your message will appear here.</p>
+                }
+              </div>
+              <div class="mail-template__foot">
+                You received this email because you are a customer of {{ senderName }}.<br />
+                <a>Unsubscribe</a> · <a>Privacy Policy</a> · <a>Manage preferences</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="mail-actions" aria-hidden="true">
+            <span class="mail-action"><i class="pi pi-reply"></i>Reply</span>
+            <span class="mail-action"><i class="pi pi-forward"></i>Forward</span>
+          </div>
         </div>
-        <div class="sms-time">9:41 AM</div>
-      </div>
-      <div class="sms-meta">{{ smsLen() }} / 160 characters</div>
-    </div>
-    }
+      }
 
-    @if (currentChannel() === 'PUSH') {
-    <div class="mock-push">
-      <div class="push-top">
-        <span>🔔 ConsentIQ</span>
-        <span class="now">now</span>
-      </div>
-      <div class="push-title">Action Required</div>
-      <div class="push-body">{{ pushBody() }}</div>
-    </div>
-    }
+      <!-- ── SMS · iOS Messages ─────────────────────────────────────── -->
+      @if (currentChannel() === 'SMS') {
+        <div class="device-col">
+          <div class="phone">
+            <div class="screen screen--ios">
+              <ng-container *ngTemplateOutlet="statusBar; context: { tone: 'dark' }" />
+              <div class="ios-head">
+                <i class="pi pi-angle-left ios-back" aria-hidden="true"></i>
+                <div class="ios-contact">
+                  <span class="ios-avatar" aria-hidden="true">C</span>
+                  <span class="ios-name">{{ senderName }} <i class="pi pi-angle-right" aria-hidden="true"></i></span>
+                </div>
+                <i class="pi pi-video ios-video" aria-hidden="true"></i>
+              </div>
 
-    @if (currentChannel() === 'WHATSAPP') {
-    <div class="mock-wa">
-      <div class="wa-head">🟢 ConsentIQ</div>
-      <div class="wa-body">
-        <div class="wa-bubble">
-          @for (imgSrc of waImages(); track imgSrc) {
-          <img [src]="imgSrc" alt="consent image" class="wa-img" />
-          }
-          {{ currentContent() }}
-          <span class="wa-meta">9:41 ✓✓</span>
+              <div class="thread thread--ios" [dir]="isCurrentRtl() ? 'rtl' : 'ltr'">
+                <div class="thread-stamp"><strong>Text Message</strong><br />Today 9:41 AM</div>
+                <div class="ios-bubble">
+                  @if (messageText()) {
+                    {{ messageText() }}
+                  } @else {
+                    <span class="placeholder">Your message will appear here.</span>
+                  }
+                </div>
+              </div>
+
+              <div class="ios-compose" aria-hidden="true">
+                <span class="ios-plus"><i class="pi pi-plus"></i></span>
+                <span class="ios-input">Text Message <i class="pi pi-microphone"></i></span>
+              </div>
+              <span class="home-indicator" aria-hidden="true"></span>
+            </div>
+          </div>
+          <div class="device-meta">
+            <p-tag
+              [severity]="smsOverLimit() ? 'warn' : 'secondary'"
+              [value]="smsLen() + ' / 160 characters'"
+              [rounded]="true"
+            />
+            <p-tag
+              [severity]="smsSegments() > 1 ? 'warn' : 'secondary'"
+              [value]="smsSegments() + (smsSegments() === 1 ? ' SMS segment' : ' SMS segments')"
+              [rounded]="true"
+            />
+          </div>
         </div>
-      </div>
-    </div>
-    }
+      }
 
-    @if (currentChannel() === 'RCS') {
-    <div class="mock-rcs">
-      <div class="rcs-head">🌐 ConsentIQ</div>
-      <div class="rcs-body">
-        <div class="rcs-bubble">
-          @for (imgSrc of waImages(); track imgSrc) {
-          <img [src]="imgSrc" alt="consent image" class="rcs-img" />
-          }
-          {{ currentContent() }}
-          <span class="rcs-meta">9:41 ✓✓</span>
+      <!-- ── PUSH · iOS lock screen ─────────────────────────────────── -->
+      @if (currentChannel() === 'PUSH') {
+        <div class="device-col">
+          <div class="phone">
+            <div class="screen screen--lock">
+              <ng-container *ngTemplateOutlet="statusBar; context: { tone: 'light' }" />
+              <div class="lock-clock">
+                <i class="pi pi-lock" aria-hidden="true"></i>
+                <div class="lock-date">{{ today | date: 'EEEE, d MMMM' }}</div>
+                <div class="lock-time">9:41</div>
+              </div>
+              <div class="push-card" [dir]="isCurrentRtl() ? 'rtl' : 'ltr'">
+                <div class="push-card__head">
+                  <span class="push-app" aria-hidden="true">C</span>
+                  <span class="push-app-name">{{ senderName }}</span>
+                  <span class="push-now">now</span>
+                </div>
+                <div class="push-card__title">Action Required</div>
+                <div class="push-card__body">
+                  @if (messageText()) {
+                    {{ messageText() }}
+                  } @else {
+                    <span class="placeholder">Your message will appear here.</span>
+                  }
+                </div>
+              </div>
+              <div class="lock-actions" aria-hidden="true">
+                <span><i class="pi pi-bolt"></i></span>
+                <span><i class="pi pi-camera"></i></span>
+              </div>
+              <span class="home-indicator home-indicator--light" aria-hidden="true"></span>
+            </div>
+          </div>
         </div>
-      </div>
+      }
+
+      <!-- ── WHATSAPP · business chat ───────────────────────────────── -->
+      @if (currentChannel() === 'WHATSAPP') {
+        <div class="device-col">
+          <div class="phone">
+            <div class="screen screen--wa">
+              <div class="wa-top">
+                <ng-container *ngTemplateOutlet="statusBar; context: { tone: 'light' }" />
+                <div class="wa-head">
+                  <i class="pi pi-arrow-left" aria-hidden="true"></i>
+                  <span class="wa-avatar" aria-hidden="true">C</span>
+                  <div class="wa-contact">
+                    <span class="wa-name">{{ senderName }} <i class="pi pi-verified wa-verified" aria-hidden="true"></i></span>
+                    <span class="wa-status">Business account</span>
+                  </div>
+                  <span class="wa-head__icons" aria-hidden="true">
+                    <i class="pi pi-video"></i>
+                    <i class="pi pi-phone"></i>
+                    <i class="pi pi-ellipsis-v"></i>
+                  </span>
+                </div>
+              </div>
+
+              <div class="thread thread--wa" [dir]="isCurrentRtl() ? 'rtl' : 'ltr'">
+                <div class="wa-chip">Today</div>
+                <div class="wa-notice">
+                  <i class="pi pi-lock" aria-hidden="true"></i>
+                  This business uses a secure service from Meta to manage this chat.
+                </div>
+                <div class="wa-bubble">
+                  @for (imgSrc of waImages(); track imgSrc) {
+                    <img [src]="imgSrc" alt="" class="wa-img" />
+                  }
+                  <div class="wa-text">
+                    @if (messageText()) {
+                      {{ messageText() }}
+                    } @else {
+                      <span class="placeholder">Your message will appear here.</span>
+                    }
+                  </div>
+                  <span class="wa-time">9:41 AM</span>
+                </div>
+              </div>
+
+              <div class="wa-compose" aria-hidden="true">
+                <span class="wa-input">
+                  <i class="pi pi-face-smile"></i>
+                  <span class="wa-input__ph">Message</span>
+                  <i class="pi pi-paperclip"></i>
+                  <i class="pi pi-camera"></i>
+                </span>
+                <span class="wa-mic"><i class="pi pi-microphone"></i></span>
+              </div>
+              <span class="home-indicator" aria-hidden="true"></span>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- ── RCS · Google Messages (verified business) ──────────────── -->
+      @if (currentChannel() === 'RCS') {
+        <div class="device-col">
+          <div class="phone phone--android">
+            <div class="screen screen--rcs">
+              <ng-container *ngTemplateOutlet="statusBar; context: { tone: 'dark' }" />
+              <div class="rcs-head">
+                <i class="pi pi-arrow-left" aria-hidden="true"></i>
+                <span class="rcs-avatar" aria-hidden="true">C</span>
+                <div class="rcs-contact">
+                  <span class="rcs-name">{{ senderName }} <i class="pi pi-verified rcs-verified" aria-hidden="true"></i></span>
+                  <span class="rcs-status">Verified business</span>
+                </div>
+                <span class="rcs-head__icons" aria-hidden="true">
+                  <i class="pi pi-phone"></i>
+                  <i class="pi pi-ellipsis-v"></i>
+                </span>
+              </div>
+
+              <div class="thread thread--rcs" [dir]="isCurrentRtl() ? 'rtl' : 'ltr'">
+                <div class="rcs-stamp">Today · 9:41 AM</div>
+                <div class="rcs-card">
+                  @for (imgSrc of waImages(); track imgSrc) {
+                    <img [src]="imgSrc" alt="" class="rcs-img" />
+                  }
+                  <div class="rcs-text">
+                    @if (messageText()) {
+                      {{ messageText() }}
+                    } @else {
+                      <span class="placeholder">Your message will appear here.</span>
+                    }
+                  </div>
+                </div>
+                <div class="rcs-meta">RCS message · 9:41 AM</div>
+              </div>
+
+              <div class="rcs-compose" aria-hidden="true">
+                <span class="rcs-plus"><i class="pi pi-plus-circle"></i></span>
+                <span class="rcs-input">
+                  <span>RCS message</span>
+                  <i class="pi pi-face-smile"></i>
+                  <i class="pi pi-image"></i>
+                </span>
+                <span class="rcs-mic"><i class="pi pi-microphone"></i></span>
+              </div>
+              <span class="home-indicator home-indicator--android" aria-hidden="true"></span>
+            </div>
+          </div>
+        </div>
+      }
     </div>
-    }
-  </div>
   }
 </div>

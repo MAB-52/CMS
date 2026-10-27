@@ -252,50 +252,17 @@
 
   </section>
 
-  <div class="crr-spacer"></div>
 
 </div>
 
-<!-- Sticky Bar -->
-<div class="crr-bar" [class.crr-bar--disabled]="!canDecide()">
-
-  <div class="crr-bar__left">
-
-    <div class="crr-bar__label">
-      Decision Required
-    </div>
-
-    <div class="crr-bar__name">
-      {{ r.ruleName }}
-    </div>
-
-    <div class="crr-bar__sub">
-      Your decision will be recorded in the workflow audit trail.
-    </div>
-
-  </div>
-
-  <div class="crr-bar__actions">
-
-    <button class="crr-btn crr-btn--approve" [disabled]="!canDecide() || busy()" (click)="approve()">
-
-      <mat-icon>check_circle</mat-icon>
-      Approve
-    </button>
-
-    <button class="crr-btn crr-btn--revise" [disabled]="!canDecide() || busy()" (click)="revision()">
-
-      <mat-icon>assignment_return</mat-icon>
-      Request Revision
-    </button>
-
-    <button class="crr-btn crr-btn--reject" [disabled]="!canDecide() || busy()" (click)="reject()">
-
-      <mat-icon>cancel</mat-icon>
-      Reject
-    </button>
-
-  </div>
-
-</div>
+<!-- Decision bar -->
+<app-decision-bar
+  [title]="'Decision required: ' + r.ruleName"
+  [disabled]="!canDecide()"
+  [busy]="busy()"
+  (approve)="approve()"
+  (revise)="revision()"
+  (reject)="reject()">
+  Your decision will be recorded in the workflow audit trail.
+</app-decision-bar>
 }

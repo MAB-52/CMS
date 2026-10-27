@@ -59,5 +59,13 @@ public class User {
 
     @Column(name = "last_login_device", length = 255)
     private String lastLoginDevice;
-    
+
+    /**
+     * Soft-delete marker. Users with activity history (audit logs, approvals, rules…) are
+     * never hard-deleted so that history stays attributable; they are deactivated and
+     * hidden from user management instead.
+     */
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
 }

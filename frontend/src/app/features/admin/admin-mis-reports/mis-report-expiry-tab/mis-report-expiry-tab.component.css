@@ -1,47 +1,77 @@
-/* Expiry report — shared layout lives in ../mis-tab-shared.css */
-.tab-toolbar { justify-content: flex-end; }
+/* Expiry report — shared PrimeNG kit (mr-*) lives in ../mis-tab-shared.css */
+:host { display: grid; gap: var(--is-card-gap); font-family: var(--is-font); color: var(--is-text); }
 
-.expiry-filters { gap: var(--is-s-4); }
-
-.radio-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--is-s-2);
-  padding-left: var(--is-s-4);
-  border-left: 1px solid var(--is-border);
+/* ── Filters ───────────────────────────────────────────── */
+.ex-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--is-s-5); }
+.ex-group { display: grid; gap: var(--is-s-2); }
+.ex-group--window {
+  padding-left: var(--is-s-5);
+  border-left: 1px dashed var(--is-border);
+  animation: is-slide-in-right var(--is-dur-slow) var(--is-ease) both;
 }
-
-.radio-chip {
-  position: relative;
+.ex-hint {
   display: inline-flex;
   align-items: center;
-  min-height: 36px;
-  padding: 0 16px;
-  border-radius: var(--is-r-pill);
-  border: 1px solid var(--is-border);
-  background: var(--is-surface);
-  color: var(--is-text-2);
+  gap: var(--is-s-2);
+  margin: 0 0 10px auto;
   font-size: var(--is-fs-sm);
-  font-weight: var(--is-fw-bold);
-  cursor: pointer;
-  transition: all var(--is-dur) var(--is-ease);
+  color: var(--is-text-2);
 }
-.radio-chip input {
+.ex-hint .pi { color: var(--is-secondary); }
+.ex-hint strong { color: var(--is-primary); }
+
+
+/* ── Table cells ───────────────────────────────────────── */
+.ex-col-vip { width: 90px; text-align: center !important; }
+
+.ex-date { --u: var(--is-success); display: inline-flex; align-items: center; gap: 7px; font-weight: var(--is-fw-semibold); white-space: nowrap; }
+.ex-date .pi { font-size: 11px; color: var(--u); }
+.ex-date[data-u='soon'] { --u: var(--is-warning); }
+.ex-date[data-u='critical'],
+.ex-date[data-u='expired'] { --u: var(--is-danger); color: var(--is-danger-text); }
+
+.ex-countdown { --u: var(--is-success); --u-bg: var(--is-success-bg); --u-text: var(--is-success-text); display: grid; gap: 6px; min-width: 110px; }
+.ex-countdown[data-u='soon'] { --u: var(--is-warning); --u-bg: var(--is-warning-bg); --u-text: var(--is-warning-text); }
+.ex-countdown[data-u='critical'] { --u: var(--is-secondary); --u-bg: var(--is-tint-orange); --u-text: var(--is-secondary-strong); }
+.ex-countdown[data-u='expired'] { --u: var(--is-danger); --u-bg: var(--is-danger-bg); --u-text: var(--is-danger-text); }
+.ex-countdown__badge {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  justify-self: start;
+  padding: 3px 12px;
+  border-radius: var(--is-r-pill);
+  background: var(--u-bg);
+  color: var(--u-text);
+  font-size: var(--is-fs-body);
+  font-weight: var(--is-fw-black);
+  font-variant-numeric: tabular-nums;
+}
+.ex-countdown__badge small { font-size: var(--is-fs-2xs); font-weight: var(--is-fw-bold); }
+.ex-pulse {
   position: absolute;
-  opacity: 0;
-  pointer-events: none;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--u);
 }
-.radio-chip:hover { color: var(--is-primary); border-color: var(--is-border-tint); }
-.radio-chip:has(input:checked) {
-  border-color: transparent;
-  background: var(--is-tint-orange);
-  color: var(--is-secondary-strong);
-  box-shadow: inset 0 0 0 1.5px var(--is-secondary);
+.ex-pulse::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: var(--u); animation: is-ping 1.6s ease-out infinite; }
+:host ::ng-deep .ex-countdown__bar.p-progressbar { height: 5px; border-radius: var(--is-r-pill); background: var(--is-neutral-bg); }
+:host ::ng-deep .ex-countdown__bar .p-progressbar-value {
+  border-radius: var(--is-r-pill);
+  background: var(--u);
+  transform-origin: left;
+  animation: is-bar-grow 700ms var(--is-ease) both;
 }
-.radio-chip:focus-within { box-shadow: var(--is-ring); }
 
-.data-table td { white-space: nowrap; }
-
-@media (max-width: 768px) {
-  .radio-row { padding-left: 0; border-left: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .ex-group--window, .ex-pulse::after { animation: none !important; }
+  :host ::ng-deep .ex-countdown__bar .p-progressbar-value { animation: none !important; }
+}
+@media (max-width: 900px) {
+  .ex-group--window { padding-left: 0; border-left: 0; }
+  .ex-hint { margin-left: 0; }
 }

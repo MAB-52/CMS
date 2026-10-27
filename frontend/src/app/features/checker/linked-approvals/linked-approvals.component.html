@@ -73,9 +73,11 @@
           [attr.aria-pressed]="sortBy() === 'date'">
           <mat-icon>calendar_today</mat-icon>
           Date
-          <mat-icon class="sort-dir-icon" *ngIf="sortBy() === 'date'">
-            {{ sortAsc() ? 'arrow_upward' : 'arrow_downward' }}
-          </mat-icon>
+          @if (sortBy() === 'date') {
+            <mat-icon class="sort-dir-icon">
+              {{ sortAsc() ? 'arrow_upward' : 'arrow_downward' }}
+            </mat-icon>
+          }
         </button>
 
         <div class="sort-divider"></div>
@@ -159,7 +161,7 @@
           </div>
           <div class="summary-chips">
             @for (ch of getChannels(c); track ch) {
-            <span class="chip chip--channel">{{ channelChipLabel[ch] }}</span>
+            <app-channel-chip [channel]="ch" />
             }
             <span class="chip chip--validity">{{ c.validityPeriodDays }}d validity</span>
             @if (c.version) {

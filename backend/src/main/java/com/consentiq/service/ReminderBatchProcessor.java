@@ -104,7 +104,7 @@ public class ReminderBatchProcessor {
         log.info("[REMINDER-BATCH] Scenario 1 | Found {} stale consent(s)", staleConsents.size());
         if (staleConsents.isEmpty()) return;
 
-        List<User> allCheckers = userRepository.findByRole(UserRole.CHECKER);
+        List<User> allCheckers = userRepository.findByRoleAndDeletedAtIsNull(UserRole.CHECKER);
         if (allCheckers.isEmpty()) {
             log.warn("[REMINDER-BATCH] Scenario 1 | No CHECKER users found — skipping");
             return;
@@ -172,7 +172,7 @@ public class ReminderBatchProcessor {
         log.info("[REMINDER-BATCH] Scenario 2 | Found {} stale rule(s)", staleRules.size());
         if (staleRules.isEmpty()) return;
 
-        List<User> allCheckers = userRepository.findByRole(UserRole.CHECKER);
+        List<User> allCheckers = userRepository.findByRoleAndDeletedAtIsNull(UserRole.CHECKER);
         if (allCheckers.isEmpty()) {
             log.warn("[REMINDER-BATCH] Scenario 2 | No CHECKER users found — skipping");
             return;

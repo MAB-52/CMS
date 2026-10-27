@@ -1,10 +1,14 @@
 import { DatePipe } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { ButtonModule } from 'primeng/button';
+import { CheckboxModule } from 'primeng/checkbox';
+import { TagModule } from 'primeng/tag';
+import { AvatarModule } from 'primeng/avatar';
+import { SkeletonModule } from 'primeng/skeleton';
+import { MessageModule } from 'primeng/message';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Subscription, combineLatest, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -13,11 +17,21 @@ import { PublicConsentInviteService } from '../../../core/services/public-consen
 import { LoggerService } from '../../../core/services/logger.service';
 import { environment } from '../../../environments/environment';
 import { PublicConsentRespondResolve } from '../public-consent-request.solver';
+import { CHANNEL_META, ChannelId, ChannelMeta } from '../../../core/utils/channel.util';
 
 @Component({
   selector: 'app-public-consent-respond',
   standalone: true,
-  imports: [DatePipe, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [
+    DatePipe,
+    FormsModule,
+    ButtonModule,
+    CheckboxModule,
+    TagModule,
+    AvatarModule,
+    SkeletonModule,
+    MessageModule,
+  ],
   templateUrl: './public-consent-respond.component.html',
   styleUrl: './public-consent-respond.component.css',
 })
@@ -46,20 +60,42 @@ export class PublicConsentRespondComponent implements OnInit, OnDestroy {
   readonly channelPrefSaving = signal(false);
   readonly channelPrefError = signal<string | null>(null);
 
-  readonly languages: ReadonlyArray<{ value: string; label: string }> = [
-    { value: 'english', label: 'English' },
-    { value: 'hindi', label: 'Hindi' },
-    { value: 'marathi', label: 'Marathi' },
-    { value: 'gujarati', label: 'Gujarati' },
-    { value: 'bengali', label: 'Bengali' },
-    { value: 'tamil', label: 'Tamil' },
-    { value: 'telugu', label: 'Telugu' },
-    { value: 'malayalam', label: 'Malayalam' },
-    { value: 'urdu', label: 'Urdu' },
+  /** `native` is shown under each label so customers recognise their language at a glance. */
+  readonly languages: ReadonlyArray<{ value: string; label: string; native: string }> = [
+    { value: 'english', label: 'English', native: 'English' },
+    { value: 'hindi', label: 'Hindi', native: 'हिन्दी' },
+    { value: 'marathi', label: 'Marathi', native: 'मराठी' },
+    { value: 'gujarati', label: 'Gujarati', native: 'ગુજરાતી' },
+    { value: 'bengali', label: 'Bengali', native: 'বাংলা' },
+    { value: 'tamil', label: 'Tamil', native: 'தமிழ்' },
+    { value: 'telugu', label: 'Telugu', native: 'తెలుగు' },
+    { value: 'malayalam', label: 'Malayalam', native: 'മലയാളം' },
+    { value: 'urdu', label: 'Urdu', native: 'اردو' },
   ];
 
   selectedLangs = new Set<string>(['english']);
   selectedChannels = new Set<string>();
+
+  /** Long consent messages start collapsed behind a "Show full message" toggle. */
+  readonly messageExpanded = signal(false);
+  /** Decision recorded in this session; drives the animated result screen. */
+  readonly recordedNow = signal<'ACCEPT' | 'DECLINE' | 'WITHDRAW' | null>(null);
+
+  readonly initial = computed(() => (this.detail()?.customerDisplayName ?? '').trim().charAt(0).toUpperCase() || '?');
+
+  /** Labels for the "Your choices" summary shown above the decision buttons. */
+  selectedLanguageLabels(): string[] {
+    return this.languages.filter((l) => this.selectedLangs.has(l.value)).map((l) => l.label);
+  }
+
+  selectedChannelList(): string[] {
+    return [...this.selectedChannels];
+  }
+
+  /** Channel display metadata; falls back gracefully for codes the UI does not know. */
+  channelMeta(ch: string): ChannelMeta {
+    return CHANNEL_META[ch.toUpperCase() as ChannelId] ?? { label: ch, icon: 'pi pi-send', color: '#45329E' };
+  }
 
   ngOnInit(): void {
     this.routeSub = combineLatest([this.route.data, this.route.queryParamMap]).subscribe(([data, params]) => {
@@ -274,6 +310,7 @@ export class PublicConsentRespondComponent implements OnInit, OnDestroy {
           return;
         }
         this.detail.set(res.data);
+        this.recordedNow.set(decision);
         this.inlineNotice.set(
           decision === 'ACCEPT'
             ? 'Thank you. Your consent has been recorded successfully.'

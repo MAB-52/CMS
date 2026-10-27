@@ -8,7 +8,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
 import { MatSort, MatSortModule } from '@angular/material/sort';
@@ -31,14 +31,13 @@ import { LoggerService } from '../../../core/services/logger.service';
   imports: [
     CommonModule,
     FormsModule,
-    DatePipe,
     MatTableModule,
     MatSortModule,
     MatFormFieldModule,
     MatInputModule,
     MatExpansionModule,
     MatChipsModule,
-    MatProgressSpinnerModule,
+    MatProgressSpinnerModule
   ],
   templateUrl: './consent-template-records.component.html',
   styleUrl: './consent-template-records.component.css',

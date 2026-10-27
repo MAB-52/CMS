@@ -1,12 +1,11 @@
 import { Component, Input, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { LogoutFlowService } from '../../../core/services/logout-flow.service';
 
 @Component({
   selector: 'app-maker-topbar',
   standalone: true,
-  imports: [RouterLink],
+  imports: [],
   templateUrl: './maker-topbar.component.html',
   styleUrl: './maker-topbar.component.css',
 })

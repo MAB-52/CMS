@@ -21,77 +21,125 @@
   <div class="layout">
     <div class="panel main-form">
       <div class="section-title"><mat-icon aria-hidden="true">tune</mat-icon>Definition</div>
-      <mat-form-field appearance="outline" class="full">
-        <mat-label>Rule name</mat-label>
-        <input matInput name="ruleName" [(ngModel)]="form.ruleName" [disabled]="!canEdit()" required />
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="full">
-        <mat-label>Remarks</mat-label>
-        <textarea matInput rows="3" name="desc" [(ngModel)]="form.ruleDescription" [disabled]="!canEdit()"></textarea>
-      </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Rule type</mat-label>
-        <mat-select name="rt" [(ngModel)]="form.ruleType" (ngModelChange)="onRuleTypeChange()" [disabled]="!canEdit()">
-          <mat-option value="PREDEFINED_SCENARIO">Predefined scenario</mat-option>
-          <mat-option value="CUSTOM">Custom</mat-option>
-        </mat-select>
-      </mat-form-field>
+      <div class="fld full">
+        <label class="fld-label" for="rule-name">Rule name <span class="req" aria-hidden="true">*</span></label>
+        <input pInputText id="rule-name" name="ruleName" [(ngModel)]="form.ruleName" [disabled]="!canEdit()" required
+          placeholder="e.g. Renewal reminder – 30 days" autocomplete="off" fluid />
+      </div>
+
+      <div class="fld full">
+        <label class="fld-label" for="rule-desc">Remarks</label>
+        <textarea pTextarea id="rule-desc" rows="3" name="desc" [(ngModel)]="form.ruleDescription" [disabled]="!canEdit()"
+          [autoResize]="true" placeholder="Why does this rule exist? Anything the checker should know?" fluid></textarea>
+      </div>
+
+      <div class="fld rule-type">
+        <label class="fld-label" for="rule-type">Rule type</label>
+        <p-select inputId="rule-type" name="rt" [(ngModel)]="form.ruleType" (ngModelChange)="onRuleTypeChange()"
+          [disabled]="!canEdit()" [options]="ruleTypeOptions" optionLabel="label" optionValue="value"
+          appendTo="body" panelStyleClass="rule-select-panel" fluid>
+          <ng-template #selectedItem let-o>
+            <span class="opt-inline"><i [class]="o.icon" aria-hidden="true"></i>{{ o.label }}</span>
+          </ng-template>
+          <ng-template #item let-o>
+            <span class="opt">
+              <span class="opt-ico" aria-hidden="true"><i [class]="o.icon"></i></span>
+              <span class="opt-copy">
+                <span class="opt-label">{{ o.label }}</span>
+                <span class="opt-desc">{{ o.hint }}</span>
+              </span>
+            </span>
+          </ng-template>
+        </p-select>
+      </div>
 
       @if (form.ruleType === 'PREDEFINED_SCENARIO') {
-      <mat-form-field appearance="outline" class="grow">
-        <mat-label>Scenario</mat-label>
-        <!-- CHANGED: was (ngModelChange)="refreshDrillDownPreview()" — now clears stale
-             selectedSegments (e.g. leftover 'CONSENT_EXPIRING' from a previous scenario)
-             before refreshing the drill-down preview, so switching scenarios doesn't
-             silently intersect against a segment the maker never picked for this scenario. -->
-        <mat-select name="sc" [(ngModel)]="form.predefinedScenario" (ngModelChange)="onScenarioChange()"
-          [disabled]="!canEdit()">
-          @for (sc of scenarios; track sc) {
-          <mat-option [value]="sc">{{ sc }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
+      <div class="fld grow">
+        <label class="fld-label" for="rule-scenario">Scenario</label>
+        <!-- onScenarioChange() clears stale selectedSegments (e.g. a leftover 'CONSENT_EXPIRING' from a
+             previous scenario) before refreshing the drill-down preview. -->
+        <p-select inputId="rule-scenario" name="sc" [(ngModel)]="form.predefinedScenario" (ngModelChange)="onScenarioChange()"
+          [disabled]="!canEdit()" [options]="scenarioOptions" optionLabel="label" optionValue="value"
+          [filter]="true" filterBy="label,value,desc" filterPlaceholder="Search scenarios"
+          placeholder="Choose a scenario" appendTo="body" panelStyleClass="rule-select-panel" scrollHeight="340px" fluid>
+          <ng-template #selectedItem let-o>
+            <span class="opt-inline"><i [class]="o.icon" aria-hidden="true"></i>{{ o.label }}</span>
+          </ng-template>
+          <ng-template #item let-o>
+            <span class="opt">
+              <span class="opt-ico" aria-hidden="true"><i [class]="o.icon"></i></span>
+              <span class="opt-copy">
+                <span class="opt-label">{{ o.label }}</span>
+                <span class="opt-desc">{{ o.desc }}</span>
+                <code class="opt-code">{{ o.value }}</code>
+              </span>
+            </span>
+          </ng-template>
+        </p-select>
+      </div>
       } @else {
-      <mat-form-field appearance="outline" class="grow">
-        <mat-label>Trigger / event</mat-label>
-        <input matInput name="tr" [(ngModel)]="form.triggerEvent" [disabled]="!canEdit()" />
-      </mat-form-field>
+      <div class="fld grow">
+        <label class="fld-label" for="rule-trigger">Trigger / event</label>
+        <input pInputText id="rule-trigger" name="tr" [(ngModel)]="form.triggerEvent" [disabled]="!canEdit()"
+          placeholder="e.g. ACCOUNT_UPGRADED" autocomplete="off" fluid />
+      </div>
       }
 
       <div class="section-title"><mat-icon aria-hidden="true">groups</mat-icon>Audience &amp; template</div>
 
-      <mat-form-field appearance="outline" class="full">
-        <mat-label>Audience segments</mat-label>
-        <mat-select name="seg" [(ngModel)]="form.selectedSegments" (ngModelChange)="refreshDrillDownPreview()"
-          [disabled]="!canEdit()" multiple required>
-          @for (s of selectableSegments(); track s.code) {
-          <mat-option [value]="s.code">{{ s.label }} ({{ segmentDisplayCount(s.code) }})</mat-option>
-          }
-        </mat-select>
-        <mat-hint>
+      <div class="fld full">
+        <label class="fld-label" for="rule-segments">Audience segments <span class="req" aria-hidden="true">*</span></label>
+        <p-multiselect inputId="rule-segments" name="seg" [(ngModel)]="form.selectedSegments"
+          (ngModelChange)="refreshDrillDownPreview()" [disabled]="!canEdit()" required #segField="ngModel"
+          [options]="segmentOptions()" optionLabel="label" optionValue="code" display="chip"
+          [filter]="true" filterPlaceholder="Search segments" [showToggleAll]="true"
+          placeholder="Select one or more segments" appendTo="body" panelStyleClass="rule-select-panel"
+          [invalid]="segField.touched && (form.selectedSegments?.length ?? 0) === 0" fluid>
+          <ng-template #item let-s>
+            <span class="opt opt--seg">
+              <span class="opt-copy">
+                <span class="opt-label">{{ s.label }}</span>
+                @if (s.description) {
+                <span class="opt-desc">{{ s.description }}</span>
+                }
+              </span>
+              <span class="opt-count" [attr.aria-label]="segmentDisplayCount(s.code) + ' customers'">
+                <i class="pi pi-users" aria-hidden="true"></i>{{ segmentDisplayCount(s.code).toLocaleString() }}
+              </span>
+            </span>
+          </ng-template>
+        </p-multiselect>
+        @if (segField.touched && (form.selectedSegments?.length ?? 0) === 0) {
+        <small class="fld-error"><i class="pi pi-exclamation-circle" aria-hidden="true"></i>At least one segment is required.</small>
+        } @else {
+        <small class="fld-help">
           @if (audienceTotalLabel(); as total) {
-          {{ total }}.
+          <span class="fld-help__total"><i class="pi pi-chart-bar" aria-hidden="true"></i>{{ total }}.</span>
           }
-          Select one or more segments. Large audiences are processed in batches.
-        </mat-hint>
-        @if ((form.selectedSegments?.length ?? 0) === 0) {
-        <mat-error>At least one segment is required</mat-error>
+          Large audiences are processed in batches.
+        </small>
         }
-      </mat-form-field>
+      </div>
 
-      <mat-form-field appearance="outline" floatLabel="always" class="full">
-        <mat-label>Approved Consent template *</mat-label>
-        <mat-select name="tpl" [(ngModel)]="form.consentTemplateId" [disabled]="!canEdit()" required
-          #tplField="ngModel">
-          @for (t of templates(); track t.id) {
-          <mat-option [value]="t.id">{{ t.consentName }}</mat-option>
-          }
-        </mat-select>
+      <div class="fld full">
+        <label class="fld-label" for="rule-template">Approved consent template <span class="req" aria-hidden="true">*</span></label>
+        <p-select inputId="rule-template" name="tpl" [(ngModel)]="form.consentTemplateId" [disabled]="!canEdit()" required
+          #tplField="ngModel" [options]="templates()" optionLabel="consentName" optionValue="id"
+          [filter]="templates().length > 6" filterBy="consentName" filterPlaceholder="Search templates"
+          placeholder="Select an approved template" emptyMessage="No approved templates yet"
+          appendTo="body" panelStyleClass="rule-select-panel" [invalid]="tplField.touched && tplField.invalid" fluid>
+          <ng-template #selectedItem let-t>
+            <span class="opt-inline"><i class="pi pi-file-check" aria-hidden="true"></i>{{ t.consentName }}</span>
+          </ng-template>
+          <ng-template #item let-t>
+            <span class="opt-inline"><i class="pi pi-file-check" aria-hidden="true"></i>{{ t.consentName }}</span>
+          </ng-template>
+        </p-select>
         @if (tplField.touched && tplField.invalid) {
-        <mat-error>Consent template is required</mat-error>
+        <small class="fld-error"><i class="pi pi-exclamation-circle" aria-hidden="true"></i>Consent template is required.</small>
         }
-      </mat-form-field>
+      </div>
 
       <div class="section-title"><mat-icon aria-hidden="true">schedule</mat-icon>Schedule</div>
       <mat-radio-group class="stack" name="sch" [(ngModel)]="form.scheduleType" [disabled]="!canEdit()"

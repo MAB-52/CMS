@@ -1,12 +1,15 @@
 import { DecimalPipe } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatTooltipModule } from '@angular/material/tooltip';
+import { ButtonModule } from 'primeng/button';
+import { SelectModule } from 'primeng/select';
+import { TableModule } from 'primeng/table';
+import { TagModule } from 'primeng/tag';
+import { TooltipModule } from 'primeng/tooltip';
+import { ProgressBarModule } from 'primeng/progressbar';
+import { KnobModule } from 'primeng/knob';
+import { SkeletonModule } from 'primeng/skeleton';
+import { channelVisual } from '../../../../core/utils/channel.util';
 import { Subject, forkJoin, takeUntil } from 'rxjs';
 import { MisChannelPerformanceRow, MisChannelTemplatePerformanceRow } from '../../../../core/models/admin.model';
 import { AdminService } from '../../../../core/services/admin.service';
@@ -19,12 +22,14 @@ import { NotificationService } from '../../../../core/services/notification.serv
   imports: [
     DecimalPipe,
     FormsModule,
-    MatButtonModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatInputModule,
-    MatIconModule,
-    MatTooltipModule,
+    ButtonModule,
+    SelectModule,
+    TableModule,
+    TagModule,
+    TooltipModule,
+    ProgressBarModule,
+    KnobModule,
+    SkeletonModule,
   ],
   templateUrl: './mis-report-channel-deep-dive-tab.component.html',
   styleUrls: ['../mis-tab-shared.css', './mis-report-channel-deep-dive-tab.component.css'],
@@ -60,6 +65,12 @@ export class MisReportChannelDeepDiveTabComponent implements OnInit, OnDestroy {
     if (!rows.length) return 0;
     return Math.round(rows.reduce((s, c) => s + c.successRatePercent, 0) / rows.length);
   });
+
+  /** Options for the channel filter select (empty value = all channels). */
+  readonly channelFilterOptions = computed(() => [
+    { label: 'All channels', value: '', icon: 'pi pi-th-large', color: '#45329E' },
+    ...this.channelOptions().map((ch) => ({ label: ch, value: ch, ...this.channelVisual(ch) })),
+  ]);
 
   readonly topChannel = computed(() => {
     const rows = this.channels();
@@ -114,10 +125,6 @@ export class MisReportChannelDeepDiveTabComponent implements OnInit, OnDestroy {
     return `rgb(${r},${g},${b})`;
   }
 
-  heatGradient(rate: number): string {
-    const [r, g, b] = this.heatRgb(rate);
-    return `linear-gradient(90deg, rgba(${r},${g},${b},0.65), rgb(${r},${g},${b}))`;
-  }
 
   private heatRgb(rate: number): [number, number, number] {
     const t = Math.max(0, Math.min(100, rate)) / 100;
@@ -134,29 +141,33 @@ export class MisReportChannelDeepDiveTabComponent implements OnInit, OnDestroy {
     return 'Low';
   }
 
-  barWidth(v: number, list: MisChannelPerformanceRow[]): string {
-    const m = list.reduce((x, r) => Math.max(x, r.totalInvitesSent), 1);
-    return `${m === 0 ? 0 : (v / m) * 100}%`;
+
+  // ── Channel visuals (delivery channels + capture sources) ───────────────────
+
+  channelVisual(channel: string): { icon: string; color: string } {
+    return channelVisual(channel);
   }
 
-  // ── Channel icon mapping ────────────────────────────────────────────────────
-
-  channelIcon(channel: string): string {
-    const ch = (channel ?? '').toLowerCase();
-    if (ch.includes('email'))     return 'email';
-    if (ch.includes('sms'))       return 'sms';
-    if (ch.includes('whatsapp'))  return 'chat';
-    if (ch.includes('push'))      return 'notifications';
-    return 'send';
+  rateSeverity(rate: number): 'success' | 'warn' | 'danger' {
+    if (rate >= 75) return 'success';
+    if (rate >= 40) return 'warn';
+    return 'danger';
   }
 
-  channelBadgeClass(channel: string): string {
-    const ch = (channel ?? '').toLowerCase();
-    if (ch.includes('email'))    return 'channel-badge channel-badge--email';
-    if (ch.includes('sms'))      return 'channel-badge channel-badge--sms';
-    if (ch.includes('whatsapp')) return 'channel-badge channel-badge--whatsapp';
-    if (ch.includes('push'))     return 'channel-badge channel-badge--push';
-    return 'channel-badge channel-badge--default';
+  rateIcon(rate: number): string {
+    if (rate >= 75) return 'pi pi-arrow-up-right';
+    if (rate >= 40) return 'pi pi-minus';
+    return 'pi pi-arrow-down-right';
+  }
+
+  invitePct(v: number): number {
+    const m = this.channels().reduce((x, r) => Math.max(x, r.totalInvitesSent), 0);
+    return m === 0 ? 0 : Math.round((v / m) * 100);
+  }
+
+  onChannelFilterChange(value: string | null): void {
+    this.channelFilter = value ?? '';
+    this.reload();
   }
 
   // ── Export helpers ──────────────────────────────────────────────────────────

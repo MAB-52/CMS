@@ -1,8 +1,9 @@
 // Interact Suite — global styles entry point.
-// Order matters: tokens → Material theme → base → components → utilities → motion.
+// Order matters: tokens → Material theme → base → components → primeng → utilities → motion.
 @use 'styles/tokens';
 @use 'styles/material';
 @use 'styles/base';
 @use 'styles/components';
+@use 'styles/primeng';
 @use 'styles/utilities';
 @use 'styles/animations';

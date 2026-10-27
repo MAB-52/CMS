@@ -190,6 +190,22 @@ public class GlobalExceptionHandler {
         return result;
     }
 
+    @ExceptionHandler(AccountUnavailableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAccountUnavailable(
+            AccountUnavailableException ex, HttpServletRequest request) {
+        String user = currentUser();
+        log.debug("Entering handleAccountUnavailable | params: code={}", ex.getCode());
+        log.info(
+                "HTTP REQUEST | method={} | uri={} | user={}",
+                request.getMethod(), request.getRequestURI(), user);
+        log.warn("Login blocked | user={} | code={}", user, ex.getCode());
+        ResponseEntity<ApiResponse<Void>> result =
+                ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error(ex.getMessage(), ex.getCode()));
+        log.debug("Exiting handleAccountUnavailable | result={}", result.getStatusCode());
+        return result;
+    }
+
     @ExceptionHandler(UsernameNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleUserNotFound(
             UsernameNotFoundException ex, HttpServletRequest request) {

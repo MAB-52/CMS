@@ -1,2 +1,394 @@
-/* Consent audit report — shared layout lives in ../mis-tab-shared.css */
-.tab-toolbar { justify-content: flex-end; }
+/*
+ * Consent audit report — Interact Suite Essential Design System v2.0.
+ * Nunito · primary #45329E / secondary #EA6B28 · fields 8px · cards 24px ·
+ * pill buttons (44px, dark gradient primary, outlined secondary) · soft depth.
+ */
+:host { display: grid; gap: var(--is-card-gap); font-family: var(--is-font); color: var(--is-text); }
+
+/* ── Buttons (design-system pills) ─────────────────────── */
+:host ::ng-deep .au-btn-primary.p-button,
+:host ::ng-deep .au-btn-outline.p-button {
+  min-height: 44px;
+  padding: 12px 24px;
+  border-radius: var(--is-r-pill);
+  font-family: var(--is-font);
+  font-size: var(--is-fs-body);
+  line-height: 20px;
+  transition: transform var(--is-dur) var(--is-ease), box-shadow var(--is-dur) ease, background var(--is-dur) ease;
+}
+:host ::ng-deep .au-btn-primary.p-button .p-button-label,
+:host ::ng-deep .au-btn-outline.p-button .p-button-label { font-weight: var(--is-fw-bold); }
+:host ::ng-deep .au-btn-primary.p-button {
+  border: 0;
+  background: linear-gradient(90deg, var(--is-primary-strong), var(--is-primary-soft));
+  color: var(--is-text-inverse);
+  box-shadow: var(--is-shadow-primary);
+}
+:host ::ng-deep .au-btn-primary.p-button:not(:disabled):hover {
+  background: linear-gradient(90deg, var(--is-primary-strong), var(--is-primary));
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(69, 50, 158, 0.34);
+}
+:host ::ng-deep .au-btn-outline.p-button {
+  border: 1px solid var(--is-primary);
+  background: var(--is-surface);
+  color: var(--is-primary);
+}
+:host ::ng-deep .au-btn-outline.p-button:not(:disabled):hover {
+  background: var(--is-tint-purple);
+  border-color: var(--is-primary);
+  color: var(--is-primary);
+  transform: translateY(-1px);
+}
+:host ::ng-deep .au-btn-primary.p-button:active,
+:host ::ng-deep .au-btn-outline.p-button:active { transform: translateY(0) scale(0.98); }
+
+/* ── Toolbar ───────────────────────────────────────────── */
+.au-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--is-s-4);
+  animation: is-fade-up var(--is-dur-slow) var(--is-ease) both;
+}
+.au-toolbar__text { display: flex; align-items: center; gap: var(--is-s-3); min-width: 0; }
+.au-toolbar__ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--is-r-nav);
+  background: var(--is-grad-banner);
+  color: var(--is-text-inverse);
+  box-shadow: var(--is-shadow-primary);
+  transition: transform var(--is-dur) var(--is-ease);
+}
+.au-toolbar:hover .au-toolbar__ico { transform: rotate(-6deg) scale(1.05); }
+.au-toolbar__ico .pi { font-size: 20px; }
+.au-toolbar__title {
+  margin: 0;
+  font-size: var(--is-fs-h3);
+  line-height: var(--is-lh-h3);
+  font-weight: var(--is-fw-bold);
+  color: var(--is-primary);
+}
+.au-toolbar__sub {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--is-s-2);
+  margin: 2px 0 0;
+  font-size: var(--is-fs-body);
+  line-height: var(--is-lh-body);
+  color: var(--is-text-2);
+}
+.au-count {
+  padding: 2px 10px;
+  border-radius: var(--is-r-pill);
+  background: var(--is-tint-orange);
+  color: var(--is-secondary-strong);
+  font-size: var(--is-fs-xs);
+  font-weight: var(--is-fw-bold);
+  animation: is-scale-in var(--is-dur) var(--is-ease) both;
+}
+.au-exports { display: flex; gap: var(--is-s-2); }
+/* Same export buttons as the Customer Consent tab: grey CSV + green Excel outlined pills. */
+:host ::ng-deep .au-exports .p-button { font-family: var(--is-font); font-weight: var(--is-fw-bold); }
+
+/* ── Filters card ──────────────────────────────────────── */
+.au-filters {
+  display: grid;
+  gap: var(--is-s-4);
+  padding: var(--is-card-pad);
+  border: 1px solid var(--is-border);
+  border-radius: var(--is-r-card);
+  background: var(--is-surface);
+  box-shadow: var(--is-shadow-soft);
+  animation: is-fade-up var(--is-dur-slow) var(--is-ease) 60ms both;
+}
+.au-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.5fr);
+  gap: var(--is-s-4);
+}
+.au-field { display: grid; gap: var(--is-s-2); min-width: 0; }
+.au-field__label {
+  font-size: var(--is-fs-title);
+  line-height: var(--is-lh-title);
+  font-weight: var(--is-fw-bold);
+  color: var(--is-primary);
+}
+.au-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--is-s-3);
+  padding-top: var(--is-s-4);
+  border-top: 1px dashed var(--is-border);
+}
+.au-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+  font-size: var(--is-fs-sm);
+  font-weight: var(--is-fw-semibold);
+  color: var(--is-text-2);
+  animation: is-fade-in var(--is-dur) ease both;
+}
+.au-active .pi { font-size: 12px; color: var(--is-secondary); }
+
+/* Inputs — 8px field radius, shrink to their grid column */
+:host ::ng-deep .au-field > * { min-width: 0; }
+:host ::ng-deep .au-input,
+:host ::ng-deep .au-search,
+:host ::ng-deep .au-search input { width: 100%; font-family: var(--is-font); }
+:host ::ng-deep .au-input.p-datepicker { display: flex; min-width: 0; }
+:host ::ng-deep .au-input.p-select,
+:host ::ng-deep .au-input .p-datepicker-input,
+:host ::ng-deep .au-search input {
+  min-height: 44px;
+  border-radius: var(--is-r-field);
+  border-color: var(--is-border);
+  font-size: var(--is-fs-body);
+  transition: border-color var(--is-dur) ease, box-shadow var(--is-dur) ease;
+}
+:host ::ng-deep .au-input .p-datepicker-input { flex: 1 1 auto; width: 100%; min-width: 0; }
+:host ::ng-deep .au-input.p-select:not(.p-disabled):hover,
+:host ::ng-deep .au-input .p-datepicker-input:enabled:hover,
+:host ::ng-deep .au-search input:enabled:hover { border-color: var(--is-border-strong); }
+:host ::ng-deep .au-input.p-select.p-focus,
+:host ::ng-deep .au-input .p-datepicker-input:focus,
+:host ::ng-deep .au-search input:focus {
+  border-color: var(--is-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--is-primary) 14%, transparent);
+}
+:host ::ng-deep .au-input .p-select-label { display: flex; align-items: center; font-size: var(--is-fs-body); }
+.au-opt { display: inline-flex; align-items: center; gap: var(--is-s-2); }
+.au-opt .pi { font-size: 13px; }
+
+/* ── Results card ──────────────────────────────────────── */
+.au-card {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--is-border);
+  border-radius: var(--is-r-card);
+  background: var(--is-surface);
+  box-shadow: var(--is-shadow-soft);
+  animation: is-fade-up var(--is-dur-slow) var(--is-ease) 120ms both;
+}
+.au-progress { position: absolute; inset: 0 0 auto; z-index: 2; opacity: 0; transition: opacity var(--is-dur) ease; pointer-events: none; }
+.au-progress--on { opacity: 1; }
+:host ::ng-deep .au-progress .p-progressbar { height: 3px; border-radius: 0; background: transparent; }
+:host ::ng-deep .au-progress .p-progressbar-value { background: var(--is-grad-banner); }
+:host ::ng-deep .au-card--busy .au-table .p-datatable-tbody { opacity: 0.55; transition: opacity var(--is-dur) ease; }
+
+:host ::ng-deep .au-table .p-datatable-thead > tr > th {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--is-border);
+  background: var(--is-canvas);
+  color: var(--is-text-2);
+  font-family: var(--is-font);
+  font-size: var(--is-fs-2xs);
+  font-weight: var(--is-fw-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+:host ::ng-deep .au-table .p-datatable-tbody > tr > td {
+  padding: 14px 16px;
+  border-color: var(--is-border);
+  font-family: var(--is-font);
+  font-size: var(--is-fs-body);
+  line-height: var(--is-lh-body);
+  color: var(--is-text);
+  vertical-align: middle;
+  transition: background var(--is-dur-fast) ease;
+}
+:host ::ng-deep .au-table .p-paginator {
+  padding: 12px 16px;
+  border-top: 1px solid var(--is-border);
+  border-radius: 0;
+  background: var(--is-surface);
+  font-family: var(--is-font);
+}
+:host ::ng-deep .au-table .p-paginator-current { margin-right: auto; font-size: var(--is-fs-sm); color: var(--is-text-2); }
+:host ::ng-deep .au-table .p-paginator-page { border-radius: var(--is-r-pill); font-weight: var(--is-fw-bold); }
+:host ::ng-deep .au-table .p-paginator-page.p-paginator-page-selected {
+  background: linear-gradient(90deg, var(--is-primary-strong), var(--is-primary-soft));
+  color: var(--is-text-inverse);
+}
+
+.au-col-toggle { width: 56px; padding-right: 0 !important; }
+
+:host ::ng-deep .au-row { animation: au-row-in var(--is-dur-slow) var(--is-ease) calc(var(--i, 0) * 30ms) both; }
+:host ::ng-deep .au-row:hover > td { background: var(--is-tint-purple); }
+:host ::ng-deep .au-row--open > td { background: var(--is-tint-purple); border-bottom-color: transparent !important; }
+:host ::ng-deep .au-row--open > td:first-child { box-shadow: inset 3px 0 0 var(--is-primary); }
+
+:host ::ng-deep .au-toggle.p-button { width: 2.1rem; height: 2.1rem; }
+:host ::ng-deep .au-toggle .p-button-icon { transition: transform var(--is-dur) var(--is-ease); }
+:host ::ng-deep .au-toggle--open .au-toggle { background: var(--is-primary); color: var(--is-text-inverse); }
+:host ::ng-deep .au-toggle--open .p-button-icon { transform: rotate(90deg); }
+
+/* Timestamp */
+.au-time { display: grid; gap: 2px; white-space: nowrap; }
+.au-time__date { font-weight: var(--is-fw-bold); }
+.au-time__clock { display: inline-flex; align-items: center; gap: 6px; font-size: var(--is-fs-sm); color: var(--is-text-2); }
+.au-time__clock .pi { font-size: 11px; color: var(--is-secondary); }
+.au-time__rel { font-size: var(--is-fs-2xs); color: var(--is-text-3); }
+
+/* Entity */
+.au-entity { --c: var(--is-primary); display: flex; align-items: center; gap: var(--is-s-3); min-width: 0; }
+.au-entity__ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--is-r-field);
+  background: color-mix(in srgb, var(--c) 12%, white);
+  color: var(--c);
+  transition: transform var(--is-dur) var(--is-ease), background var(--is-dur) ease, color var(--is-dur) ease;
+}
+.au-entity__ico .pi { font-size: 15px; }
+:host ::ng-deep .au-row:hover .au-entity__ico { transform: rotate(-6deg) scale(1.08); background: var(--c); color: var(--is-text-inverse); }
+.au-entity__text { display: grid; gap: 2px; min-width: 0; }
+.au-entity__name { font-weight: var(--is-fw-bold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.au-entity__type { font-size: var(--is-fs-2xs); font-weight: var(--is-fw-bold); letter-spacing: 0.06em; text-transform: uppercase; color: var(--c); }
+
+/* Action */
+:host ::ng-deep .au-action.p-tag {
+  padding: 4px 12px;
+  font-family: var(--is-font);
+  font-size: var(--is-fs-xs);
+  font-weight: var(--is-fw-bold);
+  white-space: nowrap;
+}
+
+/* User */
+.au-user { display: flex; align-items: center; gap: 10px; }
+:host ::ng-deep .au-avatar {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  color: var(--is-text-inverse);
+  font-size: var(--is-fs-2xs);
+  font-weight: var(--is-fw-bold);
+  box-shadow: var(--is-shadow-xs);
+}
+.au-user__name { font-weight: var(--is-fw-semibold); white-space: nowrap; }
+
+/* Description */
+.au-desc { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; max-width: 380px; }
+.au-desc__text { color: var(--is-text); }
+.au-kv {
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--is-border);
+  border-radius: var(--is-r-xs);
+  background: var(--is-canvas);
+  font-size: var(--is-fs-xs);
+  font-weight: var(--is-fw-bold);
+  padding-right: 8px;
+}
+.au-kv__k {
+  margin-right: 6px;
+  padding: 2px 6px;
+  background: var(--is-tint-purple);
+  color: var(--is-primary);
+  font-weight: var(--is-fw-semibold);
+}
+.au-dash { color: var(--is-text-3); }
+/* Tooltip is appended to <body>, so this must be unscoped. */
+::ng-deep .au-tip-wide.p-tooltip { max-width: 28rem; }
+
+/* ── Expanded details ──────────────────────────────────── */
+:host ::ng-deep .au-table .p-datatable-tbody > tr.au-expand-row > td { padding: 0 16px 16px; background: var(--is-tint-purple); }
+.au-detail {
+  display: grid;
+  gap: var(--is-s-4);
+  padding: var(--is-s-4) var(--is-s-5);
+  border: 1px solid var(--is-border-tint);
+  border-left: 3px solid var(--is-secondary);
+  border-radius: var(--is-r-nav);
+  background: var(--is-surface);
+  box-shadow: var(--is-shadow-xs);
+  transform-origin: top;
+  animation: au-expand var(--is-dur-slow) var(--is-ease) both;
+}
+.au-detail__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--is-s-4); }
+.au-detail__item { display: grid; gap: 4px; animation: is-fade-up var(--is-dur) var(--is-ease) both; }
+.au-detail__item:nth-child(2) { animation-delay: 40ms; }
+.au-detail__item:nth-child(3) { animation-delay: 80ms; }
+.au-detail__item:nth-child(4) { animation-delay: 120ms; }
+.au-detail__item:nth-child(5) { animation-delay: 160ms; }
+.au-detail__k {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--is-fs-2xs);
+  font-weight: var(--is-fw-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--is-text-2);
+}
+.au-detail__k .pi { font-size: 11px; color: var(--is-secondary); }
+.au-detail__v { font-weight: var(--is-fw-semibold); word-break: break-all; }
+.au-mono { font-family: var(--is-font-mono); font-size: var(--is-fs-sm); }
+.au-detail__desc { display: grid; gap: 6px; padding-top: var(--is-s-3); border-top: 1px dashed var(--is-border); }
+.au-detail__desc p { margin: 0; font-size: var(--is-fs-body); line-height: var(--is-lh-body); white-space: pre-wrap; }
+
+/* ── Loading / empty ───────────────────────────────────── */
+.au-skel-stack { display: grid; gap: 6px; }
+.au-empty { display: grid; justify-items: center; gap: 6px; padding: var(--is-s-7) var(--is-s-4); text-align: center; animation: is-fade-in var(--is-dur-slow) ease both; }
+.au-empty__ico {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--is-s-2);
+  border-radius: 50%;
+  background: var(--is-tint-orange);
+  color: var(--is-secondary);
+  animation: is-float 4s ease-in-out infinite;
+}
+.au-empty__ico .pi { font-size: 24px; }
+.au-empty p { margin: 0; }
+.au-empty__title { font-size: var(--is-fs-md); font-weight: var(--is-fw-bold); color: var(--is-primary); }
+.au-empty__sub { margin-bottom: var(--is-s-3) !important; font-size: var(--is-fs-body); color: var(--is-text-2); }
+
+/* ── Motion ────────────────────────────────────────────── */
+@keyframes au-row-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes au-expand {
+  from { opacity: 0; transform: translateY(-8px) scaleY(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :host *,
+  :host ::ng-deep * { animation: none !important; transition: none !important; }
+}
+
+/* ── Responsive ────────────────────────────────────────── */
+@media (max-width: 1280px) {
+  .au-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .au-field--wide { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) {
+  .au-grid { grid-template-columns: minmax(0, 1fr); }
+  .au-actions { justify-content: stretch; }
+  .au-active { width: 100%; }
+}
+
+/* Rows-per-page select: compact pill sized to the pager (its menu is appended to <body>). */
+:host ::ng-deep .au-table .p-paginator-rpp-dropdown { height: 34px; margin-left: 6px; border-radius: var(--is-r-pill); font-family: var(--is-font); }
+:host ::ng-deep .au-table .p-paginator-rpp-dropdown .p-select-label { display: flex; align-items: center; padding: 0 4px 0 14px; font-size: var(--is-fs-sm); font-weight: var(--is-fw-bold); color: var(--is-text); }
+:host ::ng-deep .au-table .p-paginator-rpp-dropdown .p-select-dropdown { width: 2rem; color: var(--is-text-2); }

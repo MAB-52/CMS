@@ -1,0 +1,198 @@
+// ─────────────────────────────────────────────────────────────
+// PrimeNG integration — brand overrides that can't be expressed as
+// preset tokens (see src/app/primeng-preset.ts), plus the docked
+// action bar shared by maker/checker screens.
+// PrimeNG styles sit in the `primeng` CSS layer, so these unlayered
+// rules win without !important.
+// ─────────────────────────────────────────────────────────────
+
+/* ── Toast ─────────────────────────────────────────────────── */
+.app-toast.p-toast {
+  top: 20px;
+  right: 20px;
+  font-family: var(--is-font);
+}
+
+.app-toast .p-toast-message {
+  --_tone: var(--is-primary);
+  position: relative;
+  overflow: hidden;
+  border-color: var(--is-border);
+  background: var(--is-surface);
+  color: var(--is-text);
+  box-shadow: var(--is-shadow-raised);
+}
+// Accent rail — drawn inside the card so it follows the rounded corners.
+.app-toast .p-toast-message::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--_tone);
+}
+.app-toast .p-toast-message-success { --_tone: var(--is-success); }
+.app-toast .p-toast-message-error   { --_tone: var(--is-danger); }
+.app-toast .p-toast-message-warn    { --_tone: var(--is-secondary); }
+.app-toast .p-toast-message-info    { --_tone: var(--is-primary); }
+
+.app-toast .p-toast-message-content {
+  align-items: center;
+}
+
+.app-toast .p-toast-message-icon {
+  flex: none;
+  box-sizing: content-box;
+  width: 20px;
+  height: 20px;
+  padding: 8px;
+  border-radius: var(--is-r-sm);
+  background: color-mix(in srgb, var(--_tone) 12%, white);
+  color: var(--_tone);
+}
+
+.app-toast .p-toast-message-text {
+  min-width: 0;
+}
+.app-toast .p-toast-summary {
+  color: var(--is-text);
+  line-height: 20px;
+}
+.app-toast .p-toast-detail {
+  color: var(--is-text-2);
+  line-height: 19px;
+  overflow-wrap: anywhere;
+}
+
+.app-toast .p-toast-close-button {
+  flex: none;
+  align-self: center;
+  color: var(--is-text-3);
+}
+.app-toast .p-toast-close-button:hover {
+  background: var(--is-tint-purple);
+  color: var(--is-primary);
+}
+
+/* ── Review action dialog (DynamicDialog shell) ────────────── */
+.review-action-dialog.p-dialog {
+  max-width: calc(100vw - 32px);
+  /* Keep clear of the shell header (~130px) and footer (~70px) on desktop. */
+  max-height: calc(100dvh - 240px);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--is-r-card);
+  box-shadow: 0 24px 60px rgba(23, 36, 69, 0.28);
+}
+.review-action-dialog .p-dialog-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+/* The dialog component fills the frame; its own body region scrolls. */
+.review-action-dialog .p-dialog-content > * {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+@media (max-height: 760px), (max-width: 899.98px) {
+  .review-action-dialog.p-dialog { max-height: calc(100dvh - 32px); }
+}
+
+/* ── Buttons ───────────────────────────────────────────────── */
+.p-button {
+  font-family: var(--is-font);
+  white-space: nowrap;
+}
+
+/* ── Action bar layout ─────────────────────────────────────── */
+// Content for the shell's fixed bottom dock (rendered via <app-shell-dock>);
+// the dock itself supplies position, background and the brand accent line.
+.is-action-dock {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--is-s-3) var(--is-s-5);
+  font-family: var(--is-font);
+}
+// Approve is the primary path — give it a touch more weight than the outlined actions.
+.decision-bar .p-button-success:not(:disabled) {
+  box-shadow: 0 6px 16px rgba(25, 135, 84, 0.28);
+}
+// Inline, non-actionable variant (e.g. "Awaiting maker").
+.is-action-dock--muted {
+  padding: var(--is-s-4) var(--is-s-5);
+  border: 1px solid var(--is-border);
+  border-radius: var(--is-r-md);
+  background: var(--is-neutral-bg);
+}
+
+.is-action-dock__info {
+  flex: 1 1 320px;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+.is-action-dock__title {
+  overflow: hidden;
+  font-size: var(--is-fs-md);
+  font-weight: var(--is-fw-bold);
+  line-height: 22px;
+  color: var(--is-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.is-action-dock__sub {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  font-size: var(--is-fs-sm);
+  color: var(--is-text-2);
+}
+.is-action-dock__sub strong { color: var(--is-text); }
+
+.is-action-dock__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--is-s-2);
+}
+
+@media (max-width: 700px) {
+  .is-action-dock__title { white-space: normal; }
+  .is-action-dock__actions { width: 100%; }
+  .is-action-dock__actions > * { flex: 1 1 auto; }
+  .is-action-dock__actions .p-button { width: 100%; }
+}
+
+/* ── Account popover (header user chip) ────────────────────── */
+.is-user-popover.p-popover {
+  margin-top: 10px;
+  overflow: hidden;
+  border: 1px solid var(--is-border);
+  border-radius: var(--is-r-md);
+  box-shadow: 0 20px 48px -12px rgba(23, 36, 69, 0.3);
+}
+.is-user-popover .p-popover-content { padding: 0; }
+.is-user-popover.p-popover::before,
+.is-user-popover.p-popover::after { display: none; }
+
+/* ── Sidebar menu tooltips ─────────────────────────────────── */
+.nav-tooltip.p-tooltip { margin-left: 6px; animation: is-fade-in 0.16s ease both; }
+.nav-tooltip .p-tooltip-text {
+  padding: 7px 12px;
+  border-radius: var(--is-r-sm);
+  background: var(--is-primary-strong);
+  color: #fff;
+  font-family: var(--is-font);
+  font-size: var(--is-fs-sm);
+  font-weight: var(--is-fw-bold);
+  white-space: nowrap;
+  box-shadow: 0 8px 20px rgba(46, 20, 117, 0.3);
+}
+.nav-tooltip .p-tooltip-arrow { border-right-color: var(--is-primary-strong); }

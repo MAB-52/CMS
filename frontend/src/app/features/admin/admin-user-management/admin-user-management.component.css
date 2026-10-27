@@ -1,306 +1,257 @@
-:host {
+/* User management — shared PrimeNG kit (mr-*) lives in ../shared/report-kit.css */
+:host { display: grid; gap: var(--is-card-gap); font-family: var(--is-font); color: var(--is-text); }
+
+.um-eyebrow {
   display: block;
-  font-family: var(--is-font);
+  font-size: var(--is-fs-2xs);
+  font-weight: var(--is-fw-bold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--is-secondary);
 }
 
-.um-page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--is-s-4);
-}
-
-/* ── Toolbar ──────────────────────────────────────────── */
-.toolbar {
-  padding: var(--is-s-4);
-  background: var(--is-surface);
-  border: 1px solid var(--is-border);
-  border-radius: var(--is-r-md);
-  box-shadow: var(--is-shadow-xs);
-  animation: is-fade-up var(--is-dur-slow) var(--is-ease) 60ms both;
-}
-.filters {
+/* ── Filters ───────────────────────────────────────────── */
+.um-filters {
   display: grid;
-  grid-template-columns: minmax(220px, 2fr) repeat(2, minmax(160px, 1fr)) auto;
-  gap: var(--is-s-3);
-  align-items: center;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+}
+.um-filters__actions { display: flex; gap: var(--is-s-2); }
+:host ::ng-deep .um-input,
+:host ::ng-deep .um-input input { width: 100%; font-family: var(--is-font); }
+:host ::ng-deep .um-input input { min-height: 44px; border-radius: var(--is-r-field); font-size: var(--is-fs-body); }
+:host ::ng-deep .um-input input:focus { border-color: var(--is-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--is-primary) 14%, transparent); }
+
+/* ── Table cells ───────────────────────────────────────── */
+:host ::ng-deep .mr-table .p-datatable-tbody > tr > td { overflow: hidden; }
+.um-ellipsis { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.um-you {
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: var(--is-r-pill);
+  background: var(--is-tint-orange);
+  color: var(--is-secondary-strong);
+  font-size: var(--is-fs-2xs);
+  font-weight: var(--is-fw-bold);
+  vertical-align: 1px;
 }
 
-.ctl-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-  min-width: 0;
-}
-.ctl-wrap > .mat-icon {
-  position: absolute;
-  left: 12px;
-  font-size: 18px;
-  width: 18px;
-  height: 18px;
-  color: var(--is-text-3);
-  pointer-events: none;
-  z-index: 1;
-}
-.ctl-wrap .ctl { padding-left: 38px; }
-.ctl-wrap--select .ctl { padding-right: 36px; }
-.ctl-wrap--select::after {
-  content: '';
-  position: absolute;
-  right: 14px;
-  width: 8px;
-  height: 8px;
-  border-right: 2px solid var(--is-text-2);
-  border-bottom: 2px solid var(--is-text-2);
-  transform: translateY(-2px) rotate(45deg);
-  pointer-events: none;
-}
-.ctl-wrap:focus-within > .mat-icon { color: var(--is-primary); }
-
-.ctl {
-  width: 100%;
-  height: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--is-border);
-  border-radius: var(--is-r-field);
-  background: var(--is-surface);
-  color: var(--is-text);
-  font: var(--is-fw-regular) var(--is-fs-body) var(--is-font);
-  transition: border-color var(--is-dur) ease, box-shadow var(--is-dur) ease;
-}
-select.ctl { appearance: none; cursor: pointer; }
-.ctl::placeholder { color: var(--is-text-3); }
-.ctl:hover { border-color: var(--is-border-strong); }
-.ctl:focus {
-  outline: none;
-  border-color: var(--is-primary);
-  box-shadow: var(--is-ring);
-}
-
-/* ── Table card ───────────────────────────────────────── */
-.table-card {
-  padding: var(--is-s-4);
-  background: var(--is-surface);
-  border: 1px solid var(--is-border);
-  border-radius: var(--is-r-card);
-  box-shadow: var(--is-shadow-soft);
-  animation: is-fade-up var(--is-dur-slow) var(--is-ease) 120ms both;
-}
-.table-scroll { border: 0; border-radius: var(--is-r-sm); }
-
-.spinner-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--is-s-3);
-  padding: var(--is-s-7);
-  color: var(--is-text-2);
-  font-weight: var(--is-fw-semibold);
-}
-
-.name-cell {
+.um-role {
+  --c: var(--is-primary);
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-weight: var(--is-fw-bold);
-  white-space: nowrap;
-}
-.user-avatar { width: 34px; height: 34px; font-size: 13px; }
-.td-email { color: var(--is-text-2); }
-.td-date { color: var(--is-text-2); white-space: nowrap; }
-.col-actions { text-align: right; }
-.row-actions {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--is-s-2);
-  white-space: nowrap;
-}
-.sm-btn {
-  min-height: 36px !important;
-  padding: 0 14px !important;
-  font-size: 13px !important;
-}
-.sm-btn .mat-icon { font-size: 18px !important; width: 18px !important; height: 18px !important; margin-right: 4px; }
-.confirm-text {
-  font-weight: var(--is-fw-bold);
-  color: var(--is-danger-text);
-}
-
-/* ── Pagination ───────────────────────────────────────── */
-.pagination {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--is-s-3);
-  padding: var(--is-s-4) var(--is-s-2) var(--is-s-1);
-}
-.page-info { font-size: var(--is-fs-sm); color: var(--is-text-2); }
-.page-info strong { color: var(--is-text); }
-.page-btns { display: flex; align-items: center; gap: 6px; }
-.page-btn {
-  display: grid;
-  place-items: center;
-  min-width: 38px;
-  height: 38px;
-  padding: 0 10px;
-  border: 1px solid var(--is-border);
+  gap: 6px;
+  padding: 4px 12px;
   border-radius: var(--is-r-pill);
-  background: var(--is-surface);
-  color: var(--is-text-2);
-  font: var(--is-fw-bold) var(--is-fs-sm) var(--is-font);
-  cursor: pointer;
-  transition: all var(--is-dur) var(--is-ease);
-}
-.page-btn .mat-icon { font-size: 20px; width: 20px; height: 20px; }
-.page-btn:hover:not(:disabled):not(.active) {
-  color: var(--is-primary);
-  border-color: var(--is-border-tint);
-  background: var(--is-tint-purple);
-}
-.page-btn.active {
-  border-color: transparent;
-  background: var(--is-grad-primary);
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(46, 20, 117, 0.25);
-}
-.page-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-
-/* ── Modal ────────────────────────────────────────────── */
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  background: rgba(23, 18, 54, 0.45);
-  backdrop-filter: blur(3px);
-  animation: is-fade-in var(--is-dur) ease both;
-}
-.modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  z-index: 1001;
-  width: min(540px, calc(100vw - 32px));
-  max-height: calc(100vh - 48px);
-  display: flex;
-  flex-direction: column;
-  transform: translate(-50%, -50%);
-  background: var(--is-surface);
-  border-radius: var(--is-r-card);
-  box-shadow: var(--is-shadow-raised);
-  overflow: hidden;
-  animation: um-modal-in var(--is-dur-slow) var(--is-ease) both;
-}
-@keyframes um-modal-in {
-  from { opacity: 0; transform: translate(-50%, calc(-50% + 12px)) scale(0.97); }
-  to   { opacity: 1; transform: translate(-50%, -50%); }
-}
-.modal::before {
-  content: '';
-  height: 4px;
-  flex: none;
-  background: var(--is-grad-banner);
-}
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--is-s-3);
-  padding: 20px var(--is-s-5) var(--is-s-4);
-  border-bottom: 1px solid var(--is-border);
-}
-.modal-head-left { display: flex; align-items: center; gap: var(--is-s-3); }
-.modal-icon {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--is-r-sm);
-  background: var(--is-tint-purple);
-  color: var(--is-primary);
-}
-.modal-title {
-  margin: 0;
-  font-size: var(--is-fs-lg);
-  line-height: 26px;
-  font-weight: var(--is-fw-bold);
-  color: var(--is-text);
-}
-.modal-close {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border: 0;
-  border-radius: var(--is-r-pill);
-  background: transparent;
-  color: var(--is-text-2);
-  cursor: pointer;
-  transition: all var(--is-dur) ease;
-}
-.modal-close:hover { background: var(--is-tint-purple); color: var(--is-primary); }
-.modal-body {
-  display: grid;
-  gap: var(--is-s-4);
-  padding: var(--is-s-5);
-  overflow-y: auto;
-}
-.grid-2 {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--is-s-4);
-}
-.stack { display: grid; gap: 6px; }
-.lbl {
+  background: color-mix(in srgb, var(--c) 11%, white);
+  color: color-mix(in srgb, var(--c) 85%, black);
   font-size: var(--is-fs-xs);
   font-weight: var(--is-fw-bold);
-  color: var(--is-text);
+  white-space: nowrap;
+  transition: background var(--is-dur) ease, color var(--is-dur) ease;
 }
-.req { color: var(--is-danger); }
-.opt { font-weight: var(--is-fw-regular); color: var(--is-text-2); }
-.modal-body select.ctl {
-  background-image: linear-gradient(45deg, transparent 50%, var(--is-text-2) 50%), linear-gradient(135deg, var(--is-text-2) 50%, transparent 50%);
-  background-position: calc(100% - 18px) 19px, calc(100% - 13px) 19px;
-  background-size: 5px 5px;
-  background-repeat: no-repeat;
-  padding-right: 36px;
+.um-role .pi { font-size: 11px; }
+:host ::ng-deep .mr-row:hover .um-role { background: var(--c); color: var(--is-text-inverse); }
+
+.um-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 12px;
+  border-radius: var(--is-r-pill);
+  background: var(--is-neutral-bg);
+  color: var(--is-neutral-text);
+  font-size: var(--is-fs-xs);
+  font-weight: var(--is-fw-bold);
 }
-.password-row { position: relative; display: flex; }
-.password-row .ctl { padding-right: 48px; }
-.toggle-pw {
+.um-status__dot { position: relative; width: 7px; height: 7px; border-radius: 50%; background: var(--is-text-3); }
+.um-status--on { background: var(--is-success-bg); color: var(--is-success-text); }
+.um-status--on .um-status__dot { background: var(--is-success); }
+.um-status--on .um-status__dot::after {
+  content: '';
   position: absolute;
-  right: 4px;
-  top: 4px;
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border: 0;
-  border-radius: var(--is-r-field);
-  background: transparent;
-  color: var(--is-text-2);
-  cursor: pointer;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--is-success);
+  animation: is-ping 2s ease-out infinite;
 }
-.toggle-pw:hover { background: var(--is-tint-purple); color: var(--is-primary); }
-.toggle-pw .mat-icon { font-size: 20px; width: 20px; height: 20px; }
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--is-s-3);
+:host ::ng-deep .um-row--inactive > td { opacity: 0.7; }
+:host ::ng-deep .um-row--busy > td { opacity: 0.45; transition: opacity var(--is-dur) ease; }
+
+.um-col-actions { width: 120px; text-align: right !important; }
+.um-actions { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; width: 100%; }
+:host ::ng-deep .um-act.p-button { width: 2.25rem; height: 2.25rem; transition: background var(--is-dur) ease, color var(--is-dur) ease, transform var(--is-dur) var(--is-ease); }
+:host ::ng-deep .um-act--edit.p-button { color: var(--is-primary); }
+:host ::ng-deep .um-act--edit.p-button:not(:disabled):hover { background: var(--is-tint-purple); color: var(--is-primary); transform: translateY(-2px); }
+:host ::ng-deep .um-act--delete.p-button { color: var(--is-danger); }
+:host ::ng-deep .um-act--delete.p-button:not(:disabled):hover { background: var(--is-danger-bg); color: var(--is-danger); transform: translateY(-2px); }
+:host ::ng-deep .um-act--delete.p-button:disabled { color: var(--is-text-3); }
+.um-empty-actions { display: flex; gap: var(--is-s-2); margin-top: var(--is-s-3); }
+
+/* ══ Dialog + confirm popup (appended to <body>, so unscoped) ═══════════ */
+::ng-deep .um-dialog.p-dialog {
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--is-r-card);
+  box-shadow: var(--is-shadow-raised);
+  font-family: var(--is-font);
+}
+::ng-deep .um-dialog.p-dialog::before {
+  content: '';
+  display: block;
+  height: 4px;
+  background: var(--is-grad-banner);
+}
+::ng-deep .um-dialog .p-dialog-header { padding: var(--is-s-5) var(--is-s-5) var(--is-s-4); border-bottom: 1px solid var(--is-border); }
+::ng-deep .um-dialog .p-dialog-content { padding: var(--is-s-5); }
+::ng-deep .um-dialog .p-dialog-footer {
+  gap: var(--is-s-2);
   padding: var(--is-s-4) var(--is-s-5);
   border-top: 1px solid var(--is-border);
-  background: var(--is-surface-2);
+  background: var(--is-canvas);
 }
-.btn-spinner { --mat-progress-spinner-active-indicator-color: #fff; }
+::ng-deep .um-dialog__head { display: flex; align-items: center; gap: var(--is-s-3); }
+::ng-deep .um-dialog__ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--is-r-sm);
+  background: var(--is-grad-banner);
+  color: var(--is-text-inverse);
+  box-shadow: var(--is-shadow-primary);
+}
+::ng-deep .um-dialog__ico .pi { font-size: 18px; }
+::ng-deep .um-dialog__title { margin: 0; font-size: var(--is-fs-h3); line-height: var(--is-lh-h3); font-weight: var(--is-fw-bold); color: var(--is-primary); }
+::ng-deep .um-dialog__sub { margin: 2px 0 0; font-size: var(--is-fs-sm); color: var(--is-text-2); }
+
+::ng-deep .um-form { display: grid; gap: var(--is-s-4); }
+::ng-deep .um-form__row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--is-s-4); }
+::ng-deep .um-form .mr-field { display: grid; gap: 6px; min-width: 0; animation: is-fade-up var(--is-dur-slow) var(--is-ease) both; }
+::ng-deep .um-form .mr-field:nth-child(2) { animation-delay: 50ms; }
+::ng-deep .um-form .mr-field:nth-child(3) { animation-delay: 100ms; }
+::ng-deep .um-form .mr-field:nth-child(4) { animation-delay: 150ms; }
+::ng-deep .um-label { font-size: var(--is-fs-title); line-height: var(--is-lh-title); font-weight: var(--is-fw-bold); color: var(--is-text); }
+::ng-deep .um-req { color: var(--is-danger); }
+::ng-deep .um-hint { margin-left: 4px; font-size: var(--is-fs-xs); font-weight: var(--is-fw-regular); color: var(--is-text-2); }
+::ng-deep .um-form .um-input,
+::ng-deep .um-form .um-input input { width: 100%; font-family: var(--is-font); }
+::ng-deep .um-form .um-input input,
+::ng-deep .um-password__input { min-height: 44px; border-radius: var(--is-r-field) !important; font-family: var(--is-font); font-size: var(--is-fs-body); }
+::ng-deep .um-form .um-input input:focus,
+::ng-deep .um-password__input:focus { border-color: var(--is-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--is-primary) 14%, transparent); }
+::ng-deep .um-password,
+::ng-deep .um-password .p-password-input,
+::ng-deep .um-password__input { width: 100%; }
+::ng-deep .um-error { display: inline-flex; align-items: center; gap: 6px; font-size: var(--is-fs-xs); font-weight: var(--is-fw-semibold); color: var(--is-danger-text); animation: is-fade-in var(--is-dur) ease both; }
+::ng-deep .um-error .pi { font-size: 11px; }
+
+/* Role picker */
+::ng-deep .um-roles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--is-s-2); }
+::ng-deep .um-role-card {
+  --c: var(--is-primary);
+  position: relative;
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  padding: 12px;
+  border: 1.5px solid var(--is-border);
+  border-radius: var(--is-r-sm);
+  background: var(--is-surface);
+  font-family: var(--is-font);
+  text-align: left;
+  cursor: pointer;
+  animation: is-scale-in var(--is-dur-slow) var(--is-ease) calc(150ms + var(--i, 0) * 50ms) both;
+  transition: border-color var(--is-dur) ease, background var(--is-dur) ease, box-shadow var(--is-dur) ease, transform var(--is-dur) var(--is-ease);
+}
+::ng-deep .um-role-card:hover { border-color: color-mix(in srgb, var(--c) 45%, white); transform: translateY(-2px); }
+::ng-deep .um-role-card:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 25%, transparent); }
+::ng-deep .um-role-card__ico {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--c) 12%, white);
+  color: var(--c);
+  transition: background var(--is-dur) ease, color var(--is-dur) ease;
+}
+::ng-deep .um-role-card__ico .pi { font-size: 13px; }
+::ng-deep .um-role-card__name { font-size: var(--is-fs-body); font-weight: var(--is-fw-bold); color: var(--is-text); }
+::ng-deep .um-role-card__desc { font-size: var(--is-fs-2xs); line-height: 15px; color: var(--is-text-2); }
+::ng-deep .um-role-card__check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 15px;
+  color: var(--c);
+  opacity: 0;
+  transform: scale(0.5);
+  transition: opacity var(--is-dur) ease, transform var(--is-dur) var(--is-ease);
+}
+::ng-deep .um-role-card--on { border-color: var(--c); background: color-mix(in srgb, var(--c) 6%, white); box-shadow: 0 8px 18px -12px var(--c); }
+::ng-deep .um-role-card--on .um-role-card__ico { background: var(--c); color: var(--is-text-inverse); }
+::ng-deep .um-role-card--on .um-role-card__check { opacity: 1; transform: scale(1); }
+
+/* Active switch */
+::ng-deep .um-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--is-s-3);
+  padding: 12px 16px;
+  border: 1px solid var(--is-border);
+  border-radius: var(--is-r-sm);
+  background: var(--is-canvas);
+  transition: background var(--is-dur) ease, border-color var(--is-dur) ease;
+}
+::ng-deep .um-switch--on { background: var(--is-success-bg); border-color: var(--is-success-border); }
+::ng-deep .um-switch > div { display: grid; gap: 2px; }
+::ng-deep .um-switch__title { display: inline-flex; align-items: center; gap: 8px; font-weight: var(--is-fw-bold); }
+::ng-deep .um-switch__title .pi { font-size: 12px; color: var(--is-text-2); }
+::ng-deep .um-switch--on .um-switch__title .pi { color: var(--is-success); }
+::ng-deep .um-switch__sub { font-size: var(--is-fs-xs); color: var(--is-text-2); }
+
+/* Design-system buttons inside the dialog footer */
+::ng-deep .um-dialog .mr-btn-primary.p-button,
+::ng-deep .um-dialog .mr-btn-outline.p-button {
+  min-height: 44px;
+  padding: 12px 24px;
+  border-radius: var(--is-r-pill);
+  font-family: var(--is-font);
+  font-size: var(--is-fs-body);
+}
+::ng-deep .um-dialog .mr-btn-primary.p-button .p-button-label,
+::ng-deep .um-dialog .mr-btn-outline.p-button .p-button-label { font-weight: var(--is-fw-bold); }
+::ng-deep .um-dialog .mr-btn-primary.p-button {
+  border: 0;
+  background: linear-gradient(90deg, var(--is-primary-strong), var(--is-primary-soft));
+  color: var(--is-text-inverse);
+  box-shadow: var(--is-shadow-primary);
+}
+::ng-deep .um-dialog .mr-btn-primary.p-button:not(:disabled):hover { background: linear-gradient(90deg, var(--is-primary-strong), var(--is-primary)); }
+::ng-deep .um-dialog .mr-btn-outline.p-button { border: 1px solid var(--is-primary); background: var(--is-surface); color: var(--is-primary); }
+::ng-deep .um-dialog .mr-btn-outline.p-button:not(:disabled):hover { background: var(--is-tint-purple); }
+
+/* Confirm popup */
+::ng-deep .um-confirm.p-confirmpopup { border-radius: var(--is-r-nav); font-family: var(--is-font); box-shadow: var(--is-shadow-raised); }
+::ng-deep .um-confirm .p-confirmpopup-icon { color: var(--is-danger); }
+::ng-deep .um-confirm .p-confirmpopup-message { max-width: 240px; font-size: var(--is-fs-sm); font-weight: var(--is-fw-semibold); }
+
+@media (prefers-reduced-motion: reduce) {
+  ::ng-deep .um-form .mr-field, ::ng-deep .um-role-card { animation: none !important; }
+  .um-status--on .um-status__dot::after { animation: none !important; }
+}
 
 /* ── Responsive ───────────────────────────────────────── */
-@media (max-width: 1000px) {
-  .filters { grid-template-columns: 1fr 1fr; }
-  .ctl-wrap--search { grid-column: 1 / -1; }
+@media (max-width: 1100px) {
+  .um-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .um-filters__search { grid-column: 1 / -1; }
+  .um-filters__actions { grid-column: 1 / -1; justify-content: flex-end; }
 }
-@media (max-width: 600px) {
-  .filters { grid-template-columns: 1fr; }
-  .search-btn { width: 100%; }
-  .modal-footer { flex-direction: column-reverse; }
-  .modal-footer > * { width: 100%; }
+@media (max-width: 640px) {
+  .um-filters { grid-template-columns: minmax(0, 1fr); }
+  ::ng-deep .um-form__row,
+  ::ng-deep .um-roles { grid-template-columns: minmax(0, 1fr); }
 }

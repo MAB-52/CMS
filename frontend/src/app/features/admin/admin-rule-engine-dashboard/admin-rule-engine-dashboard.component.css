@@ -415,6 +415,30 @@
 }
 .btn-action--primary:hover { background: var(--is-grad-primary); box-shadow: var(--is-shadow-primary); filter: brightness(1.06); }
 
+/* PrimeNG card actions */
+:host ::ng-deep .rule-card__actions .p-button {
+  min-height: 40px;
+  font-family: var(--is-font);
+  font-size: var(--is-fs-sm);
+  transition: transform var(--is-dur-fast) var(--is-ease), box-shadow var(--is-dur) ease, background var(--is-dur) ease;
+}
+:host ::ng-deep .rule-card__actions .p-button:enabled:hover { transform: translateY(-1px); }
+:host ::ng-deep .run-btn {
+  border: 0;
+  background: var(--is-grad-primary);
+  box-shadow: 0 6px 16px rgba(46, 20, 117, 0.2);
+}
+:host ::ng-deep .run-btn:enabled:hover {
+  border: 0;
+  background: var(--is-grad-primary);
+  box-shadow: var(--is-shadow-primary);
+  filter: brightness(1.06);
+}
+:host ::ng-deep .history-btn { background: var(--is-surface); }
+:host ::ng-deep .history-btn:enabled:hover { background: var(--is-tint-purple); }
+:host ::ng-deep .history-btn .p-button-icon { transition: transform var(--is-dur-slow) var(--is-ease); }
+:host ::ng-deep .history-btn:enabled:hover .p-button-icon { transform: rotate(-360deg); }
+
 /* ── Pagination ───────────────────────────────────────── */
 .pagination,
 .exec-pagination {

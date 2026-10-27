@@ -212,14 +212,10 @@
           </label>
 
           <div class="rule-card__actions">
-            <button class="btn-action btn-action--primary" type="button" (click)="manualRun(rule)">
-              <mat-icon>play_arrow</mat-icon>
-              Manual run
-            </button>
-            <button class="btn-action" type="button" (click)="openHistory(rule)">
-              <mat-icon>history</mat-icon>
-              Audit &amp; runs
-            </button>
+            <p-button label="Manual run" icon="pi pi-play" [rounded]="true" styleClass="run-btn"
+              (onClick)="manualRun(rule)" />
+            <p-button label="Audit &amp; runs" icon="pi pi-history" [rounded]="true" [outlined]="true"
+              styleClass="history-btn" (onClick)="openHistory(rule)" />
           </div>
         </div>
 

@@ -59,6 +59,7 @@
 
 package com.consentiq.service;
 
+import com.consentiq.exception.AccountUnavailableException;
 import com.consentiq.model.dto.request.LoginRequest;
 import com.consentiq.model.dto.response.JwtResponse;
 import com.consentiq.model.entity.User;
@@ -70,7 +71,10 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -87,12 +91,35 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
-    private final BatchEmailDispatchService emailDispatchService;
+    private final SessionAlertService sessionAlertService;
+    private final PasswordEncoder passwordEncoder;
 
     private static String currentUser() {
         return SecurityContextHolder.getContext().getAuthentication() != null
                 ? SecurityContextHolder.getContext().getAuthentication().getName()
                 : "anonymous";
+    }
+
+    /**
+     * Spring checks "enabled" before the password, so a DisabledException alone would let anyone
+     * probe which emails exist. Only reveal the account state when the password is also correct;
+     * otherwise answer exactly like a wrong password.
+     */
+    private RuntimeException unavailableAccount(LoginRequest request) {
+        User user = userRepository.findByEmailIgnoreCase(request.getEmail().trim()).orElse(null);
+        if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            return new BadCredentialsException("Bad credentials");
+        }
+        if (user.getDeletedAt() != null) {
+            log.warn("Login rejected | reason=account_deleted | email={}", user.getEmail());
+            return new AccountUnavailableException(
+                    "This account has been removed. Please contact your administrator if you need access.",
+                    "ACCOUNT_DELETED");
+        }
+        log.warn("Login rejected | reason=account_deactivated | email={}", user.getEmail());
+        return new AccountUnavailableException(
+                "Your account has been deactivated. Please contact your administrator to restore access.",
+                "ACCOUNT_DISABLED");
     }
 
     @Transactional
@@ -102,9 +129,13 @@ public class AuthService {
         log.info("User={} | action=login | entity=Auth | id=n/a", cu);
         log.debug("Transaction started | method=login | email={}", request.getEmail());
 
-        Authentication auth =
-                authenticationManager.authenticate(
-                        new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
+        Authentication auth;
+        try {
+            auth = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
+        } catch (DisabledException e) {
+            throw unavailableAccount(request);
+        }
         UserDetailsImpl principal = (UserDetailsImpl) auth.getPrincipal();
 
         User user = userRepository.findById(principal.getId())
@@ -130,12 +161,8 @@ public class AuthService {
 
         if (hadPriorSession) {
             log.info("Branch taken | method=login | condition=priorSession | value=true | email={}", user.getEmail());
-            try {
-                sendSessionTakeoverAlert(user, newIp, newDevice, newLoginTime);
-            } catch (Exception e) {
-                // Never fail B's login because the email to A failed to send
-                log.error("Exception sending session takeover alert | user={} | message={}", cu, e.getMessage(), e);
-            }
+            sessionAlertService.sendSessionTakeoverAlert(
+                    user.getEmail(), user.getFullName(), newIp, newDevice, newLoginTime);
         }
 
         JwtResponse result =
@@ -150,24 +177,6 @@ public class AuthService {
         log.debug("Transaction completing | method=login | email={}", request.getEmail());
         log.debug("Exiting login | result=JwtResponse present | token=****");
         return result;
-    }
-
-    // This runs the moment B logs in — it notifies A, BEFORE A's browser even
-    // notices anything is wrong. A only gets rejected on their NEXT request.
-    private void sendSessionTakeoverAlert(User user, String ip, String device, Instant time) {
-        String subject = "Security Alert: New login to your ConsentIQ account";
-        String html = """
-                <p>Hi %s,</p>
-                <p>A new login to your ConsentIQ account (%s) was just detected:</p>
-                <ul>
-                  <li>Time: %s</li>
-                  <li>IP Address: %s</li>
-                  <li>Device/Browser: %s</li>
-                </ul>
-                <p>Your previous session has been logged out. If this was you, no action is needed.</p>
-               
-                """.formatted(user.getFullName(), user.getEmail(), time, ip, device == null ? "Unknown" : device);
-        emailDispatchService.sendSmtpHtmlEmail(user.getEmail(), subject, html);
     }
 
     private String extractClientIp(HttpServletRequest request) {

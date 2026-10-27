@@ -1,327 +1,24 @@
-//package com.consentiq.service;
-//
-//import com.consentiq.config.ConsentMailProperties;
-//import com.consentiq.model.entity.Customer;
-//import com.consentiq.util.DeliveryChannelCatalog;
-//import lombok.experimental.UtilityClass;
-//import org.springframework.util.StringUtils;
-//
-//import java.util.List;
-//
-//@UtilityClass
-//public class ConsentRequestEmailBuilder {
-//
-//    public String buildSubject(String consentTitle) {
-//        String t = consentTitle == null
-//                ? "Consent request"
-//                : consentTitle.trim();
-//
-//        return "ConsentIQ • Action required — " + t;
-//    }
-//
-//    public String buildHtmlBody(
-//            Customer customer,
-//            String consentTitle,
-//            String descriptionPlain,
-//            String consentLink,
-//            List<String> normalizedCaptureChannels,
-//            ConsentMailProperties mailProps,
-//            String publicConsentBaseUrl,
-//            String inviteToken,
-//            Long consentDbId
-//    ) {
-//        return buildHtmlBody(
-//                customer,
-//                consentTitle,
-//                descriptionPlain,
-//                consentLink,
-//                normalizedCaptureChannels,
-//                mailProps,
-//                publicConsentBaseUrl,
-//                publicConsentBaseUrl,
-//                inviteToken,
-//                consentDbId
-//        );
-//    }
-//
-//    public String buildHtmlBody(
-//            Customer customer,
-//            String consentTitle,
-//            String descriptionPlain,
-//            String consentLink,
-//            List<String> normalizedCaptureChannels,
-//            ConsentMailProperties mailProps,
-//            String publicConsentBaseUrl,
-//            String apiBaseUrl,
-//            String inviteToken,
-//            Long consentDbId
-//    ) {
-//        String first = escapeHtml(firstName(customer.getFullName()));
-//        String org = escapeHtml(trimTo(mailProps.getOrganizationName(), 120));
-//        String support = escapeHtml(trimTo(mailProps.getSupportEmail(), 120));
-//        String title = escapeHtml(trimTo(consentTitle, 200));
-//
-//        List<String> norm = normalizedCaptureChannels == null ? List.of() : normalizedCaptureChannels;
-//        String channelsReadable = DeliveryChannelCatalog.formatForCustomer(norm);
-//        String channelsReadableEsc = escapeHtml(trimTo(channelsReadable, 220));
-//        String channelHeading = norm.size() <= 1 ? "Communication channel" : "Communication channels";
-//
-//        String bodyIntro = escapeHtml(trimTo(
-//                descriptionPlain == null || descriptionPlain.isBlank()
-//                        ? "We need your informed consent before we proceed with this communication request."
-//                        : descriptionPlain,
-//                650
-//        ));
-//
-//        String consentLinkEsc = escapeHtml(consentLink == null ? "" : consentLink);
-//
-//        return "<!DOCTYPE html>"
-//                + "<html lang=\"en\">"
-//                + "<head>"
-//                + "<meta charset=\"UTF-8\"/>"
-//                + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"/>"
-//                + "<title>Consent Request</title>"
-//                + "</head>"
-//                + "<body style=\""
-//                + "margin:0;"
-//                + "padding:0;"
-//                + "background:#0b0d12;"
-//                + "font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;"
-//                + "\">"
-//
-//                // ── Outer table ──────────────────────────────────────────
-//                + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\""
-//                + "background:"
-//                + "  radial-gradient(circle at top left, rgba(168,85,247,.18), transparent 28%),"
-//                + "  radial-gradient(circle at bottom right, rgba(34,193,255,.12), transparent 26%),"
-//                + "  linear-gradient(180deg,#0b0d12 0%,#13161d 48%,#0f1117 100%);"
-//                + "padding:40px 16px;"
-//                + "\">"
-//                + "<tr><td align=\"center\">"
-//
-//                // ── Inner card table ──────────────────────────────────────
-//                + "<table role=\"presentation\" width=\"640\" cellspacing=\"0\" cellpadding=\"0\" style=\""
-//                + "max-width:640px;"
-//                + "border-radius:28px;"
-//                + "overflow:hidden;"
-//                + "background:rgba(24,24,28,.94);"
-//                + "border:1px solid rgba(255,255,255,.08);"
-//                + "box-shadow:0 10px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.04);"
-//                + "\">"
-//
-//                // ── HEADER ────────────────────────────────────────────────
-//                + "<tr><td style=\"padding:26px 30px 0 30px;\">"
-//                + "<table width=\"100%\" role=\"presentation\"><tr>"
-//                + "<td align=\"left\">"
-//                + "<div style=\"color:#a855f7;font-size:13px;font-weight:800;letter-spacing:.08em;\">&#9679; ConsentIQ</div>"
-//                + "</td>"
-//                + "<td align=\"right\">"
-//                + "<span style=\""
-//                + "display:inline-block;"
-//                + "padding:7px 12px;"
-//                + "border-radius:999px;"
-//                + "background:rgba(139,195,74,.10);"
-//                + "border:1px solid rgba(139,195,74,.22);"
-//                + "color:#d9f99d;"
-//                + "font-size:11px;"
-//                + "font-weight:700;"
-//                + "\">&#128274; Secure Request</span>"
-//                + "</td>"
-//                + "</tr></table>"
-//                + "</td></tr>"
-//
-//                // ── TOP GRADIENT LINE ─────────────────────────────────────
-//                + "<tr><td style=\"padding:18px 30px 0 30px;\">"
-//                + "<div style=\""
-//                + "height:2px;"
-//                + "border-radius:999px;"
-//                + "background:linear-gradient(90deg,#9333ea 0%,#ec4899 40%,#22c1ff 100%);"
-//                + "\"></div>"
-//                + "</td></tr>"
-//
-//                // ── HERO ICON ─────────────────────────────────────────────
-//                + "<tr><td align=\"center\" style=\"padding-top:34px;\">"
-//                + "<div style=\""
-//                + "width:78px;"
-//                + "height:78px;"
-//                + "border-radius:50%;"
-//                + "background:linear-gradient(135deg,rgba(168,85,247,.95),rgba(236,72,153,.92));"
-//                + "text-align:center;"
-//                + "line-height:78px;"
-//                + "font-size:34px;"
-//                + "color:#ffffff;"
-//                + "box-shadow:0 0 0 6px rgba(255,255,255,.10),0 8px 28px rgba(168,85,247,.35);"
-//                + "\">&#128737;</div>"
-//                + "</td></tr>"
-//
-//                // ── TITLE ─────────────────────────────────────────────────
-//                + "<tr><td align=\"center\" style=\"padding:22px 36px 10px 36px;\">"
-//                + "<div style=\"color:#ffffff;font-size:34px;line-height:1.2;font-weight:800;letter-spacing:-.03em;\">Consent Request</div>"
-//                + "<div style=\"margin-top:10px;color:#b8bcc8;font-size:15px;line-height:1.7;\">Review the details below and let us know your decision.</div>"
-//                + "</td></tr>"
-//
-//                // ── MAIN PANEL ────────────────────────────────────────────
-//                + "<tr><td style=\"padding:24px 26px 0 26px;\">"
-//                + "<div style=\""
-//                + "border-radius:22px;"
-//                + "padding:24px;"
-//                + "background:linear-gradient(145deg,rgba(255,255,255,.045),rgba(255,255,255,.02));"
-//                + "border:1px solid rgba(255,255,255,.08);"
-//                + "\">"
-//
-//                // greeting
-//                + "<div style=\"color:#b8bcc8;font-size:13px;margin-bottom:10px;\">"
-//                + "Hello, <span style=\"color:#d8b4fe;font-weight:700;\">" + first + "</span>"
-//                + "</div>"
-//
-//                // consent title
-//                + "<div style=\"color:#ffffff;font-size:28px;font-weight:800;line-height:1.3;margin-bottom:16px;\">"
-//                + title
-//                + "</div>"
-//
-//                // body intro
-//                + "<div style=\"color:#b8bcc8;font-size:14px;line-height:1.8;margin-bottom:18px;\">"
-//                + bodyIntro
-//                + "</div>"
-//
-//                // what you are approving box
-//                + "<div style=\""
-//                + "margin-top:18px;"
-//                + "border-radius:14px;"
-//                + "padding:18px;"
-//                + "background:rgba(255,255,255,.03);"
-//                + "border:1px solid rgba(255,255,255,.08);"
-//                + "\">"
-//                + "<div style=\"color:#c084fc;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;\">What you are approving</div>"
-//                + "<div style=\"color:#e5e7eb;font-size:15px;line-height:1.8;\">"
-//                + "You are granting permission to receive communications related to <strong>" + title + "</strong>"
-//                + "</div>"
-//                + "</div>"
-//
-//                // channel summary box
-//                + "<div style=\""
-//                + "margin-top:18px;"
-//                + "border-radius:14px;"
-//                + "padding:14px 16px;"
-//                + "background:rgba(255,255,255,.03);"
-//                + "border:1px solid rgba(255,255,255,.08);"
-//                + "\">"
-//                + "<table width=\"100%\" role=\"presentation\"><tr>"
-//                + "<td valign=\"top\" style=\""
-//                + "white-space:nowrap;"
-//                + "color:#8f96a3;"
-//                + "font-size:12px;"
-//                + "font-weight:700;"
-//                + "letter-spacing:.06em;"
-//                + "text-transform:uppercase;"
-//                + "\">&#128225; " + escapeHtml(channelHeading) + "</td>"
-//                + "<td align=\"right\" style=\"color:#ffffff;font-size:14px;font-weight:700;\">"
-//                + channelsReadableEsc
-//                + "</td>"
-//                + "</tr></table>"
-//                + "</div>"
-//
-//                + "</div>" // end main panel inner div
-//                + "</td></tr>"
-//
-//                // ── CTA BUTTON ────────────────────────────────────────────
-//                + "<tr><td align=\"center\" style=\"padding:30px 30px 12px 30px;\">"
-//                + "<a href=\"" + consentLinkEsc + "\" style=\""
-//                + "display:inline-block;"
-//                + "text-decoration:none;"
-//                + "background:linear-gradient(135deg,#9333ea 0%,#ec4899 100%);"
-//                + "color:#ffffff;"
-//                + "padding:16px 30px;"
-//                + "border-radius:16px;"
-//                + "font-size:15px;"
-//                + "font-weight:800;"
-//                + "box-shadow:0 10px 28px rgba(168,85,247,.32);"
-//                + "\">Review &amp; Respond</a>"
-//                + "</td></tr>"
-//
-//                // ── FALLBACK URL ──────────────────────────────────────────
-////                + "<tr><td style=\""
-////                + "padding:0 34px 24px 34px;"
-////                + "text-align:center;"
-////                + "color:#8f96a3;"
-////                + "font-size:13px;"
-////                + "line-height:1.7;"
-////                + "\">"
-////                + "If the button does not work, copy and paste this link into your browser:"
-////                + "<div style=\"margin-top:10px;color:#22c1ff;word-break:break-all;\">"
-////                + consentLinkEsc
-////                + "</div>"
-////                + "</td></tr>"
-//
-//                // ── FOOTER ────────────────────────────────────────────────
-//                + "<tr><td style=\""
-//                + "padding:22px 34px 30px 34px;"
-//                + "border-top:1px solid rgba(255,255,255,.08);"
-//                + "\">"
-//                + "<div style=\"color:#b8bcc8;font-size:13px;line-height:1.8;\">"
-//                + "Questions? Contact us at "
-//                + "<a href=\"mailto:" + support + "\" style=\"color:#22c1ff;text-decoration:none;\">" + support + "</a>"
-//                + "<br/><br/>"
-//                + "If you did not expect this message, you may safely ignore it."
-//                + "<br/><br/>"
-//                + "<strong style=\"color:#ffffff;\">" + org + "</strong>"
-//                + "</div>"
-//                + "</td></tr>"
-//
-//                + "</table>" // end inner card table
-//                + "</td></tr>"
-//                + "</table>" // end outer table
-//                + "</body></html>";
-//    }
-//
-//    private static String firstName(String fullName) {
-//        if (!StringUtils.hasText(fullName)) {
-//            return "Customer";
-//        }
-//        String[] p = fullName.trim().split("\\s+");
-//        return p[0];
-//    }
-//
-//    private static String trimTo(String s, int max) {
-//        if (s == null) {
-//            return "";
-//        }
-//        String t = s.trim();
-//        return t.length() <= max ? t : t.substring(0, max - 1) + "\u2026";
-//    }
-//
-//    private static String escapeHtml(String s) {
-//        if (s == null) {
-//            return "";
-//        }
-//        return s.replace("&", "&amp;")
-//                .replace("<", "&lt;")
-//                .replace(">", "&gt;")
-//                .replace("\"", "&quot;");
-//    }
-//}
-
 package com.consentiq.service;
- 
+
 import com.consentiq.config.ConsentMailProperties;
 import com.consentiq.model.entity.Customer;
 import com.consentiq.util.DeliveryChannelCatalog;
 import lombok.experimental.UtilityClass;
 import org.springframework.util.StringUtils;
- 
+
 import java.util.List;
- 
+
 @UtilityClass
 public class ConsentRequestEmailBuilder {
- 
+
     public String buildSubject(String consentTitle) {
         String t = consentTitle == null
                 ? "Consent request"
                 : consentTitle.trim();
- 
+
         return "ConsentIQ • Action required — " + t;
     }
- 
+
     public String buildHtmlBody(
             Customer customer,
             String consentTitle,
@@ -346,7 +43,7 @@ public class ConsentRequestEmailBuilder {
                 consentDbId
         );
     }
- 
+
     public String buildHtmlBody(
             Customer customer,
             String consentTitle,
@@ -363,210 +60,163 @@ public class ConsentRequestEmailBuilder {
         String org = escapeHtml(trimTo(mailProps.getOrganizationName(), 120));
         String support = escapeHtml(trimTo(mailProps.getSupportEmail(), 120));
         String title = escapeHtml(trimTo(consentTitle, 200));
- 
+
         List<String> norm = normalizedCaptureChannels == null ? List.of() : normalizedCaptureChannels;
         String channelsReadable = DeliveryChannelCatalog.formatForCustomer(norm);
-        String channelsReadableEsc = escapeHtml(trimTo(channelsReadable, 220));
         String channelHeading = norm.size() <= 1 ? "Communication channel" : "Communication channels";
- 
+
         String bodyIntro = escapeHtml(trimTo(
                 descriptionPlain == null || descriptionPlain.isBlank()
                         ? "We need your informed consent before we proceed with this communication request."
                         : descriptionPlain,
                 650
         ));
- 
+
         String consentLinkEsc = escapeHtml(consentLink == null ? "" : consentLink);
- 
+
+        // Channel pills (one per channel label).
+        StringBuilder channelPills = new StringBuilder();
+        if (StringUtils.hasText(channelsReadable)) {
+            for (String label : channelsReadable.split(",\\s*")) {
+                channelPills.append("<span style=\"display:inline-block;margin:4px 6px 0 0;padding:6px 12px;"
+                                + "border-radius:999px;background:#FFF1E9;border:1px solid #F8CBB0;color:#C9561A;"
+                                + "font-size:12px;font-weight:700;line-height:16px;\">")
+                        .append(escapeHtml(trimTo(label, 40)))
+                        .append("</span>");
+            }
+        }
+
+        // Brand palette (Interact Suite): primary #45329E, secondary #EA6B28, canvas #F7F8FC.
+        String font = "'Nunito','Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+
         return "<!DOCTYPE html>"
                 + "<html lang=\"en\">"
                 + "<head>"
                 + "<meta charset=\"UTF-8\"/>"
                 + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"/>"
+                + "<meta name=\"x-apple-disable-message-reformatting\"/>"
                 + "<title>Consent Request</title>"
                 + "</head>"
-                + "<body style=\""
-                + "margin:0;"
-                + "padding:0;"
-                + "background:#f0f2f5;"
-                + "font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;"
-                + "\">"
- 
+                + "<body style=\"margin:0;padding:0;background:#F7F8FC;font-family:" + font + ";\">"
+
+                // Inbox preview text (hidden in the body).
+                + "<div style=\"display:none;max-height:0;overflow:hidden;opacity:0;color:#F7F8FC;\">"
+                + "Hi " + first + ", please review and respond to: " + title
+                + "</div>"
+
                 // ── Outer table ──────────────────────────────────────────
-                + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\""
-                + "background:#f0f2f5;"
-                + "padding:32px 16px;"
-                + "\">"
+                + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" "
+                + "bgcolor=\"#F7F8FC\" style=\"background:#F7F8FC;padding:32px 12px;\">"
                 + "<tr><td align=\"center\">"
- 
-                // ── Inner card table ──────────────────────────────────────
-                + "<table role=\"presentation\" width=\"620\" cellspacing=\"0\" cellpadding=\"0\" style=\""
-                + "max-width:620px;"
-                + "border-radius:8px;"
-                + "overflow:hidden;"
-                + "background:#ffffff;"
-                + "border:1px solid #e2e6ea;"
-                + "box-shadow:0 2px 12px rgba(0,0,0,.08);"
-                + "\">"
- 
-                // ── HEADER ────────────────────────────────────────────────
-                + "<tr><td style=\"background:#1a2e4a;padding:22px 32px;\">"
-                + "<table width=\"100%\" role=\"presentation\"><tr>"
-                + "<td align=\"left\">"
-                + "<span style=\"color:#ffffff;font-size:15px;font-weight:700;letter-spacing:.04em;\">ConsentIQ</span>"
+
+                // ── Card ────────────────────────────────────────────────
+                + "<table role=\"presentation\" width=\"600\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" "
+                + "style=\"width:100%;max-width:600px;border-collapse:separate;border-radius:24px;overflow:hidden;"
+                + "background:#FFFFFF;border:1px solid #E2E8F0;box-shadow:0 12px 32px rgba(23,36,69,.12);\">"
+
+                // ── HEADER (gradient with solid fallback) ───────────────
+                + "<tr><td bgcolor=\"#45329E\" style=\"background:#45329E;"
+                + "background-image:linear-gradient(120deg,#45329E 0%,#45329E 45%,#7A3F8F 75%,#EA6B28 100%);"
+                + "padding:24px 32px 26px 32px;\">"
+                + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\"><tr>"
+                + "<td align=\"left\" style=\"font-family:" + font + ";\">"
+                + "<span style=\"display:inline-block;width:34px;height:34px;line-height:34px;text-align:center;"
+                + "border-radius:10px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);"
+                + "color:#FFFFFF;font-size:12px;font-weight:800;vertical-align:middle;\">CQ</span>"
+                + "<span style=\"display:inline-block;margin-left:10px;vertical-align:middle;color:#FFFFFF;"
+                + "font-size:18px;font-weight:800;letter-spacing:-.01em;\">Consent"
+                + "<span style=\"color:#FFC9A8;\">IQ</span></span>"
                 + "</td>"
-                + "<td align=\"right\">"
-                + "<span style=\""
-                + "display:inline-block;"
-                + "padding:5px 11px;"
-                + "border-radius:4px;"
-                + "background:#e8f5e9;"
-                + "color:#2e7d32;"
-                + "font-size:11px;"
-                + "font-weight:700;"
-                + "letter-spacing:.04em;"
-                + "\">&#128274; Secure Request</span>"
+                + "<td align=\"right\" style=\"font-family:" + font + ";\">"
+                + "<span style=\"display:inline-block;padding:6px 12px;border-radius:999px;"
+                + "background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);color:#FFFFFF;"
+                + "font-size:11px;font-weight:700;letter-spacing:.04em;\">&#128274;&nbsp; Secure request</span>"
                 + "</td>"
                 + "</tr></table>"
+
+                // Hero copy inside the header band.
+                + "<div style=\"margin-top:28px;color:#FFC9A8;font-size:12px;font-weight:800;letter-spacing:.12em;"
+                + "text-transform:uppercase;\">Action required</div>"
+                + "<div style=\"margin-top:8px;color:#FFFFFF;font-size:26px;line-height:34px;font-weight:800;"
+                + "letter-spacing:-.02em;\">Hi " + first + ", we need your consent</div>"
+                + "<div style=\"margin-top:8px;color:rgba(255,255,255,.85);font-size:15px;line-height:22px;\">"
+                + "Review the request below and let us know your decision. It only takes a minute.</div>"
                 + "</td></tr>"
- 
-                // ── ACCENT LINE ───────────────────────────────────────────
-                + "<tr><td style=\"padding:0;\">"
-                + "<div style=\"height:3px;background:linear-gradient(90deg,#1a6fbf 0%,#0ea5e9 100%);\"></div>"
+
+                // ── Orange accent line ──────────────────────────────────
+                + "<tr><td bgcolor=\"#EA6B28\" style=\"height:4px;line-height:4px;font-size:0;background:#EA6B28;"
+                + "background-image:linear-gradient(90deg,#45329E 0%,#EA6B28 100%);\">&nbsp;</td></tr>"
+
+                // ── BODY ────────────────────────────────────────────────
+                + "<tr><td style=\"padding:30px 32px 8px 32px;font-family:" + font + ";\">"
+
+                // consent title + intro
+                + "<div style=\"color:#64748B;font-size:12px;font-weight:800;letter-spacing:.08em;"
+                + "text-transform:uppercase;\">Consent request</div>"
+                + "<div style=\"margin-top:6px;color:#2E1475;font-size:22px;line-height:30px;font-weight:800;\">"
+                + title + "</div>"
+                + "<div style=\"margin-top:10px;color:#475569;font-size:15px;line-height:24px;\">"
+                + bodyIntro + "</div>"
+
+                // what you are approving
+                + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" "
+                + "style=\"margin-top:22px;\"><tr>"
+                + "<td bgcolor=\"#F3F0FB\" style=\"background:#F3F0FB;border:1px solid #E4E0F2;"
+                + "border-left:4px solid #45329E;border-radius:12px;padding:16px 18px;\">"
+                + "<div style=\"color:#45329E;font-size:11px;font-weight:800;letter-spacing:.08em;"
+                + "text-transform:uppercase;\">What you are agreeing to</div>"
+                + "<div style=\"margin-top:6px;color:#1E1B3A;font-size:14px;line-height:22px;\">"
+                + "Permission to receive communications related to <strong>" + title + "</strong>.</div>"
+                + "</td></tr></table>"
+
+                // channels
+                + (channelPills.length() == 0 ? "" :
+                "<div style=\"margin-top:18px;\">"
+                + "<div style=\"color:#64748B;font-size:11px;font-weight:800;letter-spacing:.08em;"
+                + "text-transform:uppercase;\">" + escapeHtml(channelHeading) + "</div>"
+                + "<div style=\"margin-top:4px;\">" + channelPills + "</div>"
+                + "</div>")
                 + "</td></tr>"
- 
-                // ── HERO ICON ─────────────────────────────────────────────
-                + "<tr><td align=\"center\" style=\"padding:36px 32px 20px 32px;\">"
-                + "<div style=\""
-                + "width:64px;"
-                + "height:64px;"
-                + "border-radius:50%;"
-                + "background:#1a2e4a;"
-                + "text-align:center;"
-                + "line-height:64px;"
-                + "font-size:28px;"
-                + "margin:0 auto 20px auto;"
-                + "\">&#128737;</div>"
-                + "<div style=\"color:#1a2e4a;font-size:26px;font-weight:800;letter-spacing:-.02em;margin-bottom:8px;\">Consent Request</div>"
-                + "<div style=\"color:#64748b;font-size:14px;line-height:1.6;\">Review the details below and let us know your decision.</div>"
+
+                // ── CTA (bulletproof button) ────────────────────────────
+                + "<tr><td align=\"center\" style=\"padding:26px 32px 26px 32px;\">"
+                + "<table role=\"presentation\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\"><tr>"
+                // Primary action = design-system dark gradient (#2E1475 → #465599), solid fallback for Outlook.
+                + "<td align=\"center\" bgcolor=\"#2E1475\" style=\"border-radius:999px;background:#2E1475;"
+                + "background-image:linear-gradient(90deg,#2E1475 0%,#465599 100%);"
+                + "box-shadow:0 10px 24px rgba(46,20,117,.28);\">"
+                + "<a href=\"" + consentLinkEsc + "\" target=\"_blank\" style=\"display:inline-block;"
+                + "padding:15px 36px;border-radius:999px;color:#FFFFFF;font-family:" + font + ";"
+                + "font-size:15px;font-weight:800;letter-spacing:.02em;text-decoration:none;\">"
+                + "Review &amp; respond &nbsp;&rarr;</a>"
+                + "</td></tr></table>"
+                + "<div style=\"margin-top:12px;color:#94A3B8;font-size:12px;line-height:18px;"
+                + "font-family:" + font + ";\">&#128274; This secure link is personal to you. Please don't forward it.</div>"
                 + "</td></tr>"
- 
-                // ── MAIN PANEL ────────────────────────────────────────────
-                + "<tr><td style=\"padding:0 28px 24px 28px;\">"
-                + "<div style=\""
-                + "border-radius:8px;"
-                + "padding:24px;"
-                + "background:#f8fafc;"
-                + "border:1px solid #e2e8f0;"
-                + "\">"
- 
-                // greeting
-                + "<div style=\"color:#475569;font-size:13px;margin-bottom:12px;\">"
-                + "Hello, <span style=\"color:#1a2e4a;font-weight:700;\">" + first + "</span>"
-                + "</div>"
- 
-                // consent title
-                + "<div style=\"color:#1a2e4a;font-size:22px;font-weight:800;line-height:1.3;margin-bottom:14px;\">"
-                + title
-                + "</div>"
- 
-                // body intro
-                + "<div style=\"color:#475569;font-size:14px;line-height:1.8;margin-bottom:18px;\">"
-                + bodyIntro
-                + "</div>"
- 
-                // what you are approving box
-                + "<div style=\""
-                + "margin-top:16px;"
-                + "border-radius:6px;"
-                + "padding:16px;"
-                + "background:#eff6ff;"
-                + "border:1px solid #bfdbfe;"
-                + "\">"
-                + "<div style=\"color:#1a4fa3;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;\">What you are approving</div>"
-                + "<div style=\"color:#1e3a5f;font-size:14px;line-height:1.7;\">"
-                + "You are granting permission to receive communications related to <strong>" + title + "</strong>"
-                + "</div>"
-                + "</div>"
- 
-                // channel summary box
-                + "<div style=\""
-                + "margin-top:14px;"
-                + "border-radius:6px;"
-                + "padding:12px 16px;"
-                + "background:#f0fdf4;"
-                + "border:1px solid #bbf7d0;"
-                + "\">"
-                + "<table width=\"100%\" role=\"presentation\"><tr>"
-                + "<td valign=\"top\" style=\""
-                + "white-space:nowrap;"
-                + "color:#166534;"
-                + "font-size:12px;"
-                + "font-weight:700;"
-                + "letter-spacing:.06em;"
-                + "text-transform:uppercase;"
-                + "\">&#128225; " + escapeHtml(channelHeading) + "</td>"
-                + "<td align=\"right\" style=\"color:#14532d;font-size:14px;font-weight:700;\">"
-                + channelsReadableEsc
-                + "</td>"
-                + "</tr></table>"
-                + "</div>"
- 
-                + "</div>" // end main panel inner div
-                + "</td></tr>"
- 
-                // ── CTA BUTTON ────────────────────────────────────────────
-                + "<tr><td align=\"center\" style=\"padding:8px 32px 28px 32px;\">"
-                + "<a href=\"" + consentLinkEsc + "\" style=\""
-                + "display:inline-block;"
-                + "text-decoration:none;"
-                + "background:#1a6fbf;"
-                + "color:#ffffff;"
-                + "padding:14px 32px;"
-                + "border-radius:6px;"
-                + "font-size:15px;"
-                + "font-weight:700;"
-                + "letter-spacing:.02em;"
-                + "box-shadow:0 2px 8px rgba(26,111,191,.25);"
-                + "\">Review &amp; Respond</a>"
-                + "</td></tr>"
- 
-                // ── FALLBACK URL ──────────────────────────────────────────
-//                + "<tr><td style=\""
-//                + "padding:0 34px 24px 34px;"
-//                + "text-align:center;"
-//                + "color:#8f96a3;"
-//                + "font-size:13px;"
-//                + "line-height:1.7;"
-//                + "\">"
-//                + "If the button does not work, copy and paste this link into your browser:"
-//                + "<div style=\"margin-top:10px;color:#22c1ff;word-break:break-all;\">"
-//                + consentLinkEsc
-//                + "</div>"
-//                + "</td></tr>"
- 
-                // ── FOOTER ────────────────────────────────────────────────
-                + "<tr><td style=\""
-                + "padding:20px 32px 28px 32px;"
-                + "border-top:1px solid #e2e8f0;"
-                + "background:#f8fafc;"
-                + "\">"
-                + "<div style=\"color:#64748b;font-size:13px;line-height:1.8;\">"
+
+
+
+                // ── FOOTER ──────────────────────────────────────────────
+                + "<tr><td bgcolor=\"#F7F8FC\" style=\"background:#F7F8FC;border-top:1px solid #E2E8F0;"
+                + "padding:20px 32px 24px 32px;font-family:" + font + ";\">"
+                + "<div style=\"color:#64748B;font-size:13px;line-height:20px;\">"
                 + "Questions? Contact us at "
-                + "<a href=\"mailto:" + support + "\" style=\"color:#1a6fbf;text-decoration:none;\">" + support + "</a>"
-                + "<br/><br/>"
-                + "If you did not expect this message, you may safely ignore it."
-                + "<br/><br/>"
-                + "<strong style=\"color:#1a2e4a;\">" + org + "</strong>"
+                + "<a href=\"mailto:" + support + "\" style=\"color:#C9561A;font-weight:700;text-decoration:none;\">"
+                + support + "</a>"
                 + "</div>"
+                + "<div style=\"margin-top:8px;color:#94A3B8;font-size:12px;line-height:18px;\">"
+                + "If you did not expect this message, you can safely ignore it.</div>"
+                + "<div style=\"margin-top:14px;color:#45329E;font-size:13px;font-weight:800;\">" + org + "</div>"
                 + "</td></tr>"
- 
-                + "</table>" // end inner card table
+
+                + "</table>" // end card
+                + "<div style=\"margin-top:16px;color:#94A3B8;font-size:11px;font-family:" + font + ";\">"
+                + "Sent securely by Consent<span style=\"color:#EA6B28;font-weight:700;\">IQ</span></div>"
                 + "</td></tr>"
                 + "</table>" // end outer table
                 + "</body></html>";
     }
- 
+
     private static String firstName(String fullName) {
         if (!StringUtils.hasText(fullName)) {
             return "Customer";
@@ -574,7 +224,7 @@ public class ConsentRequestEmailBuilder {
         String[] p = fullName.trim().split("\\s+");
         return p[0];
     }
- 
+
     private static String trimTo(String s, int max) {
         if (s == null) {
             return "";
@@ -582,7 +232,7 @@ public class ConsentRequestEmailBuilder {
         String t = s.trim();
         return t.length() <= max ? t : t.substring(0, max - 1) + "\u2026";
     }
- 
+
     private static String escapeHtml(String s) {
         if (s == null) {
             return "";

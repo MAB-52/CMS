@@ -1,0 +1,4 @@
+/*
+ * The bar is portalled into the shell dock, so it renders outside this component's
+ * host element; styling lives in src/styles/_primeng.scss (.is-action-dock, .decision-bar).
+ */

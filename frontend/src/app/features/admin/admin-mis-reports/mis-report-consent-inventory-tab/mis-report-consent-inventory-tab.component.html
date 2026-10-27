@@ -1,204 +1,80 @@
-<!-- <div class="tab-toolbar">
-  <div class="toolbar-left">
-    <span class="toolbar-title">Consent inventory</span>
-    <span class="toolbar-sub">Templates, channels, and broadcast execution counts</span>
-  </div>
-  <div class="exports">
-    <button mat-stroked-button type="button" [disabled]="exporting()" (click)="exportCsv()">
-      <mat-icon>download</mat-icon> CSV
-    </button>
-    <button mat-stroked-button type="button" [disabled]="exporting()" (click)="exportExcel()">
-      <mat-icon>table_chart</mat-icon> Excel
-    </button>
-  </div>
-</div>
-
-@if (loading() && !bundle()) {
-  <section class="skeleton-panel" aria-hidden="true">
-    <div class="sk-line sk-line--lg"></div>
-    <div class="sk-grid2">
-      <div class="sk-block"></div>
-      <div class="sk-block"></div>
-    </div>
-    <div class="sk-table"></div>
-  </section>
-} @else {
-  @if (bundle(); as b) {
-  <section class="kpi-row charts-row">
-    <div class="panel chart-card">
-      <h3>By status</h3>
-      @if (donutTotal()) {
-        <div class="donut" [style.background]="donutGradient()"></div>
-        <ul class="legend">
-          @for (p of b.consentsByStatus; track p.period) {
-            <li><span class="dot"></span>{{ p.period }} — {{ p.count }}</li>
-          }
-        </ul>
-      } @else {
-        <div class="empty dashed">No templates yet.</div>
-      }
-    </div>
-    <div class="panel chart-card">
-      <h3>By category</h3>
-      <div class="vbar-list">
-        @for (p of b.consentsByCategory; track p.period) {
-          <div class="vbar-row">
-            <span class="vbar-name">{{ p.period }}</span>
-            <div class="vbar-track">
-              <div class="vbar-fill" [style.width.%]="(p.count / categoryMax()) * 100"></div>
-            </div>
-            <span class="vbar-meta">{{ p.count }}</span>
-          </div>
-        } @empty {
-          <div class="empty dashed">No categories.</div>
-        }
-      </div>
-    </div>
-  </section>
-
-  <div class="filters">
-    <mat-form-field appearance="outline" class="ff">
-      <mat-label>Category</mat-label>
-      <mat-select [(ngModel)]="categoryFilter">
-        <mat-option value="">All</mat-option>
-        @for (c of categories; track c) {
-          <mat-option [value]="c">{{ c }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-    <mat-form-field appearance="outline" class="ff">
-      <mat-label>Status</mat-label>
-      <mat-select [(ngModel)]="statusFilter">
-        <mat-option value="">All</mat-option>
-        @for (s of statuses; track s) {
-          <mat-option [value]="s">{{ s }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-    <mat-form-field appearance="outline" class="ff-grow">
-      <mat-label>Search</mat-label>
-      <input matInput [(ngModel)]="search" placeholder="Name or consent ID" />
-    </mat-form-field>
-    <button mat-stroked-button type="button" (click)="apply()">Apply</button>
-  </div>
-
-  <section class="panel">
-    <div class="horiz-scroll">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th><button type="button" class="th-btn" (click)="setSort('consentName')">Name</button></th>
-            <th><button type="button" class="th-btn" (click)="setSort('category')">Category</button></th>
-            <th><button type="button" class="th-btn" (click)="setSort('status')">Status</button></th>
-            <th><button type="button" class="th-btn" (click)="setSort('version')">Ver</button></th>
-            <th><button type="button" class="th-btn" (click)="setSort('createdAt')">Created</button></th>
-            <th>Channels</th>
-            <th>Broadcasts</th>
-            <th>Published</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (r of rows(); track r.consentDbId) {
-            <tr>
-              <td>{{ r.consentName }}</td>
-              <td>{{ r.category }}</td>
-              <td><span [class]="badgeClass(r.status)">{{ r.status }}</span></td>
-              <td>{{ r.version }}</td>
-              <td>{{ r.createdAt | date: 'mediumDate' }}</td>
-              <td class="wrap">{{ r.deliveryChannels?.join(', ') || '—' }}</td>
-              <td>{{ r.totalBroadcastExecutions }}</td>
-              <td>{{ r.publishedAt ? (r.publishedAt | date: 'short') : '—' }}</td>
-            </tr>
-          } @empty {
-            <tr>
-              <td colspan="8" class="empty">
-                @if (loading()) {
-                  Loading…
-                } @else {
-                  <div class="empty-card">
-                    <mat-icon class="ph-icon">inventory_2</mat-icon>
-                    <p>No consent templates match your filters.</p>
-                  </div>
-                }
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-    <div class="pager">
-      <span>Page {{ currentPage() + 1 }} / {{ totalPages() || 1 }}</span>
-      <div>
-        <button mat-stroked-button type="button" [disabled]="currentPage() <= 0 || loading()" (click)="prev()">Previous</button>
-        <button
-          mat-stroked-button
-          type="button"
-          [disabled]="currentPage() >= totalPages() - 1 || loading()"
-          (click)="next()"
-        >
-          Next
-        </button>
-      </div>
-    </div>
-  </section>
-  }
-} -->
-
-
 <!-- ── Toolbar ─────────────────────────────────────────────────── -->
-<div class="tab-toolbar">
-  <div class="toolbar-left">
-    <span class="toolbar-title">Consent inventory</span>
-    <span class="toolbar-sub">Templates, channels, and broadcast execution counts</span>
+<div class="mr-toolbar">
+  <div class="mr-toolbar__text">
+    <span class="mr-toolbar__ico" aria-hidden="true"><i class="pi pi-box"></i></span>
+    <div>
+      <h2 class="mr-toolbar__title">Consent inventory</h2>
+      <p class="mr-toolbar__sub">
+        Templates, channels, and broadcast execution counts
+        @if (bundle()) {
+        <span class="mr-count">{{ totalElements() | number: '1.0-0' }} template{{ totalElements() === 1 ? '' : 's' }}</span>
+        }
+      </p>
+    </div>
   </div>
-  <div class="exports">
-    <button mat-stroked-button type="button" [disabled]="exporting()" (click)="exportCsv()">
-      <mat-icon>download</mat-icon> CSV
-    </button>
-    <button mat-stroked-button type="button" [disabled]="exporting()" (click)="exportExcel()">
-      <mat-icon>table_chart</mat-icon> Excel
-    </button>
+  <div class="mr-exports">
+    <p-button label="CSV" icon="pi pi-download" severity="secondary" [outlined]="true" [rounded]="true"
+      [loading]="exporting() === 'csv'" [disabled]="!!exporting()" pTooltip="Download filtered templates as CSV"
+      tooltipPosition="top" (onClick)="exportCsv()" />
+    <p-button label="Excel" icon="pi pi-file-excel" severity="success" [outlined]="true" [rounded]="true"
+      [loading]="exporting() === 'excel'" [disabled]="!!exporting()" pTooltip="Download filtered templates as Excel"
+      tooltipPosition="top" (onClick)="exportExcel()" />
   </div>
 </div>
-
-<!-- ── Skeleton ───────────────────────────────────────────────── -->
-@if (loading() && !bundle()) {
-<section class="skeleton-panel" aria-hidden="true">
-  <div class="sk-grid2">
-    <div class="sk-block"></div>
-    <div class="sk-block"></div>
-  </div>
-  <div class="sk-table"></div>
-</section>
-} @else {
-
-@if (bundle(); as b) {
 
 <!-- ── Charts row ──────────────────────────────────────────── -->
+@if (!bundle()) {
+<section class="charts-row" aria-hidden="true">
+  <p-skeleton height="300px" borderRadius="24px" />
+  <p-skeleton height="300px" borderRadius="24px" />
+</section>
+} @else {
+@let b = bundle()!;
 <section class="charts-row">
 
-  <!-- By Status — 3-D Doughnut -->
+  <!-- By status — PrimeNG doughnut + interactive legend -->
   <div class="panel chart-card">
-    <h3 class="chart-title">By status</h3>
+    <div class="chart-head">
+      <span class="chart-head__ico" aria-hidden="true"><i class="pi pi-chart-pie"></i></span>
+      <div>
+        <h3 class="chart-title">By status</h3>
+        <p class="chart-sub">Templates grouped by workflow status</p>
+      </div>
+    </div>
+
     @if (donutTotal()) {
-    <div class="pie-wrapper">
-      <div class="pie-container">
-        <canvas id="statusPieCanvas" width="180" height="180" role="img"
-          aria-label="Doughnut chart showing consent templates grouped by status">
-        </canvas>
-        <div class="pie-center">
-          <span class="pie-total">{{ donutTotal() }}</span>
-          <span class="pie-label">total</span>
+    <div class="status-viz">
+      <div class="donut-box">
+        <p-chart #statusChart type="doughnut" [data]="statusChartData()" [options]="statusChartOptions"
+          width="100%" height="100%" ariaLabel="Doughnut chart of consent templates by status" />
+        <!-- Centre shows the total, or the hovered slice's details (replaces a floating tooltip). -->
+        <div class="donut-center" aria-live="polite">
+          @if (activeSlice() !== null && b.consentsByStatus[activeSlice()!]; as s) {
+            <div class="donut-center__slice" [style.--c]="sliceColors[activeSlice()! % sliceColors.length]">
+              <span class="donut-total">{{ s.count }}</span>
+              <span class="donut-slice-name">{{ humanize(s.period) }}</span>
+              <span class="donut-slice-pct">{{ legendPct(s.count) }}%</span>
+            </div>
+          } @else {
+            <div class="donut-center__slice">
+              <span class="donut-total">{{ donutTotal() }}</span>
+              <span class="donut-label">Templates</span>
+            </div>
+          }
         </div>
       </div>
 
-      <ul class="legend">
+      <ul class="status-legend" aria-label="Templates by status">
         @for (p of b.consentsByStatus; track p.period; let i = $index) {
-        <li class="legend-item">
-          <span class="legend-dot" [style.background]="sliceColors[i % sliceColors.length]"></span>
-          <span class="legend-name">{{ p.period }}</span>
-          <span class="legend-pct">{{ legendPct(p.count) }}%</span>
-          <span class="legend-count">{{ p.count }}</span>
+        <li class="status-legend__item" [class.status-legend__item--active]="activeSlice() === i"
+          [style.--c]="sliceColors[i % sliceColors.length]"
+          (mouseenter)="highlightSlice(i)" (mouseleave)="highlightSlice(null)"
+          (focus)="highlightSlice(i)" (blur)="highlightSlice(null)" tabindex="0">
+          <span class="status-legend__dot" aria-hidden="true"></span>
+          <span class="status-legend__name">{{ humanize(p.period) }}</span>
+          <span class="status-legend__count">{{ p.count }}</span>
+          <span class="status-legend__pct">{{ legendPct(p.count) }}%</span>
+          <p-progressbar class="status-legend__bar" [value]="legendPct(p.count)" [showValue]="false" />
         </li>
         }
       </ul>
@@ -208,17 +84,23 @@
     }
   </div>
 
-  <!-- By Category — horizontal bars -->
+  <!-- By category — bars -->
   <div class="panel chart-card">
-    <h3 class="chart-title">By category</h3>
-    <div class="vbar-list">
-      @for (p of b.consentsByCategory; track p.period) {
-      <div class="vbar-row">
-        <span class="vbar-name">{{ p.period }}</span>
-        <div class="vbar-track">
-          <div class="vbar-fill" [style.width.%]="(p.count / categoryMax()) * 100"></div>
+    <div class="chart-head">
+      <span class="chart-head__ico chart-head__ico--alt" aria-hidden="true"><i class="pi pi-tags"></i></span>
+      <div>
+        <h3 class="chart-title">By category</h3>
+        <p class="chart-sub">Where your templates are concentrated</p>
+      </div>
+    </div>
+    <div class="cat-list">
+      @for (p of b.consentsByCategory; track p.period; let i = $index) {
+      <div class="cat-row" [style.--c]="sliceColors[(i + 1) % sliceColors.length]" [style.--i]="i">
+        <div class="cat-row__top">
+          <span class="cat-row__name">{{ humanize(p.period) }}</span>
+          <span class="cat-row__count">{{ p.count }} <small>{{ p.count === 1 ? 'template' : 'templates' }}</small></span>
         </div>
-        <span class="vbar-meta">{{ p.count }}</span>
+        <p-progressbar class="cat-row__bar" [value]="(p.count / categoryMax()) * 100" [showValue]="false" />
       </div>
       } @empty {
       <div class="empty dashed">No categories.</div>
@@ -226,172 +108,183 @@
     </div>
   </div>
 </section>
+}
 
 <!-- ── Filters ─────────────────────────────────────────────── -->
-<div class="filters">
-  <mat-form-field appearance="outline" class="ff">
-    <mat-label>Category</mat-label>
-    <mat-select [(ngModel)]="categoryFilter">
-      <mat-option value="">All</mat-option>
-      @for (c of categories; track c) {
-      <mat-option [value]="c">{{ c }}</mat-option>
-      }
-    </mat-select>
-  </mat-form-field>
+<form class="mr-card inv-filters" style="--d: 60ms" (ngSubmit)="apply()">
+  <div class="mr-field">
+    <label class="mr-field__label" for="inv-cat">Category</label>
+    <p-select inputId="inv-cat" name="category" [(ngModel)]="categoryFilter" [options]="categoryOptions"
+      optionLabel="label" optionValue="value" appendTo="body" styleClass="mr-input">
+      <ng-template #selectedItem let-o>
+        <span class="mr-opt"><i [class]="o.icon" [style.color]="o.color"></i>{{ o.label }}</span>
+      </ng-template>
+      <ng-template #item let-o>
+        <span class="mr-opt"><i [class]="o.icon" [style.color]="o.color"></i>{{ o.label }}</span>
+      </ng-template>
+    </p-select>
+  </div>
 
-  <mat-form-field appearance="outline" class="ff">
-    <mat-label>Status</mat-label>
-    <mat-select [(ngModel)]="statusFilter">
-      <mat-option value="">All</mat-option>
-      @for (s of statuses; track s) {
-      <mat-option [value]="s">{{ s }}</mat-option>
-      }
-    </mat-select>
-  </mat-form-field>
+  <div class="mr-field">
+    <label class="mr-field__label" for="inv-status">Status</label>
+    <p-select inputId="inv-status" name="status" [(ngModel)]="statusFilter" [options]="statusOptions"
+      optionLabel="label" optionValue="value" appendTo="body" styleClass="mr-input">
+      <ng-template #selectedItem let-o>
+        <span class="mr-opt"><i [class]="o.icon" [attr.data-sev]="o.severity"></i>{{ o.label }}</span>
+      </ng-template>
+      <ng-template #item let-o>
+        <span class="mr-opt"><i [class]="o.icon" [attr.data-sev]="o.severity"></i>{{ o.label }}</span>
+      </ng-template>
+    </p-select>
+  </div>
 
-  <mat-form-field appearance="outline" class="ff-grow">
-    <mat-label>Search</mat-label>
-    <input matInput [(ngModel)]="search" placeholder="Name or consent ID" />
-    <mat-icon matSuffix>search</mat-icon>
-  </mat-form-field>
+  <div class="mr-field inv-filters__search">
+    <label class="mr-field__label" for="inv-search">Search</label>
+    <p-iconfield class="inv-search">
+      <p-inputicon class="pi pi-search" />
+      <input pInputText id="inv-search" name="search" type="text" [(ngModel)]="search"
+        placeholder="Name or consent ID…" autocomplete="off" />
+    </p-iconfield>
+  </div>
 
-  <button mat-flat-button color="primary" type="button" (click)="apply()">Apply</button>
-</div>
+  <div class="inv-filters__actions">
+    @if (activeFilterCount()) {
+    <p-button type="button" label="Reset" icon="pi pi-filter-slash" [outlined]="true" [rounded]="true"
+      styleClass="mr-btn-outline" pTooltip="Clear all filters" tooltipPosition="top" (onClick)="reset()" />
+    }
+    <p-button type="submit" label="Apply" icon="pi pi-check" [rounded]="true" [loading]="loading()"
+      styleClass="mr-btn-primary" />
+  </div>
+</form>
 
 <!-- ── Table ───────────────────────────────────────────────── -->
-<section class="panel table-panel">
-  <div class="horiz-scroll">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>
-            <button type="button" class="th-btn" (click)="setSort('consentName')">
-              Name
-              <mat-icon class="sort-icon" [class.sort-icon--active]="sortBy() === 'consentName'">
-                {{ sortIcon('consentName') }}
-              </mat-icon>
-            </button>
-          </th>
-          <th>
-            <button type="button" class="th-btn" (click)="setSort('category')">
-              Category
-              <mat-icon class="sort-icon" [class.sort-icon--active]="sortBy() === 'category'">
-                {{ sortIcon('category') }}
-              </mat-icon>
-            </button>
-          </th>
-          <th>
-            <button type="button" class="th-btn" (click)="setSort('status')">
-              Status
-              <mat-icon class="sort-icon" [class.sort-icon--active]="sortBy() === 'status'">
-                {{ sortIcon('status') }}
-              </mat-icon>
-            </button>
-          </th>
-          <th>
-            <button type="button" class="th-btn" (click)="setSort('version')">
-              Ver
-              <mat-icon class="sort-icon" [class.sort-icon--active]="sortBy() === 'version'">
-                {{ sortIcon('version') }}
-              </mat-icon>
-            </button>
-          </th>
-          <th>
-            <button type="button" class="th-btn" (click)="setSort('createdAt')">
-              Created
-              <mat-icon class="sort-icon" [class.sort-icon--active]="sortBy() === 'createdAt'">
-                {{ sortIcon('createdAt') }}
-              </mat-icon>
-            </button>
-          </th>
-          <th>Channels</th>
-          <th>
-            <button type="button" class="th-btn" (click)="setSort('totalBroadcastExecutions')">
-              Broadcasts
-              <mat-icon class="sort-icon" [class.sort-icon--active]="sortBy() === 'totalBroadcastExecutions'">
-                {{ sortIcon('totalBroadcastExecutions') }}
-              </mat-icon>
-            </button>
-          </th>
-          <th>
-            <button type="button" class="th-btn" (click)="setSort('publishedAt')">
-              Published
-              <mat-icon class="sort-icon" [class.sort-icon--active]="sortBy() === 'publishedAt'">
-                {{ sortIcon('publishedAt') }}
-              </mat-icon>
-            </button>
-          </th>
-        </tr>
-      </thead>
+<section class="mr-card mr-card--flush" [class.mr-busy]="loading() && rows().length" style="--d: 120ms">
+  <div class="mr-progress" [class.mr-progress--on]="loading()">
+    <p-progressbar mode="indeterminate" />
+  </div>
 
-      <tbody>
-        @for (r of rows(); track r.consentDbId) {
-        <tr class="data-row">
-          <td class="td-name">
-            <span class="name-text" [matTooltip]="r.consentName">{{ r.consentName }}</span>
-          </td>
-          <td>
-            <span class="category-pill">{{ r.category }}</span>
-          </td>
-          <td>
-            <span [class]="badgeClass(r.status)">
-              <span class="badge-dot"></span>
-              {{ formatStatus(r.status) }}
+  <p-table [value]="rows()" dataKey="consentDbId" [lazy]="true" (onLazyLoad)="onLazyLoad($event)"
+    [paginator]="true" [rows]="pageSize()" [first]="currentPage() * pageSize()" [totalRecords]="totalElements()"
+    [rowsPerPageOptions]="[10, 25, 50]" paginatorDropdownAppendTo="body" [showCurrentPageReport]="true"
+    currentPageReportTemplate="Showing {first}–{last} of {totalRecords}" sortField="consentName" [sortOrder]="1"
+    [rowHover]="true" styleClass="mr-table inv-table" [tableStyle]="{ 'min-width': '68rem', 'table-layout': 'fixed' }">
+
+    <ng-template #colgroup>
+      <colgroup>
+        <col style="width: 21%" />
+        <col style="width: 12%" />
+        <col style="width: 14%" />
+        <col style="width: 8%" />
+        <col style="width: 11%" />
+        <col style="width: 13%" />
+        <col style="width: 10%" />
+        <col style="width: 11%" />
+      </colgroup>
+    </ng-template>
+
+    <ng-template #header>
+      <tr>
+        <th pSortableColumn="consentName" pTooltip="Consent template name and ID — click to sort" tooltipPosition="top">
+          Consent <p-sortIcon field="consentName" /></th>
+        <th pSortableColumn="category" pTooltip="Template category — click to sort" tooltipPosition="top">
+          Category <p-sortIcon field="category" /></th>
+        <th pSortableColumn="status" pTooltip="Current workflow status — click to sort" tooltipPosition="top">
+          Status <p-sortIcon field="status" /></th>
+        <th pSortableColumn="version" pTooltip="Template version — click to sort" tooltipPosition="top">
+          Ver. <p-sortIcon field="version" /></th>
+        <th pSortableColumn="createdAt" pTooltip="When the template was created — click to sort" tooltipPosition="top">
+          Created <p-sortIcon field="createdAt" /></th>
+        <th pTooltip="Delivery channels enabled for this template" tooltipPosition="top">Channels</th>
+        <th pSortableColumn="totalBroadcastExecutions" pTooltip="Rule executions that used this template — click to sort"
+          tooltipPosition="top">Broadcasts <p-sortIcon field="totalBroadcastExecutions" /></th>
+        <th pSortableColumn="publishedAt" pTooltip="When the template went live — click to sort" tooltipPosition="top">
+          Published <p-sortIcon field="publishedAt" /></th>
+      </tr>
+    </ng-template>
+
+    <ng-template #body let-r let-i="rowIndex">
+      @let st = statusMeta(r.status);
+      @let cat = categoryMeta(r.category);
+      <tr class="mr-row" [style.--i]="i % pageSize()">
+        <td [pTooltip]="r.consentName + ' · ' + r.consentId" tooltipPosition="top">
+          <div class="inv-name">
+            <span class="inv-name__text">{{ r.consentName }}</span>
+            <span class="mr-mono">{{ r.consentId }}</span>
+          </div>
+        </td>
+        <td [pTooltip]="'Category: ' + humanize(r.category)" tooltipPosition="top">
+          <span class="inv-cat" [style.--c]="cat.color"><i [class]="cat.icon"></i>{{ humanize(r.category) }}</span>
+        </td>
+        <td [pTooltip]="'Status: ' + humanize(r.status)" tooltipPosition="top">
+          <p-tag [value]="humanize(r.status)" [severity]="st.severity" [icon]="st.icon" [rounded]="true" />
+        </td>
+        <td [pTooltip]="'Version ' + r.version" tooltipPosition="top">
+          <span class="inv-ver"><i class="pi pi-code-branch"></i>v{{ r.version }}</span>
+        </td>
+        <td [pTooltip]="'Created ' + (r.createdAt | date: 'medium')" tooltipPosition="top">
+          <div class="inv-stack">
+            <span class="mr-line"><i class="pi pi-calendar"></i>{{ r.createdAt | date: 'dd MMM yyyy' }}</span>
+            <span class="mr-rel">{{ relative(r.createdAt) }}</span>
+          </div>
+        </td>
+        <td [pTooltip]="r.deliveryChannels?.length ? r.deliveryChannels.length + ' channel' + (r.deliveryChannels.length === 1 ? '' : 's') + ': ' + r.deliveryChannels.join(', ') : 'No channels configured'"
+          tooltipPosition="top">
+          <div class="inv-channels">
+            @for (ch of r.deliveryChannels; track ch; let j = $index) {
+            @let cv = channelVisual(ch);
+            <span class="inv-ch" [style.--c]="cv.color" [style.--j]="j" [pTooltip]="humanize(ch)" tooltipPosition="top">
+              <i [class]="cv.icon"></i>
             </span>
-          </td>
-          <td>
-            <span class="version-pill">v{{ r.version }}</span>
-          </td>
-          <td class="td-muted">{{ r.createdAt | date: 'dd MMM yyyy' }}</td>
-          <td class="td-channels">{{ r.deliveryChannels?.join(', ') || '—' }}</td>
-          <td class="td-num">{{ r.totalBroadcastExecutions | number:'1.0-0' }}</td>
-          <td class="td-muted">{{ r.publishedAt ? (r.publishedAt | date: 'dd MMM yyyy') : '—' }}</td>
-        </tr>
-        } @empty {
-        <tr>
-          <td colspan="8" class="empty-row">
-            @if (loading()) {
-            <span>Loading…</span>
-            } @else {
-            <div class="empty-card">
-              <mat-icon class="ph-icon">inventory_2</mat-icon>
-              <p>No consent templates match your filters.</p>
-            </div>
+            } @empty { <span class="mr-dash">—</span> }
+          </div>
+        </td>
+        <td tooltipPosition="top"
+          [pTooltip]="r.totalBroadcastExecutions ? (r.totalBroadcastExecutions | number: '1.0-0') + ' broadcast execution' + (r.totalBroadcastExecutions === 1 ? '' : 's') : 'Not used in any broadcast yet'">
+          <span class="inv-bc" [class.inv-bc--on]="r.totalBroadcastExecutions > 0">
+            <i class="pi pi-megaphone"></i>{{ r.totalBroadcastExecutions | number: '1.0-0' }}
+          </span>
+        </td>
+        <td tooltipPosition="top"
+          [pTooltip]="r.publishedAt ? 'Published ' + (r.publishedAt | date: 'medium') : 'Not published yet'">
+          @if (r.publishedAt) {
+          <div class="inv-stack">
+            <span class="mr-line inv-pub"><i class="pi pi-globe"></i>{{ r.publishedAt | date: 'dd MMM yyyy' }}</span>
+            <span class="mr-rel">{{ relative(r.publishedAt) }}</span>
+          </div>
+          } @else { <span class="mr-dash">Not published</span> }
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template #emptymessage>
+      @if (loading()) {
+      @for (s of skeletonRows; track s) {
+      <tr class="inv-skel">
+        <td><div class="mr-skel-stack"><p-skeleton width="10rem" /><p-skeleton width="6rem" height=".7rem" /></div></td>
+        <td><p-skeleton width="7rem" height="1.6rem" borderRadius="999px" /></td>
+        <td><p-skeleton width="7rem" height="1.6rem" borderRadius="999px" /></td>
+        <td><p-skeleton width="3rem" height="1.6rem" borderRadius="999px" /></td>
+        <td><p-skeleton width="6rem" /></td>
+        <td><p-skeleton width="6rem" height="1.6rem" borderRadius="999px" /></td>
+        <td><p-skeleton width="3.5rem" height="1.6rem" borderRadius="999px" /></td>
+        <td><p-skeleton width="6rem" /></td>
+      </tr>
+      }
+      } @else {
+      <tr>
+        <td colspan="8">
+          <div class="mr-empty">
+            <span class="mr-empty__ico"><i class="pi pi-box"></i></span>
+            <p class="mr-empty__title">No consent templates match your filters</p>
+            <p class="mr-empty__sub">Try a different category, status or search term.</p>
+            @if (activeFilterCount()) {
+            <p-button label="Clear filters" icon="pi pi-filter-slash" [outlined]="true" [rounded]="true"
+              styleClass="mr-btn-outline" (onClick)="reset()" />
             }
-          </td>
-        </tr>
-        }
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Pagination -->
-  <div class="pager">
-    <span class="pager-info">
-      Page <strong>{{ currentPage() + 1 }}</strong> of <strong>{{ totalPages() || 1 }}</strong>
-      &nbsp;·&nbsp; {{ rows().length }} rows
-    </span>
-    <div class="pager-btns">
-      <button mat-stroked-button type="button" [disabled]="currentPage() <= 0 || loading()" (click)="prev()">
-        <mat-icon>chevron_left</mat-icon> Previous
-      </button>
-      <button mat-stroked-button type="button" [disabled]="currentPage() >= totalPages() - 1 || loading()"
-        (click)="next()">
-        Next <mat-icon>chevron_right</mat-icon>
-      </button>
-    </div>
-  </div>
+          </div>
+        </td>
+      </tr>
+      }
+    </ng-template>
+  </p-table>
 </section>
-
-} <!-- end bundle -->
-} <!-- end skeleton/else -->
-
-<!-- ── Pie Tooltip (fixed overlay) ───────────────────────────── -->
-@if (tooltipVisible()) {
-<div class="pie-tooltip" [style.left.px]="tooltipX()" [style.top.px]="tooltipY()">
-  <span class="pie-tooltip-label">{{ tooltipLabel() }}</span>
-  <span class="pie-tooltip-body">
-    {{ tooltipCount() }} templates &nbsp;·&nbsp; {{ tooltipPct() }}%
-  </span>
-</div>
-}

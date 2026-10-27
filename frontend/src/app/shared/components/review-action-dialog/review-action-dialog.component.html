@@ -3,8 +3,8 @@
 
   <div class="head">
     @if (data.icon) {
-      <div class="icon-wrap" [attr.data-color]="data.confirmColor" aria-hidden="true">
-        <mat-icon class="ico">{{ materialIcon() }}</mat-icon>
+      <div class="icon-wrap" aria-hidden="true">
+        <i [class]="iconClass()"></i>
       </div>
     }
 
@@ -13,44 +13,58 @@
       <p class="head-sub">Your comment is recorded in the audit trail and shared with the maker.</p>
     </div>
 
-    <button type="button" class="close-x" mat-dialog-close aria-label="Close dialog">
-      <mat-icon>close</mat-icon>
-    </button>
+    <p-button
+      icon="pi pi-times"
+      [rounded]="true"
+      [text]="true"
+      severity="secondary"
+      ariaLabel="Close dialog"
+      styleClass="close-x"
+      (onClick)="cancel()"
+    />
   </div>
 
-  <mat-dialog-content class="content">
-    <mat-form-field appearance="outline" floatLabel="always" class="full">
-      <mat-label>{{ data.textareaLabel }}</mat-label>
-      <textarea
-        matInput
-        rows="4"
-        [formControl]="text"
-        [placeholder]="data.placeholder"
-      ></textarea>
-      <mat-hint align="end">
-        {{ (text.value || '').length }} / min {{ data.minLength }}
-      </mat-hint>
-    </mat-form-field>
+  <div class="content">
+    <label class="field-label" [for]="inputId">{{ data.textareaLabel }}<span class="req" aria-hidden="true">*</span></label>
+    <textarea
+      pTextarea
+      [id]="inputId"
+      rows="4"
+      [autoResize]="true"
+      [formControl]="text"
+      [placeholder]="data.placeholder"
+      [invalid]="submitted && text.invalid"
+      class="reason"
+    ></textarea>
+    <div class="hint" [class.hint--ok]="(text.value || '').trim().length >= data.minLength">
+      {{ (text.value || '').trim().length }} / min {{ data.minLength }} characters
+    </div>
 
     @if (data.showFlagCombo && data.currentChannel && data.currentLanguage) {
-      <mat-checkbox class="flag-combo-checkbox" [formControl]="flagCombo">
-        Flag current combination:
-        {{ data.currentChannel }} / {{ languageLabel(data.currentLanguage) }}
-      </mat-checkbox>
+      <label class="flag-combo">
+        <p-checkbox [formControl]="flagCombo" [binary]="true" inputId="flag-combo" />
+        <span>
+          Flag current combination:
+          <strong>{{ data.currentChannel }} / {{ languageLabel(data.currentLanguage) }}</strong>
+        </span>
+      </label>
     }
 
     @if (submitted && text.invalid) {
-      <p class="err" role="alert"><mat-icon aria-hidden="true">error_outline</mat-icon>Please enter at least {{ data.minLength }} characters.</p>
+      <p-message severity="error" icon="pi pi-exclamation-circle" styleClass="err">
+        Please enter at least {{ data.minLength }} characters.
+      </p-message>
     }
-  </mat-dialog-content>
+  </div>
 
-  <mat-dialog-actions class="actions">
-    <button type="button" mat-stroked-button class="cancel-btn" mat-dialog-close>
-      Cancel
-    </button>
-
-    <button type="button" mat-flat-button class="confirm-btn" (click)="submit()">
-      {{ data.confirmLabel }}
-    </button>
-  </mat-dialog-actions>
+  <div class="actions">
+    <p-button label="Cancel" severity="secondary" [outlined]="true" [rounded]="true" (onClick)="cancel()" />
+    <p-button
+      [label]="data.confirmLabel"
+      [severity]="confirmSeverity()"
+      [rounded]="true"
+      styleClass="confirm-btn"
+      (onClick)="submit()"
+    />
+  </div>
 </div>

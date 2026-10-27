@@ -9,6 +9,7 @@ import { Consent } from '../../../core/models/consent.model';
 import { ConsentService } from '../../../core/services/consent.service';
 import { ChannelId, getChannels } from '../../../core/utils/channel.util';
 import { ConsentTypeLabelPipe } from '../../../shared/pipes/consent-type-label.pipe';
+import { ChannelChipComponent } from '../../../shared/components/channel-chip/channel-chip.component';
 
 const CHANNEL_CHIP_LABEL: Record<ChannelId, string> = {
   EMAIL: 'Email',
@@ -29,6 +30,7 @@ export type SortOption = 'date' | 'name' | 'type';
     MatIconModule,
     DatePipe,
     ConsentTypeLabelPipe,
+    ChannelChipComponent
   ],
   templateUrl: './linked-approvals.component.html',
   styleUrls: ['../checker-shared.css', './linked-approvals.component.css'],

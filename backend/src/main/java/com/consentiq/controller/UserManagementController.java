@@ -132,9 +132,12 @@ public class UserManagementController {
                 cu);
         log.debug("Entering deleteUser | params: id={}", id);
         log.info("User={} | action=deleteUser | entity=User | id={}", cu, id);
-        userManagementService.deleteUser(id);
-        ResponseEntity<ApiResponse<Void>> result =
-                ResponseEntity.ok(ApiResponse.success("User deleted successfully", null));
+        boolean archived = userManagementService.deleteUser(id);
+        ResponseEntity<ApiResponse<Void>> result = ResponseEntity.ok(ApiResponse.success(
+                archived
+                        ? "User deleted. Their activity history is kept for audit purposes."
+                        : "User deleted successfully",
+                null));
         log.debug("Exiting deleteUser | result={}", result.getStatusCode());
         return result;
     }

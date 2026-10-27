@@ -23,18 +23,18 @@ export class MakerLayoutComponent implements OnInit {
     {
       label: 'Workspace',
       items: [
-        { label: 'Dashboard', icon: 'dashboard', link: '/maker/dashboard' },
-        { label: 'My Consents', icon: 'assignment', link: '/maker/consents', exact: true, count: this.revisionCount() },
-        { label: 'Create Consent', icon: 'edit_note', link: '/maker/consents/new', tag: '+ NEW' },
+        { label: 'Dashboard', icon: 'pi pi-th-large', link: '/maker/dashboard' },
+        { label: 'My Consents', icon: 'pi pi-folder-open', link: '/maker/consents', exact: true, count: this.revisionCount() },
+        { label: 'Create Consent', icon: 'pi pi-file-plus', link: '/maker/consents/new', tag: '+ NEW' },
       ],
     },
     {
       label: 'Automation',
-      items: [{ label: 'Broadcast Rule', icon: 'rule', link: '/maker/rules' }],
+      items: [{ label: 'Broadcast Rule', icon: 'pi pi-megaphone', link: '/maker/rules' }],
     },
     {
       label: 'Activity',
-      items: [{ label: 'Audit Trail', icon: 'history', link: '/maker/audit' }],
+      items: [{ label: 'Audit Trail', icon: 'pi pi-history', link: '/maker/audit' }],
     },
   ]);
 

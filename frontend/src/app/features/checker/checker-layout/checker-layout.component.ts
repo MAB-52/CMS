@@ -28,11 +28,11 @@ export class CheckerLayoutComponent implements OnInit {
     {
       label: 'Review Queue',
       items: [
-        { label: 'Dashboard', icon: 'dashboard', link: '/checker/dashboard' },
-        { label: 'Pending Consents', icon: 'pending_actions', link: '/checker/pending' },
-        { label: 'Linked consent + rule', icon: 'link', link: '/checker/linked-pending' },
-        { label: 'Pending Broadcast Rules', icon: 'rule', link: '/checker/rules/pending' },
-        { label: 'Review History', icon: 'history', link: '/checker/history' },
+        { label: 'Dashboard', icon: 'pi pi-th-large', link: '/checker/dashboard' },
+        { label: 'Pending Consents', icon: 'pi pi-hourglass', link: '/checker/pending' },
+        { label: 'Linked consent + rule', icon: 'pi pi-link', link: '/checker/linked-pending' },
+        { label: 'Pending Broadcast Rules', icon: 'pi pi-megaphone', link: '/checker/rules/pending' },
+        { label: 'Review History', icon: 'pi pi-history', link: '/checker/history' },
       ],
     },
   ];

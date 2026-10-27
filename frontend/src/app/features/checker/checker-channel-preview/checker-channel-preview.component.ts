@@ -8,6 +8,7 @@ import { CommonModule } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { MergeTag } from '../../../core/models/consent.model';
+import { CHANNEL_META } from '../../../core/utils/channel.util';
 
 type ChannelId = 'EMAIL' | 'SMS' | 'PUSH' | 'WHATSAPP' | 'RCS';
 
@@ -32,11 +33,11 @@ export class CheckerChannelPreviewComponent implements OnChanges {
   activeTab = 0;
 
   readonly channelMeta: Record<ChannelId, { icon: string; name: string }> = {
-    EMAIL:    { icon: '📧', name: 'Email' },
-    SMS:      { icon: '📱', name: 'SMS' },
-    PUSH:     { icon: '🔔', name: 'Push' },
-    WHATSAPP: { icon: '💬', name: 'WhatsApp' },
-    RCS:      { icon: '🌐', name: 'RCS' },
+    EMAIL:    { icon: CHANNEL_META.EMAIL.icon,    name: CHANNEL_META.EMAIL.label },
+    SMS:      { icon: CHANNEL_META.SMS.icon,      name: CHANNEL_META.SMS.label },
+    PUSH:     { icon: CHANNEL_META.PUSH.icon,     name: CHANNEL_META.PUSH.label },
+    WHATSAPP: { icon: CHANNEL_META.WHATSAPP.icon, name: CHANNEL_META.WHATSAPP.label },
+    RCS:      { icon: CHANNEL_META.RCS.icon,      name: CHANNEL_META.RCS.label },
   };
 
   get activeChannels(): ChannelId[] {
@@ -57,8 +58,7 @@ export class CheckerChannelPreviewComponent implements OnChanges {
   }
 
   tabLabel(id: ChannelId): string {
-    const m = this.channelMeta[id];
-    return `${m.icon} ${m.name}`;
+    return this.channelMeta[id].name;
   }
 
   processedEmailHtml(): SafeHtml {

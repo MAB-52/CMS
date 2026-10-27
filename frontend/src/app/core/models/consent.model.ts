@@ -39,7 +39,7 @@ export interface Consent {
   channelRcs: boolean;
   tagsUsed: string[];
   searchTags: string;
-  createdBy: UserSummary;
+  createdBy: UserSummary | null;
   submittedAt: string;
   reviewedBy: UserSummary;
   reviewedAt: string;

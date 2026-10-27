@@ -1,19 +1,40 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { DatePipe, DecimalPipe } from '@angular/common';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatTableModule } from '@angular/material/table';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { HttpErrorResponse } from '@angular/common/http';
+import { RouterLink } from '@angular/router';
+import { AvatarModule } from 'primeng/avatar';
+import { ButtonModule } from 'primeng/button';
+import { DatePickerModule } from 'primeng/datepicker';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
+import { InputTextModule } from 'primeng/inputtext';
+import { ProgressBarModule } from 'primeng/progressbar';
+import { SelectModule } from 'primeng/select';
+import { SelectButtonModule } from 'primeng/selectbutton';
+import { SkeletonModule } from 'primeng/skeleton';
+import { TableLazyLoadEvent, TableModule } from 'primeng/table';
+import { TooltipModule } from 'primeng/tooltip';
+import {
+  AuditLogEntry,
+  MakerTrailScope,
+  MakerTrailSummary,
+  ReviewTypeFilter,
+} from '../../../core/models/audit.model';
 import { AuditService } from '../../../core/services/audit.service';
-import { LoggerService } from '../../../core/services/logger.service';
-import { AuditLogEntry } from '../../../core/models/audit.model';
-import { TimeAgoPipe } from '../../../shared/pipes/time-ago.pipe';
-import { NgIf } from '@angular/common';
+import { AuthService } from '../../../core/services/auth.service';
 
-// Actions that represent a checker decision on something the maker submitted
+interface ActionMeta {
+  label: string;
+  icon: string;
+  color: string;
+}
+
+interface EntityMeta {
+  label: string;
+  icon: string;
+  color: string;
+}
+
 const CHECKER_DECISION_ACTIONS = new Set<string>([
   'CONSENT_APPROVED',
   'CONSENT_REJECTED',
@@ -27,136 +48,211 @@ const CHECKER_DECISION_ACTIONS = new Set<string>([
   'RULE_REVISION_REQUESTED',
 ]);
 
-type AuditTypeFilter = 'all' | 'consents' | 'broadcasts' | 'rules' | 'decisions';
+const ACTION_TONES: [RegExp, Omit<ActionMeta, 'label'>][] = [
+  [/REJECT|FAIL|ERROR|CANCEL/, { icon: 'pi pi-times-circle', color: 'var(--is-danger)' }],
+  [/DELETE|REMOVE|REVOK|WITHDRAW/, { icon: 'pi pi-trash', color: 'var(--is-danger)' }],
+  [/REVISION/, { icon: 'pi pi-replay', color: 'var(--is-secondary)' }],
+  [/APPROV|PUBLISH|COMPLET|ACCEPT|ACTIVAT/, { icon: 'pi pi-check-circle', color: 'var(--is-success)' }],
+  [/SUBMIT|SEND|SENT|REQUEST/, { icon: 'pi pi-send', color: 'var(--is-blue)' }],
+  [/UPDAT|EDIT|CHANG|MODIF/, { icon: 'pi pi-pencil', color: 'var(--is-warning)' }],
+  [/CREAT|ADD|UPLOAD/, { icon: 'pi pi-plus-circle', color: 'var(--is-primary)' }],
+  [/RUN|EXECUT|TRIGGER|START/, { icon: 'pi pi-play-circle', color: 'var(--is-teal)' }],
+];
+
+const ENTITIES: Record<string, EntityMeta> = {
+  CONSENT: { label: 'Consent', icon: 'pi pi-file-check', color: 'var(--is-primary)' },
+  CONSENT_RULE: { label: 'Rule', icon: 'pi pi-sitemap', color: 'var(--is-teal)' },
+  BROADCAST_REQUEST: { label: 'Broadcast', icon: 'pi pi-megaphone', color: 'var(--is-pink)' },
+};
+
+const AVATAR_COLORS = ['#45329E', '#0D6EFD', '#D63384', '#20C997', '#EA6B28', '#6F42C1', '#0DCAF0'];
+const DAY_MS = 86_400_000;
 
 @Component({
   selector: 'app-audit-trail',
   standalone: true,
   imports: [
-    NgIf,
-    MatCardModule,
-    MatTableModule,
-    MatButtonModule,
-    MatIconModule,
-    MatTooltipModule,
-    RouterLink,
+    DatePipe,
+    DecimalPipe,
     FormsModule,
-    TimeAgoPipe,
+    RouterLink,
+    AvatarModule,
+    ButtonModule,
+    DatePickerModule,
+    IconFieldModule,
+    InputIconModule,
+    InputTextModule,
+    ProgressBarModule,
+    SelectModule,
+    SelectButtonModule,
+    SkeletonModule,
+    TableModule,
+    TooltipModule,
   ],
   templateUrl: './audit-trail.component.html',
-  styleUrl: './audit-trail.component.css',
+  styleUrls: ['../../admin/shared/report-kit.css', './audit-trail.component.css'],
 })
-export class AuditTrailComponent implements OnInit {
+export class AuditTrailComponent {
   private readonly auditService = inject(AuditService);
-  private readonly logger = inject(LoggerService);
+  private readonly auth = inject(AuthService);
+  private readonly relTime = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+
+  readonly currentUserId = this.auth.getCurrentUser()?.id ?? null;
+  readonly today = new Date();
 
   readonly rows = signal<AuditLogEntry[]>([]);
-  readonly loading = signal(true);
+  readonly summary = signal<MakerTrailSummary | null>(null);
+  readonly loading = signal(false);
   readonly page = signal(0);
-  readonly size = signal(20);
-  readonly hasNext = signal(false);
-  readonly typeFilter = signal<AuditTypeFilter>('all');
+  readonly size = signal(15);
+  readonly totalElements = signal(0);
+  readonly skeletonRows = Array.from({ length: 6 }, (_, i) => i);
 
-  displayedColumns = ['action', 'description', 'entity', 'status' ,'checker', 'when'] as const;
+  expandedRows: Record<number, boolean> = {};
 
-  readonly displayedRows = computed(() => {
-    const tf = this.typeFilter();
-    const list = this.rows();
-    if (tf === 'all') {
-      return list;
-    }
-    if (tf === 'decisions') {
-      return list.filter((e) => CHECKER_DECISION_ACTIONS.has(e.action));
-    }
-    return list.filter((e) => this.matchesTypeFilter(e, tf));
+  scope: MakerTrailScope = 'ALL';
+  type: ReviewTypeFilter = 'ALL';
+  search = '';
+  range: Date[] | null = null;
+
+  readonly scopeOptions = computed(() => {
+    const s = this.summary();
+    return [
+      { value: 'ALL', label: 'All activity', icon: 'pi pi-list', count: s?.total },
+      { value: 'MINE', label: 'My actions', icon: 'pi pi-user', count: s?.myActions },
+      { value: 'DECISIONS', label: 'Checker decisions', icon: 'pi pi-verified', count: s?.checkerDecisions },
+    ];
   });
 
-  ngOnInit(): void {
-    this.reload();
-  }
+  readonly typeOptions: { value: ReviewTypeFilter; label: string; icon: string; color: string }[] = [
+    { value: 'ALL', label: 'All items', icon: 'pi pi-th-large', color: 'var(--is-text-2)' },
+    { value: 'CONSENT', label: 'Consents', ...this.pick(ENTITIES['CONSENT']) },
+    { value: 'RULE', label: 'Rules', ...this.pick(ENTITIES['CONSENT_RULE']) },
+    { value: 'BROADCAST', label: 'Broadcasts', ...this.pick(ENTITIES['BROADCAST_REQUEST']) },
+  ];
 
-  reload(): void {
+  load(): void {
     this.loading.set(true);
-    this.auditService.getMyActivity(this.page(), this.size()).subscribe({
-      next: (res) => {
-        this.loading.set(false);
-        if (!res.success || !res.data) {
+    const [start, end] = this.range ?? [];
+    const last = end ?? start;
+    this.auditService
+      .getMakerTrail({
+        page: this.page(),
+        size: this.size(),
+        scope: this.scope,
+        type: this.type,
+        search: this.search,
+        from: start ? this.startOfDay(start).toISOString() : undefined,
+        to: last ? new Date(this.startOfDay(last).getTime() + DAY_MS).toISOString() : undefined,
+      })
+      .subscribe({
+        next: (res) => {
+          this.loading.set(false);
+          if (res.success && res.data) {
+            this.rows.set(res.data.page.content);
+            this.totalElements.set(res.data.page.totalElements);
+            this.summary.set(res.data.summary);
+          }
+        },
+        error: () => {
+          this.loading.set(false);
           this.rows.set([]);
-          this.hasNext.set(false);
-          return;
-        }
-        this.rows.set(res.data.content);
-        this.hasNext.set(res.data.hasNext);
-      },
-      error: (err: HttpErrorResponse) => {
-        this.loading.set(false);
-        this.rows.set([]);
-        this.hasNext.set(false);
-        this.logger.error('AuditTrailComponent', 'load failed', err);
-      },
-    });
+          this.totalElements.set(0);
+        },
+      });
   }
 
-  prev(): void {
-    this.page.update((p) => Math.max(0, p - 1));
-    this.reload();
+  onLazyLoad(event: TableLazyLoadEvent): void {
+    const rows = event.rows ?? this.size();
+    this.size.set(rows);
+    this.page.set(Math.floor((event.first ?? 0) / rows));
+    this.expandedRows = {};
+    this.load();
   }
 
-  next(): void {
-    if (this.hasNext()) {
-      this.page.update((p) => p + 1);
-      this.reload();
-    }
+  apply(): void {
+    this.page.set(0);
+    this.expandedRows = {};
+    this.load();
   }
 
-  /** Is this row a checker decision (vs the maker's own action)? */
-  isCheckerDecision(e: AuditLogEntry): boolean {
+  setScope(value: MakerTrailScope | null): void {
+    if (!value || value === this.scope) return;
+    this.scope = value;
+    this.apply();
+  }
+
+  onRangeChange(): void {
+    if (!this.range || this.range[1] || !this.range[0]) this.apply();
+  }
+
+  reset(): void {
+    this.scope = 'ALL';
+    this.type = 'ALL';
+    this.search = '';
+    this.range = null;
+    this.apply();
+  }
+
+  activeFilterCount(): number {
+    return [this.scope !== 'ALL', this.type !== 'ALL', !!this.search.trim(), !!this.range?.[0]].filter(Boolean).length;
+  }
+
+  isDecision(e: AuditLogEntry): boolean {
     return CHECKER_DECISION_ACTIONS.has(e.action);
   }
 
-  formatActionLabel(action: string): string {
-    return (action ?? '').replace(/_/g, ' ');
+  isMine(e: AuditLogEntry): boolean {
+    return this.currentUserId != null && e.userId === this.currentUserId;
   }
 
-  entityChipLabel(entityType: string): string {
-    const t = (entityType ?? '').toUpperCase();
-    if (t === 'CONSENT_RULE') return 'RULE';
-    if (t === 'BROADCAST_REQUEST') return 'BROADCAST';
-    if (t === 'CONSENT') return 'CONSENT';
-    return t || '—';
+  actionOf(action: string | null | undefined): ActionMeta {
+    const code = (action ?? '').toUpperCase();
+    const tone = ACTION_TONES.find(([re]) => re.test(code))?.[1] ?? { icon: 'pi pi-bolt', color: 'var(--is-text-2)' };
+    return { label: this.humanize(code), ...tone };
   }
 
-  entityChipKind(entityType: string): 'consent' | 'broadcast' | 'rule' | 'other' {
-    const t = (entityType ?? '').toUpperCase();
-    if (t === 'CONSENT') return 'consent';
-    if (t === 'BROADCAST_REQUEST') return 'broadcast';
-    if (t === 'CONSENT_RULE') return 'rule';
-    return 'other';
+  entityOf(type: string | null | undefined): EntityMeta {
+    return ENTITIES[(type ?? '').toUpperCase()] ?? { label: this.humanize(type) || 'Item', icon: 'pi pi-box', color: 'var(--is-text-2)' };
   }
 
-  /** Status pill shown in the "status" column for checker decisions */
-  actionBadgeTone(action: string): 'ok' | 'bad' | 'warn' | 'neutral' {
-    const a = (action ?? '').toUpperCase();
-    if (a.endsWith('_APPROVED') || a === 'CONSENT_PUBLISHED') return 'ok';
-    if (a.endsWith('_REJECTED')) return 'bad';
-    if (a.endsWith('_REVISION_REQUESTED')) return 'warn';
-    return 'neutral';
+  humanize(code: string | null | undefined): string {
+    if (!code) return '';
+    const s = code.toLowerCase().replace(/_/g, ' ');
+    return s.charAt(0).toUpperCase() + s.slice(1);
   }
 
-  statusLabel(action: string): string {
-    const a = (action ?? '').toUpperCase();
-    if (a.endsWith('_APPROVED') || a === 'CONSENT_PUBLISHED') return 'Approved';
-    if (a.endsWith('_REJECTED')) return 'Rejected';
-    if (a.endsWith('_REVISION_REQUESTED')) return 'Revision requested';
-    return '—';
+  initials(name: string | null | undefined): string {
+    const parts = (name ?? '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '?';
+    return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
   }
 
-  private matchesTypeFilter(e: AuditLogEntry, tf: Exclude<AuditTypeFilter, 'all' | 'decisions'>): boolean {
-    const t = (e.entityType ?? '').toUpperCase();
-    const a = (e.action ?? '').toUpperCase();
-    if (tf === 'consents') return t === 'CONSENT' || a.startsWith('CONSENT_');
-    if (tf === 'broadcasts') return t === 'BROADCAST_REQUEST' || a.startsWith('BROADCAST_');
-    if (tf === 'rules') return t === 'CONSENT_RULE' || a.startsWith('RULE_');
-    return true;
+  avatarColor(seed: string | null | undefined): string {
+    let h = 0;
+    for (const ch of seed ?? '') h = (h * 31 + ch.charCodeAt(0)) | 0;
+    return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+  }
+
+  relative(value: string | null | undefined): string {
+    if (!value) return '';
+    const t = new Date(value).getTime();
+    if (Number.isNaN(t)) return '';
+    const mins = Math.round((t - Date.now()) / 60_000);
+    if (Math.abs(mins) < 1) return 'just now';
+    if (Math.abs(mins) < 60) return this.relTime.format(mins, 'minute');
+    const hours = Math.round(mins / 60);
+    if (Math.abs(hours) < 24) return this.relTime.format(hours, 'hour');
+    const days = Math.round(hours / 24);
+    if (Math.abs(days) < 30) return this.relTime.format(days, 'day');
+    return this.relTime.format(Math.round(days / 30), 'month');
+  }
+
+  private pick(m: EntityMeta): { icon: string; color: string } {
+    return { icon: m.icon, color: m.color };
+  }
+
+  private startOfDay(d: Date): Date {
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
   }
 }

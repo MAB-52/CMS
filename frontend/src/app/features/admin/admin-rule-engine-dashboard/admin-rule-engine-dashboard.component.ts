@@ -10,19 +10,18 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatDialog } from '@angular/material/dialog';
+import { ButtonModule } from 'primeng/button';
+import { DialogService } from 'primeng/dynamicdialog';
 import {
   AdminRuleEngineService,
   AdminRuleEngineDashboardStats,
   ConsentRuleExecutionRow,
 } from '../../../core/services/admin-rule-engine.service';
 import { ConsentRule, audienceSegmentLabel } from '../../../core/models/workflow.model';
-import {
-  ConfirmDialogComponent,
-  ConfirmDialogData,
-} from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { RuleEngineRuleDetailDialogComponent, RuleEngineRuleDetailDialogData } from '../rule-engine-rule-detail-dialog/rule-engine-rule-detail-dialog.component';
 import { WorkflowStatusBadgeComponent } from '../../../shared/components/workflow-status-badge/workflow-status-badge.component';
+import { ConfirmDialogService } from '../../../shared/components/confirm-dialog/confirm-dialog.service';
 
 const ALL_SCHEDULE_TYPES = ['IMMEDIATE', 'SCHEDULED', 'RECURRING'];
 
@@ -42,6 +41,7 @@ const ALL_SCHEDULE_TYPES = ['IMMEDIATE', 'SCHEDULED', 'RECURRING'];
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    ButtonModule,
     WorkflowStatusBadgeComponent,
   ],
   templateUrl: './admin-rule-engine-dashboard.component.html',
@@ -49,7 +49,8 @@ const ALL_SCHEDULE_TYPES = ['IMMEDIATE', 'SCHEDULED', 'RECURRING'];
 })
 export class AdminRuleEngineDashboardComponent implements OnInit, OnDestroy {
   private readonly api = inject(AdminRuleEngineService);
-  private readonly dialog = inject(MatDialog);
+  private readonly dialogs = inject(DialogService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly destroy$ = new Subject<void>();
 
   readonly min = Math.min;
@@ -164,18 +165,14 @@ export class AdminRuleEngineDashboardComponent implements OnInit, OnDestroy {
     const desired = (ev.target as HTMLInputElement).checked;
     (ev.target as HTMLInputElement).checked = !desired;
 
-    const ref = this.dialog.open(ConfirmDialogComponent, {
-      data: {
+    this.confirmDialog.open({
         title: desired ? 'Activate rule for execution?' : 'Deactivate rule?',
         body: desired
           ? `Enable automatic and manual runs for "${rule.ruleName}" according to its schedule.`
           : `Automatic runs will stop for "${rule.ruleName}". The rule remains approved and visible here.`,
         confirmLabel: desired ? 'Activate' : 'Deactivate',
         confirmColor: desired ? 'primary' : 'warn',
-      } as ConfirmDialogData,
-    });
-
-    ref.afterClosed().subscribe((ok) => {
+      } as ConfirmDialogData).subscribe((ok) => {
       if (!ok) return;
       this.api.setExecutionActive(rule.id, desired).subscribe({
         next: (r) => {
@@ -192,16 +189,13 @@ export class AdminRuleEngineDashboardComponent implements OnInit, OnDestroy {
   manualRun(rule: ConsentRule): void {
     const tplId = rule.consentTemplateId;
     const run = (n: number, infoPanel?: string) => {
-      const ref = this.dialog.open(ConfirmDialogComponent, {
-        data: {
+      this.confirmDialog.open({
           title: 'Run rule now?',
           body: `About ${n} customer(s) match the audience for "${rule.ruleName}". Communications will be sent for configured channels (email uses secure consent links to the customer's registered address).`,
           infoPanel,
           confirmLabel: 'Run now',
           confirmColor: 'success',
-        } as ConfirmDialogData,
-      });
-      ref.afterClosed().subscribe((ok) => {
+        } as ConfirmDialogData).subscribe((ok) => {
         if (!ok) return;
         this.api.manualRun(rule.id).subscribe({
           next: () => this.loadAll(),
@@ -237,9 +231,17 @@ export class AdminRuleEngineDashboardComponent implements OnInit, OnDestroy {
   }
 
   openHistory(rule: ConsentRule): void {
-    this.dialog.open(RuleEngineRuleDetailDialogComponent, {
+    this.dialogs.open(RuleEngineRuleDetailDialogComponent, {
       data: { ruleId: rule.id, ruleName: rule.ruleName } as RuleEngineRuleDetailDialogData,
-      width: '560px',
+      showHeader: false,
+      modal: true,
+      closable: false,
+      closeOnEscape: true,
+      dismissableMask: true,
+      width: '46rem',
+      breakpoints: { '760px': 'calc(100vw - 32px)' },
+      // Shared dialog frame styling (src/styles/_primeng.scss).
+      styleClass: 'review-action-dialog',
     });
   }
 

@@ -20,15 +20,15 @@ export class AdminLayoutComponent implements OnInit {
     {
       label: 'Operations',
       items: [
-        { label: 'Dashboard', icon: 'dashboard', link: '/admin/dashboard' },
-        { label: 'Capture Consent', icon: 'mark_email_read', link: '/admin/capture-consent' },
-        { label: 'MIS Reports', icon: 'bar_chart', link: '/admin/mis-reports' },
-        { label: 'Broadcast Rule', icon: 'rule', link: '/admin/rule-engine' },
+        { label: 'Dashboard', icon: 'pi pi-th-large', link: '/admin/dashboard' },
+        { label: 'Capture Consent', icon: 'pi pi-check-square', link: '/admin/capture-consent' },
+        { label: 'MIS Reports', icon: 'pi pi-chart-bar', link: '/admin/mis-reports' },
+        { label: 'Broadcast Rule', icon: 'pi pi-megaphone', link: '/admin/rule-engine' },
       ],
     },
     {
       label: 'Administration',
-      items: [{ label: 'User Management', icon: 'manage_accounts', link: '/admin/user-management' }],
+      items: [{ label: 'User Management', icon: 'pi pi-users', link: '/admin/user-management' }],
     },
   ];
 

@@ -1,179 +1,474 @@
-<section class="panel">
-  <h2>Channel performance</h2>
-  <p class="muted">Invite metrics are derived from consent invite tokens; template mix reflects published templates.</p>
-  <div class="horiz-scroll">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Channel</th>
-          <th>Invites</th>
-          <th>Accepted</th>
-          <th>Declined / no response</th>
-          <th>Success %</th>
-          <th>Drop-off %</th>
-          <th>Template mix %</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (c of channels(); track c.channel) {
-          <tr>
-            <td>{{ c.channel }}</td>
-            <td>{{ c.totalInvitesSent }}</td>
-            <td>{{ c.acceptedCount }}</td>
-            <td>{{ c.declinedOrNoResponseCount }}</td>
-            <td>{{ c.successRatePercent | number: '1.0-1' }}%</td>
-            <td>{{ c.dropOffPercent | number: '1.0-1' }}%</td>
-            <td>{{ c.templateMixPercent | number: '1.0-1' }}%</td>
-          </tr>
-        } @empty {
-          <tr>
-            <td colspan="7" class="empty">No channel data.</td>
-          </tr>
-        }
-      </tbody>
-    </table>
+<!-- ── Toolbar ─────────────────────────────────────────────────────────── -->
+<div class="mr-toolbar">
+  <div class="mr-toolbar__text">
+    <span class="mr-toolbar__ico" aria-hidden="true"><i class="pi pi-chart-bar"></i></span>
+    <div>
+      <h2 class="mr-toolbar__title">Operational performance</h2>
+      <p class="mr-toolbar__sub">Channel reach, maker productivity and consent workflow turnaround in one place</p>
+    </div>
   </div>
-  <div class="hbar-wrap">
-    @for (c of channels(); track c.channel) {
-      <div class="hbar-row">
-        <span class="hbar-name">{{ c.channel }}</span>
-        <div class="hbar-track">
-          <div class="hbar-fill" [style.width]="barWidth(c.totalInvitesSent, channels())"></div>
-        </div>
-        <span class="hbar-meta">{{ c.totalInvitesSent }}</span>
+</div>
+
+<!-- ══ Channel performance ═══════════════════════════════════════════════ -->
+<section class="mr-card" style="--d: 60ms">
+  <div class="mr-card__head">
+    <span class="mr-card__ico" aria-hidden="true"><i class="pi pi-send"></i></span>
+    <div class="mr-card__titles">
+      <h3 class="mr-card__title">Channel performance</h3>
+      <p class="mr-card__sub">Invite metrics are derived from consent invite tokens; template mix reflects published templates.</p>
+    </div>
+  </div>
+
+  @if (channelsLoading()) {
+  <div class="mr-kpis">
+    @for (i of [1, 2, 3, 4]; track i) { <p-skeleton height="76px" borderRadius="16px" /> }
+  </div>
+  <p-skeleton height="280px" borderRadius="16px" />
+  } @else {
+  <div class="mr-kpis">
+    <div class="mr-kpi" style="--c: var(--is-primary); --i: 0" pTooltip="Invites sent across every channel" tooltipPosition="top">
+      <span class="mr-kpi__ico"><i class="pi pi-send"></i></span>
+      <div class="mr-kpi__body">
+        <span class="mr-kpi__label">Total invites</span>
+        <span class="mr-kpi__value">{{ totalInvites() | number: '1.0-0' }}</span>
       </div>
+    </div>
+    <div class="mr-kpi" style="--c: var(--is-green); --i: 1" pTooltip="Invites the customer accepted" tooltipPosition="top">
+      <span class="mr-kpi__ico"><i class="pi pi-check-circle"></i></span>
+      <div class="mr-kpi__body">
+        <span class="mr-kpi__label">Accepted</span>
+        <span class="mr-kpi__value">{{ totalAccepted() | number: '1.0-0' }}</span>
+      </div>
+    </div>
+    <div class="mr-kpi" style="--c: var(--is-secondary); --i: 2" pTooltip="Accepted ÷ total invites, all channels" tooltipPosition="top">
+      <span class="mr-kpi__ico"><i class="pi pi-percentage"></i></span>
+      <div class="mr-kpi__body">
+        <span class="mr-kpi__label">Overall success</span>
+        <span class="mr-kpi__value">{{ overallSuccess() | number: '1.0-1' }}<span class="mr-kpi__unit">%</span></span>
+      </div>
+    </div>
+    <div class="mr-kpi" style="--c: var(--is-blue); --i: 3" pTooltip="Channels that sent at least one invite" tooltipPosition="top">
+      <span class="mr-kpi__ico"><i class="pi pi-sitemap"></i></span>
+      <div class="mr-kpi__body">
+        <span class="mr-kpi__label">Active channels</span>
+        <span class="mr-kpi__value">{{ activeChannels() }}<span class="mr-kpi__unit">/ {{ channels().length }}</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="op-split">
+    <!-- Table -->
+    <div class="mr-table-wrap">
+      <p-table [value]="channels()" [rowHover]="true" sortField="totalInvitesSent" [sortOrder]="-1"
+        styleClass="mr-table" [tableStyle]="{ 'min-width': '52rem' }">
+        <ng-template #header>
+          <tr>
+            <th pSortableColumn="channel" pTooltip="Delivery channel or capture source — click to sort" tooltipPosition="top">
+              Channel <p-sortIcon field="channel" /></th>
+            <th pSortableColumn="totalInvitesSent" pTooltip="Consent invites sent — click to sort" tooltipPosition="top">
+              Invites <p-sortIcon field="totalInvitesSent" /></th>
+            <th pSortableColumn="acceptedCount" pTooltip="Invites the customer accepted — click to sort" tooltipPosition="top">
+              Accepted <p-sortIcon field="acceptedCount" /></th>
+            <th pSortableColumn="declinedOrNoResponseCount" pTooltip="Invites declined or never answered — click to sort"
+              tooltipPosition="top">Declined / no response <p-sortIcon field="declinedOrNoResponseCount" /></th>
+            <th pSortableColumn="successRatePercent" pTooltip="Accepted ÷ invites sent — click to sort" tooltipPosition="top">
+              Success % <p-sortIcon field="successRatePercent" /></th>
+            <th pSortableColumn="dropOffPercent" pTooltip="Share of invites that did not convert — click to sort"
+              tooltipPosition="top">Drop-off % <p-sortIcon field="dropOffPercent" /></th>
+            <th pSortableColumn="templateMixPercent" pTooltip="Share of published templates using this channel — click to sort"
+              tooltipPosition="top">Template mix % <p-sortIcon field="templateMixPercent" /></th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-c let-i="rowIndex">
+          @let v = channelVisual(c.channel);
+          <tr class="mr-row" [class.mr-row--idle]="!c.totalInvitesSent" [style.--i]="i">
+            <td [pTooltip]="c.channel + (c.totalInvitesSent ? '' : ' — no invites sent yet')" tooltipPosition="top">
+              <span class="mr-chip" [style.--c]="v.color"><span class="mr-chip__ico"><i [class]="v.icon"></i></span>{{ c.channel }}</span>
+            </td>
+            <td [pTooltip]="(c.totalInvitesSent | number: '1.0-0') + ' invites sent via ' + c.channel" tooltipPosition="top">
+              <span class="mr-num">{{ c.totalInvitesSent | number: '1.0-0' }}</span>
+            </td>
+            <td [pTooltip]="(c.acceptedCount | number: '1.0-0') + ' accepted via ' + c.channel" tooltipPosition="top">
+              <span class="mr-num op-pos">{{ c.acceptedCount | number: '1.0-0' }}</span>
+            </td>
+            <td [pTooltip]="(c.declinedOrNoResponseCount | number: '1.0-0') + ' declined or unanswered via ' + c.channel"
+              tooltipPosition="top">
+              <span class="mr-num op-neg">{{ c.declinedOrNoResponseCount | number: '1.0-0' }}</span>
+            </td>
+            <td [pTooltip]="'Success rate: ' + (c.successRatePercent | number: '1.0-1') + '%'" tooltipPosition="top">
+              <div class="mr-meter" [style.--c]="rateColor(c.successRatePercent)">
+                <span class="mr-meter__val">{{ c.successRatePercent | number: '1.0-1' }}%</span>
+                <p-progressbar [value]="c.successRatePercent" [showValue]="false" />
+              </div>
+            </td>
+            <td [pTooltip]="'Drop-off: ' + (c.dropOffPercent | number: '1.0-1') + '%'" tooltipPosition="top">
+              <div class="mr-meter" [style.--c]="c.totalInvitesSent ? dropColor(c.dropOffPercent) : 'var(--is-text-3)'">
+                <span class="mr-meter__val">{{ c.dropOffPercent | number: '1.0-1' }}%</span>
+                <p-progressbar [value]="c.dropOffPercent" [showValue]="false" />
+              </div>
+            </td>
+            <td [pTooltip]="(c.templateMixPercent | number: '1.0-1') + '% of published templates use ' + c.channel"
+              tooltipPosition="top">
+              <div class="mr-meter" [style.--c]="v.color">
+                <span class="mr-meter__val">{{ c.templateMixPercent | number: '1.0-1' }}%</span>
+                <p-progressbar [value]="c.templateMixPercent" [showValue]="false" />
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="7">
+              <div class="mr-empty">
+                <span class="mr-empty__ico"><i class="pi pi-send"></i></span>
+                <p class="mr-empty__title">No channel data yet</p>
+                <p class="mr-empty__sub">Channel metrics appear once consent invites are sent.</p>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+
+    <!-- Volume bars -->
+    @if (channels().length) {
+    <div class="op-volume">
+      <div class="op-volume__head">
+        <span class="op-volume__title"><i class="pi pi-chart-bar"></i>Invite volume</span>
+        <span class="mr-sub">relative to the busiest channel</span>
+      </div>
+      @for (c of channels(); track c.channel; let i = $index) {
+      @let v = channelVisual(c.channel);
+      <div class="op-bar" [style.--c]="v.color" [style.--i]="i" tooltipPosition="top"
+        [pTooltip]="c.channel + ': ' + (c.totalInvitesSent | number: '1.0-0') + ' invites · ' + (c.acceptedCount | number: '1.0-0') + ' accepted'">
+        <span class="op-bar__name"><i [class]="v.icon"></i>{{ c.channel }}</span>
+        <div class="op-bar__track">
+          <div class="op-bar__fill" [style.width.%]="volumePct(c.totalInvitesSent)"></div>
+        </div>
+        <span class="op-bar__val">{{ c.totalInvitesSent | number: '1.0-0' }}</span>
+      </div>
+      }
+    </div>
     }
   </div>
+  }
 </section>
 
-<section class="panel">
-  <h2>Maker performance</h2>
-  <div class="horiz-scroll">
-    <table class="data-table">
-      <thead>
+<!-- ══ Maker performance ═════════════════════════════════════════════════ -->
+<section class="mr-card" style="--d: 120ms">
+  <div class="mr-card__head">
+    <span class="mr-card__ico" style="--c: var(--is-secondary)" aria-hidden="true"><i class="pi pi-users"></i></span>
+    <div class="mr-card__titles">
+      <h3 class="mr-card__title">Maker performance</h3>
+      <p class="mr-card__sub">Consent templates created by each maker and how quickly they move through approval.</p>
+    </div>
+  </div>
+
+  <div class="mr-table-wrap">
+    <p-table [value]="agentsLoading() ? [] : agents()" [rowHover]="true" sortField="totalConsentsCreated"
+      [sortOrder]="-1" [paginator]="agents().length > 10" [rows]="10" styleClass="mr-table"
+      [tableStyle]="{ 'min-width': '60rem' }">
+      <ng-template #header>
         <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Role</th>
-          <th>Created</th>
-          <th>Pending</th>
-          <th>Approved/Published</th>
-          <th>Rejected</th>
-          <th>Avg submit (h)</th>
-          <th>SLA 24h submit %</th>
+          <th pSortableColumn="fullName" pTooltip="Maker name and email — click to sort" tooltipPosition="top">
+            Maker <p-sortIcon field="fullName" /></th>
+          <th pSortableColumn="role" pTooltip="User role — click to sort" tooltipPosition="top">
+            Role <p-sortIcon field="role" /></th>
+          <th pSortableColumn="totalConsentsCreated" pTooltip="Consent templates created — click to sort" tooltipPosition="top">
+            Created <p-sortIcon field="totalConsentsCreated" /></th>
+          <th pSortableColumn="pendingApprovals" pTooltip="Templates awaiting checker approval — click to sort" tooltipPosition="top">
+            Pending <p-sortIcon field="pendingApprovals" /></th>
+          <th pSortableColumn="approvedOrPublished" pTooltip="Templates approved or published — click to sort" tooltipPosition="top">
+            Approved / published <p-sortIcon field="approvedOrPublished" /></th>
+          <th pSortableColumn="rejectedConsents" pTooltip="Templates rejected by a checker — click to sort" tooltipPosition="top">
+            Rejected <p-sortIcon field="rejectedConsents" /></th>
+          <th pSortableColumn="averageProcessingHours" pTooltip="Average hours from creation to submission — click to sort"
+            tooltipPosition="top">Avg submit <p-sortIcon field="averageProcessingHours" /></th>
+          <th pSortableColumn="sla24hSubmitCompliancePercent" pTooltip="Share of templates submitted within 24 hours — click to sort"
+            tooltipPosition="top">SLA 24h submit <p-sortIcon field="sla24hSubmitCompliancePercent" /></th>
         </tr>
-      </thead>
-      <tbody>
-        @for (a of agents(); track a.userId) {
-          <tr>
-            <td>{{ a.fullName }}</td>
-            <td>{{ a.email }}</td>
-            <td>{{ a.role }}</td>
-            <td>{{ a.totalConsentsCreated }}</td>
-            <td>{{ a.pendingApprovals }}</td>
-            <td>{{ a.approvedOrPublished }}</td>
-            <td>{{ a.rejectedConsents }}</td>
-            <td>{{ a.averageProcessingHours | number: '1.0-1' }}</td>
-            <td>{{ a.sla24hSubmitCompliancePercent | number: '1.0-1' }}%</td>
-          </tr>
-        } @empty {
-          <tr>
-            <td colspan="9" class="empty">No makers found.</td>
-          </tr>
+      </ng-template>
+      <ng-template #body let-a let-i="rowIndex">
+        <tr class="mr-row" [style.--i]="i % 10">
+          <td [pTooltip]="a.fullName + ' · ' + a.email" tooltipPosition="top">
+            <div class="mr-person">
+              <p-avatar [label]="initials(a.fullName)" shape="circle" styleClass="mr-avatar"
+                [style]="{ background: avatarColor(a.fullName) }" />
+              <div class="mr-stack">
+                <span class="mr-strong">{{ a.fullName }}</span>
+                <span class="mr-line mr-sub"><i class="pi pi-envelope"></i><span class="mr-ellipsis">{{ a.email }}</span></span>
+              </div>
+            </div>
+          </td>
+          <td [pTooltip]="'Role: ' + a.role" tooltipPosition="top">
+            <p-tag [value]="a.role" icon="pi pi-id-card" severity="secondary" [rounded]="true" />
+          </td>
+          <td [pTooltip]="a.totalConsentsCreated + ' consent templates created'" tooltipPosition="top">
+            <span class="mr-num">{{ a.totalConsentsCreated | number: '1.0-0' }}</span>
+          </td>
+          <td [pTooltip]="a.pendingApprovals + ' awaiting approval'" tooltipPosition="top">
+            <span class="op-count" data-t="warn"><i class="pi pi-clock"></i>{{ a.pendingApprovals | number: '1.0-0' }}</span>
+          </td>
+          <td [pTooltip]="a.approvedOrPublished + ' approved or published'" tooltipPosition="top">
+            <span class="op-count" data-t="success"><i class="pi pi-check"></i>{{ a.approvedOrPublished | number: '1.0-0' }}</span>
+          </td>
+          <td [pTooltip]="a.rejectedConsents + ' rejected'" tooltipPosition="top">
+            <span class="op-count" data-t="danger"><i class="pi pi-times"></i>{{ a.rejectedConsents | number: '1.0-0' }}</span>
+          </td>
+          <td [pTooltip]="'Average ' + (a.averageProcessingHours | number: '1.0-1') + ' hours to submit'" tooltipPosition="top">
+            <span class="mr-num">{{ a.averageProcessingHours | number: '1.0-1' }}</span><span class="op-unit">h</span>
+          </td>
+          <td [pTooltip]="(a.sla24hSubmitCompliancePercent | number: '1.0-1') + '% submitted within 24 hours'"
+            tooltipPosition="top">
+            <div class="mr-meter" [style.--c]="rateColor(a.sla24hSubmitCompliancePercent)">
+              <span class="mr-meter__val">{{ a.sla24hSubmitCompliancePercent | number: '1.0-1' }}%</span>
+              <p-progressbar [value]="a.sla24hSubmitCompliancePercent" [showValue]="false" />
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage>
+        @if (agentsLoading()) {
+        @for (s of skeletonRows.slice(0, 3); track s) {
+        <tr>
+          <td>
+            <div class="mr-person"><p-skeleton shape="circle" size="2.25rem" />
+              <div class="mr-skel-stack"><p-skeleton width="8rem" /><p-skeleton width="10rem" height=".7rem" /></div>
+            </div>
+          </td>
+          @for (c of [1, 2, 3, 4, 5, 6]; track c) { <td><p-skeleton width="3.5rem" /></td> }
+          <td><p-skeleton width="6rem" /></td>
+        </tr>
         }
-      </tbody>
-    </table>
+        } @else {
+        <tr>
+          <td colspan="8">
+            <div class="mr-empty">
+              <span class="mr-empty__ico"><i class="pi pi-users"></i></span>
+              <p class="mr-empty__title">No makers found</p>
+              <p class="mr-empty__sub">Maker statistics appear once consent templates are created.</p>
+            </div>
+          </td>
+        </tr>
+        }
+      </ng-template>
+    </p-table>
   </div>
 </section>
 
-<section class="panel">
-  <div class="tab-toolbar">
-    <h2>Turnaround time (consent workflow)</h2>
-    <div class="exports">
-      <button mat-stroked-button type="button" [disabled]="exportingTat()" (click)="exportTatCsv()">
-        <mat-icon>download</mat-icon> CSV
-      </button>
-      <button mat-stroked-button type="button" [disabled]="exportingTat()" (click)="exportTatExcel()">
-        <mat-icon>table_chart</mat-icon> Excel
-      </button>
+<!-- ══ Turnaround time ═══════════════════════════════════════════════════ -->
+<section class="mr-card" style="--d: 180ms">
+  <div class="mr-card__head">
+    <span class="mr-card__ico" style="--c: var(--is-blue)" aria-hidden="true"><i class="pi pi-stopwatch"></i></span>
+    <div class="mr-card__titles">
+      <h3 class="mr-card__title">Turnaround time (consent workflow)</h3>
+      <p class="mr-card__sub">
+        Hours from creation to checker review for each consent template
+        @if (tatTotal()) { <span class="mr-count">{{ tatTotal() | number: '1.0-0' }} templates</span> }
+      </p>
+    </div>
+    <div class="mr-exports">
+      <p-button label="CSV" icon="pi pi-download" severity="secondary" [outlined]="true" [rounded]="true"
+        [loading]="exportingTat() === 'csv'" [disabled]="!!exportingTat()" pTooltip="Download turnaround data as CSV"
+        tooltipPosition="top" (onClick)="exportTatCsv()" />
+      <p-button label="Excel" icon="pi pi-file-excel" severity="success" [outlined]="true" [rounded]="true"
+        [loading]="exportingTat() === 'excel'" [disabled]="!!exportingTat()" pTooltip="Download turnaround data as Excel"
+        tooltipPosition="top" (onClick)="exportTatExcel()" />
     </div>
   </div>
-  @if (tatSummary(); as s) {
-    <div class="summary-cards">
-      <div class="sum-card"><span>Avg TAT (all)</span><strong>{{ s.averageTatHoursOverall ?? '—' }}</strong></div>
-      <div class="sum-card"><span>Avg approved</span><strong>{{ s.averageTatHoursApproved ?? '—' }}</strong></div>
-      <div class="sum-card"><span>Avg rejected</span><strong>{{ s.averageTatHoursRejected ?? '—' }}</strong></div>
-      <div class="sum-card"><span>Fastest</span><strong>{{ s.fastestTatHours ?? '—' }}</strong></div>
-      <div class="sum-card"><span>Slowest</span><strong>{{ s.slowestTatHours ?? '—' }}</strong></div>
+
+  <!-- KPI tiles -->
+  @let s = tatSummary();
+  <div class="mr-kpis op-tat-kpis">
+    <div class="mr-kpi" style="--c: var(--is-primary); --i: 0" pTooltip="Average turnaround across all reviewed templates" tooltipPosition="top">
+      <span class="mr-kpi__ico"><i class="pi pi-stopwatch"></i></span>
+      <div class="mr-kpi__body">
+        <span class="mr-kpi__label">Avg TAT (all)</span>
+        <span class="mr-kpi__value">@if (s?.averageTatHoursOverall != null) { {{ s!.averageTatHoursOverall | number: '1.0-1' }}<span class="mr-kpi__unit">h</span> } @else { — }</span>
+      </div>
     </div>
-  }
-  <div class="filters">
-    <label class="ff-date"><span>From</span><input type="date" [(ngModel)]="tatFrom" /></label>
-    <label class="ff-date"><span>To</span><input type="date" [(ngModel)]="tatTo" /></label>
-    <mat-form-field appearance="outline" class="ff">
-      <mat-label>Status</mat-label>
-      <mat-select [(ngModel)]="tatStatus">
-        <mat-option value="">All</mat-option>
-        <mat-option value="PENDING_APPROVAL">PENDING_APPROVAL</mat-option>
-        <mat-option value="APPROVED">APPROVED</mat-option>
-        <mat-option value="REJECTED">REJECTED</mat-option>
-        <mat-option value="PUBLISHED">PUBLISHED</mat-option>
-        <mat-option value="DRAFT">DRAFT</mat-option>
-      </mat-select>
-    </mat-form-field>
-    <mat-form-field appearance="outline" class="ff">
-      <mat-label>Creator</mat-label>
-      <mat-select [(ngModel)]="tatCreatorId">
-        <mat-option value="">All</mat-option>
-        @for (m of creatorOptions(); track m.userId) {
-          <mat-option [value]="m.userId">{{ m.fullName }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-    <button mat-stroked-button type="button" (click)="applyTat()">Apply</button>
+    <div class="mr-kpi" style="--c: var(--is-green); --i: 1" pTooltip="Average turnaround for approved templates" tooltipPosition="top">
+      <span class="mr-kpi__ico"><i class="pi pi-check-circle"></i></span>
+      <div class="mr-kpi__body">
+        <span class="mr-kpi__label">Avg approved</span>
+        <span class="mr-kpi__value">@if (s?.averageTatHoursApproved != null) { {{ s!.averageTatHoursApproved | number: '1.0-1' }}<span class="mr-kpi__unit">h</span> } @else { — }</span>
+      </div>
+    </div>
+    <div class="mr-kpi" style="--c: var(--is-red); --i: 2" pTooltip="Average turnaround for rejected templates" tooltipPosition="top">
+      <span class="mr-kpi__ico"><i class="pi pi-times-circle"></i></span>
+      <div class="mr-kpi__body">
+        <span class="mr-kpi__label">Avg rejected</span>
+        <span class="mr-kpi__value">@if (s?.averageTatHoursRejected != null) { {{ s!.averageTatHoursRejected | number: '1.0-1' }}<span class="mr-kpi__unit">h</span> } @else { — }</span>
+      </div>
+    </div>
+    <div class="mr-kpi" style="--c: var(--is-teal); --i: 3" pTooltip="Quickest review turnaround" tooltipPosition="top">
+      <span class="mr-kpi__ico"><i class="pi pi-bolt"></i></span>
+      <div class="mr-kpi__body">
+        <span class="mr-kpi__label">Fastest</span>
+        <span class="mr-kpi__value">@if (s?.fastestTatHours != null) { {{ s!.fastestTatHours | number: '1.0-1' }}<span class="mr-kpi__unit">h</span> } @else { — }</span>
+      </div>
+    </div>
+    <div class="mr-kpi" style="--c: var(--is-secondary); --i: 4" pTooltip="Slowest review turnaround" tooltipPosition="top">
+      <span class="mr-kpi__ico"><i class="pi pi-hourglass"></i></span>
+      <div class="mr-kpi__body">
+        <span class="mr-kpi__label">Slowest</span>
+        <span class="mr-kpi__value">@if (s?.slowestTatHours != null) { {{ s!.slowestTatHours | number: '1.0-1' }}<span class="mr-kpi__unit">h</span> } @else { — }</span>
+      </div>
+    </div>
   </div>
-  @if (loading()) {
-    <mat-progress-bar mode="indeterminate" />
-  }
-  <div class="horiz-scroll">
-    <table class="data-table">
-      <thead>
+
+  <!-- Filters -->
+  <form class="op-filters" (ngSubmit)="applyTat()">
+    <div class="mr-field">
+      <label class="mr-field__label" for="op-from">From</label>
+      <p-datepicker inputId="op-from" name="from" [(ngModel)]="tatFrom" [maxDate]="tatTo" dateFormat="dd M yy"
+        placeholder="Any date" [showIcon]="true" iconDisplay="input" [showButtonBar]="true" appendTo="body"
+        styleClass="mr-input" />
+    </div>
+    <div class="mr-field">
+      <label class="mr-field__label" for="op-to">To</label>
+      <p-datepicker inputId="op-to" name="to" [(ngModel)]="tatTo" [minDate]="tatFrom" dateFormat="dd M yy"
+        placeholder="Any date" [showIcon]="true" iconDisplay="input" [showButtonBar]="true" appendTo="body"
+        styleClass="mr-input" />
+    </div>
+    <div class="mr-field">
+      <label class="mr-field__label" for="op-status">Status</label>
+      <p-select inputId="op-status" name="status" [(ngModel)]="tatStatus" [options]="statusOptions" optionLabel="label"
+        optionValue="value" appendTo="body" styleClass="mr-input">
+        <ng-template #selectedItem let-o>
+          <span class="mr-opt"><i [class]="o.icon" [attr.data-sev]="o.severity"></i>{{ o.label }}</span>
+        </ng-template>
+        <ng-template #item let-o>
+          <span class="mr-opt"><i [class]="o.icon" [attr.data-sev]="o.severity"></i>{{ o.label }}</span>
+        </ng-template>
+      </p-select>
+    </div>
+    <div class="mr-field">
+      <label class="mr-field__label" for="op-creator">Creator</label>
+      <p-select inputId="op-creator" name="creator" [(ngModel)]="tatCreatorId" [options]="creatorSelectOptions()"
+        optionLabel="label" optionValue="value" [filter]="creatorSelectOptions().length > 8" filterBy="label"
+        appendTo="body" styleClass="mr-input">
+        <ng-template #item let-o>
+          @if (o.value === '') {
+          <span class="mr-opt"><i class="pi pi-users"></i>{{ o.label }}</span>
+          } @else {
+          <span class="mr-opt">
+            <p-avatar [label]="initials(o.label)" shape="circle" styleClass="op-mini-avatar"
+              [style]="{ background: avatarColor(o.label) }" />{{ o.label }}
+          </span>
+          }
+        </ng-template>
+      </p-select>
+    </div>
+    <div class="op-filters__actions">
+      @if (tatFilterCount()) {
+      <p-button type="button" label="Reset" icon="pi pi-filter-slash" [outlined]="true" [rounded]="true"
+        styleClass="mr-btn-outline" pTooltip="Clear all filters" tooltipPosition="top" (onClick)="resetTat()" />
+      }
+      <p-button type="submit" label="Apply" icon="pi pi-check" [rounded]="true" [loading]="loading()"
+        styleClass="mr-btn-primary" />
+    </div>
+  </form>
+
+  <!-- Table -->
+  <div class="mr-table-wrap op-tat-table" [class.mr-busy]="loading() && tatRows().length">
+    <div class="mr-progress" [class.mr-progress--on]="loading()">
+      <p-progressbar mode="indeterminate" />
+    </div>
+    <p-table [value]="tatRows()" dataKey="consentDbId" [lazy]="true" (onLazyLoad)="onTatLazyLoad($event)"
+      [paginator]="true" [rows]="tatPageSize()" [first]="tatPage() * tatPageSize()" [totalRecords]="tatTotal()"
+      [rowsPerPageOptions]="[10, 25, 50]" paginatorDropdownAppendTo="body" [showCurrentPageReport]="true"
+      currentPageReportTemplate="Showing {first}–{last} of {totalRecords}" [rowHover]="true" styleClass="mr-table"
+      [tableStyle]="{ 'min-width': '66rem' }">
+      <ng-template #header>
         <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Status</th>
-          <th>Created</th>
-          <th>Submitted</th>
-          <th>Reviewed</th>
-          <th>TAT (h)</th>
-          <th>Creator</th>
+          <th pTooltip="Consent template name and ID" tooltipPosition="top">Consent</th>
+          <th pTooltip="Current workflow status" tooltipPosition="top">Status</th>
+          <th pTooltip="When the template was created" tooltipPosition="top">Created</th>
+          <th pTooltip="When the maker submitted it for approval" tooltipPosition="top">Submitted</th>
+          <th pTooltip="When the checker reviewed it" tooltipPosition="top">Reviewed</th>
+          <th pTooltip="Total turnaround in hours (creation → review)" tooltipPosition="top">TAT</th>
+          <th pTooltip="Maker who created the template" tooltipPosition="top">Creator</th>
         </tr>
-      </thead>
-      <tbody>
-        @for (r of tatRows(); track r.consentDbId) {
-          <tr>
-            <td>{{ r.consentId }}</td>
-            <td>{{ r.consentName }}</td>
-            <td>{{ r.status }}</td>
-            <td>{{ r.createdAt | date: 'short' }}</td>
-            <td>{{ r.submittedAt ? (r.submittedAt | date: 'short') : '—' }}</td>
-            <td>{{ r.reviewedAt ? (r.reviewedAt | date: 'short') : '—' }}</td>
-            <td>{{ r.totalTatHours ?? '—' }}</td>
-            <td>{{ r.creatorName || '—' }}</td>
-          </tr>
-        } @empty {
-          <tr>
-            <td colspan="8" class="empty">{{ loading() ? 'Loading…' : 'No rows.' }}</td>
-          </tr>
+      </ng-template>
+      <ng-template #body let-r let-i="rowIndex">
+        @let w = workflow(r.status);
+        @let tone = tatTone(r.totalTatHours);
+        <tr class="mr-row" [style.--i]="i % tatPageSize()">
+          <td [pTooltip]="r.consentName + ' · ' + r.consentId" tooltipPosition="top">
+            <div class="mr-stack">
+              <span class="mr-strong op-name">{{ r.consentName }}</span>
+              <span class="mr-mono">{{ r.consentId }}</span>
+            </div>
+          </td>
+          <td [pTooltip]="'Status: ' + w.label" tooltipPosition="top">
+            <p-tag [value]="w.label" [severity]="w.severity" [icon]="w.icon" [rounded]="true" />
+          </td>
+          <td [pTooltip]="'Created ' + (r.createdAt | date: 'medium')" tooltipPosition="top">
+            <div class="mr-stack">
+              <span class="mr-line"><i class="pi pi-plus-circle"></i>{{ r.createdAt | date: 'dd MMM yyyy' }}</span>
+              <span class="mr-rel">{{ r.createdAt | date: 'hh:mm a' }}</span>
+            </div>
+          </td>
+          <td tooltipPosition="top"
+            [pTooltip]="r.submittedAt ? 'Submitted ' + (r.submittedAt | date: 'medium') : 'Not submitted yet'">
+            @if (r.submittedAt) {
+            <div class="mr-stack">
+              <span class="mr-line"><i class="pi pi-upload"></i>{{ r.submittedAt | date: 'dd MMM yyyy' }}</span>
+              <span class="mr-rel">{{ r.submittedAt | date: 'hh:mm a' }}</span>
+            </div>
+            } @else { <span class="mr-dash">Not submitted</span> }
+          </td>
+          <td tooltipPosition="top"
+            [pTooltip]="r.reviewedAt ? 'Reviewed ' + (r.reviewedAt | date: 'medium') : 'Not reviewed yet'">
+            @if (r.reviewedAt) {
+            <div class="mr-stack">
+              <span class="mr-line"><i class="pi pi-eye"></i>{{ r.reviewedAt | date: 'dd MMM yyyy' }}</span>
+              <span class="mr-rel">{{ r.reviewedAt | date: 'hh:mm a' }}</span>
+            </div>
+            } @else { <span class="mr-dash">Awaiting review</span> }
+          </td>
+          <td [pTooltip]="tatHint(r.totalTatHours)" tooltipPosition="top">
+            @if (tone !== 'none') {
+            <span class="op-tat" [attr.data-t]="tone"><i class="pi pi-stopwatch"></i>{{ r.totalTatHours | number: '1.0-1' }} h</span>
+            } @else { <span class="mr-dash">—</span> }
+          </td>
+          <td [pTooltip]="r.creatorName ? 'Created by ' + r.creatorName : 'Unknown creator'" tooltipPosition="top">
+            @if (r.creatorName) {
+            <div class="mr-person">
+              <p-avatar [label]="initials(r.creatorName)" shape="circle" styleClass="mr-avatar op-avatar-sm"
+                [style]="{ background: avatarColor(r.creatorName) }" />
+              <span class="mr-strong">{{ r.creatorName }}</span>
+            </div>
+            } @else { <span class="mr-dash">—</span> }
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage>
+        @if (loading()) {
+        @for (sk of skeletonRows; track sk) {
+        <tr>
+          <td><div class="mr-skel-stack"><p-skeleton width="9rem" /><p-skeleton width="6rem" height=".7rem" /></div></td>
+          <td><p-skeleton width="7rem" height="1.6rem" borderRadius="999px" /></td>
+          <td><p-skeleton width="6rem" /></td>
+          <td><p-skeleton width="6rem" /></td>
+          <td><p-skeleton width="6rem" /></td>
+          <td><p-skeleton width="4rem" height="1.6rem" borderRadius="999px" /></td>
+          <td><div class="mr-person"><p-skeleton shape="circle" size="2rem" /><p-skeleton width="6rem" /></div></td>
+        </tr>
         }
-      </tbody>
-    </table>
-  </div>
-  <div class="pager">
-    <span>Page {{ tatPage() + 1 }} / {{ tatTotalPages() || 1 }}</span>
-    <div>
-      <button mat-stroked-button type="button" [disabled]="tatPage() <= 0 || loading()" (click)="prevTat()">Previous</button>
-      <button mat-stroked-button type="button" [disabled]="tatPage() >= tatTotalPages() - 1 || loading()" (click)="nextTat()">Next</button>
-    </div>
+        } @else {
+        <tr>
+          <td colspan="7">
+            <div class="mr-empty">
+              <span class="mr-empty__ico"><i class="pi pi-stopwatch"></i></span>
+              <p class="mr-empty__title">No templates match these filters</p>
+              <p class="mr-empty__sub">Try a wider date range or a different status.</p>
+            </div>
+          </td>
+        </tr>
+        }
+      </ng-template>
+    </p-table>
   </div>
 </section>

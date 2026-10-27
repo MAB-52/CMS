@@ -3,7 +3,14 @@ import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http'
 import { Observable, catchError } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ApiResponse, PagedResponse } from '../models/api-response.model';
-import { AuditLogEntry } from '../models/audit.model';
+import {
+  AuditLogEntry,
+  MakerTrailResponse,
+  MakerTrailScope,
+  ReviewDecisionFilter,
+  ReviewHistoryResponse,
+  ReviewTypeFilter,
+} from '../models/audit.model';
 import { LoggerService } from './logger.service';
 import { NotificationService } from './notification.service';
 
@@ -21,6 +28,59 @@ export class AuditService {
         catchError((err: HttpErrorResponse) => {
           this.logger.error('AuditService', 'getMyActivity failed', err);
           this.notify.error('Audit trail', 'Failed to load your activity.');
+          throw err;
+        }),
+      );
+  }
+
+  /** The signed-in checker's review decisions, filtered server-side, with summary counts. */
+  getMyReviews(params: {
+    page: number;
+    size: number;
+    type?: ReviewTypeFilter;
+    decision?: ReviewDecisionFilter;
+    search?: string;
+    from?: string;
+    to?: string;
+  }): Observable<ApiResponse<ReviewHistoryResponse>> {
+    let hp = new HttpParams().set('page', String(params.page)).set('size', String(params.size));
+    if (params.type) hp = hp.set('type', params.type);
+    if (params.decision) hp = hp.set('decision', params.decision);
+    if (params.search?.trim()) hp = hp.set('search', params.search.trim());
+    if (params.from) hp = hp.set('from', params.from);
+    if (params.to) hp = hp.set('to', params.to);
+    return this.http
+      .get<ApiResponse<ReviewHistoryResponse>>(`${environment.apiUrl}/audit/my-reviews`, { params: hp })
+      .pipe(
+        catchError((err: HttpErrorResponse) => {
+          this.logger.error('AuditService', 'getMyReviews failed', err);
+          this.notify.error('Review history', 'Failed to load your review history.');
+          throw err;
+        }),
+      );
+  }
+
+  getMakerTrail(params: {
+    page: number;
+    size: number;
+    scope?: MakerTrailScope;
+    type?: ReviewTypeFilter;
+    search?: string;
+    from?: string;
+    to?: string;
+  }): Observable<ApiResponse<MakerTrailResponse>> {
+    let hp = new HttpParams().set('page', String(params.page)).set('size', String(params.size));
+    if (params.scope) hp = hp.set('scope', params.scope);
+    if (params.type) hp = hp.set('type', params.type);
+    if (params.search?.trim()) hp = hp.set('search', params.search.trim());
+    if (params.from) hp = hp.set('from', params.from);
+    if (params.to) hp = hp.set('to', params.to);
+    return this.http
+      .get<ApiResponse<MakerTrailResponse>>(`${environment.apiUrl}/audit/my-trail`, { params: hp })
+      .pipe(
+        catchError((err: HttpErrorResponse) => {
+          this.logger.error('AuditService', 'getMakerTrail failed', err);
+          this.notify.error('Audit trail', 'Failed to load your audit trail.');
           throw err;
         }),
       );

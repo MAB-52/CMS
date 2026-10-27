@@ -1,209 +1,290 @@
-<div class="tab-toolbar">
-  <div class="toolbar-left">
-    <span class="toolbar-title">Consent Management</span>
-    <span class="toolbar-sub">Manage and monitor customer consent records</span>
-  </div>
-  <div class="exports">
-    <button mat-stroked-button type="button" [disabled]="exporting()" (click)="exportCsv()">
-      <mat-icon>download</mat-icon> CSV
-    </button>
-    <button mat-stroked-button type="button" [disabled]="exporting()" (click)="exportExcel()">
-      <mat-icon>table_chart</mat-icon> Excel
-    </button>
-  </div>
-</div>
-
-@if (loading()) {
-<div class="progress-bar">
-  <div class="progress-inner"></div>
-</div>
-}
-
-<div class="filters">
-  <div class="filter-field">
-    <label class="filter-label">Consent Status</label>
-    <mat-form-field appearance="outline" class="ff">
-      <mat-select [(ngModel)]="selectedStatuses" multiple placeholder="All statuses">
-        @for (s of allStatuses; track s) {
-        <mat-option [value]="s">{{ label(s) }}</mat-option>
+<!-- ── Toolbar ─────────────────────────────────────────────────────────── -->
+<div class="cc-toolbar">
+  <div class="cc-toolbar__text">
+    <span class="cc-toolbar__ico" aria-hidden="true"><i class="pi pi-users"></i></span>
+    <div>
+      <h2 class="cc-toolbar__title">Consent management</h2>
+      <p class="cc-toolbar__sub">
+        Manage and monitor customer consent records
+        @if (!loading() || totalElements()) {
+        <span class="cc-count">{{ totalElements() | number: '1.0-0' }} customer{{ totalElements() === 1 ? '' : 's' }}</span>
         }
-      </mat-select>
-    </mat-form-field>
+      </p>
+    </div>
   </div>
-
-  <div class="filter-field">
-    <label class="filter-label">VIP</label>
-    <mat-form-field appearance="outline" class="ff ff-short">
-      <mat-select [(ngModel)]="vipFilter">
-        <mat-option value="">All</mat-option>
-        <mat-option value="true">VIP only</mat-option>
-        <mat-option value="false">Non-VIP</mat-option>
-      </mat-select>
-    </mat-form-field>
+  <div class="cc-exports">
+    <p-button label="CSV" icon="pi pi-download" severity="secondary" [outlined]="true" [rounded]="true"
+      [loading]="exporting() === 'csv'" [disabled]="!!exporting()" pTooltip="Download filtered rows as CSV"
+      tooltipPosition="top" (onClick)="exportCsv()" />
+    <p-button label="Excel" icon="pi pi-file-excel" severity="success" [outlined]="true" [rounded]="true"
+      [loading]="exporting() === 'excel'" [disabled]="!!exporting()" pTooltip="Download filtered rows as Excel"
+      tooltipPosition="top" (onClick)="exportExcel()" />
   </div>
-
-  <div class="filter-field">
-    <label class="filter-label">Valid From</label>
-    <input class="date-input" type="date" [(ngModel)]="validFrom" />
-  </div>
-
-  <div class="filter-field">
-    <label class="filter-label">Valid To</label>
-    <input class="date-input" type="date" [(ngModel)]="validTo" />
-  </div>
-
-  <div class="filter-field filter-grow">
-    <label class="filter-label">Search</label>
-    <input class="text-input" type="text" [(ngModel)]="search" placeholder="Customer ID or mobile…" />
-  </div>
-
-  <button class="btn-apply" type="button" (click)="apply()">Apply filters</button>
 </div>
 
-<div class="table-wrap">
-  <table class="data-table">
-    <thead>
+<!-- ── Filters ─────────────────────────────────────────────────────────── -->
+<form class="cc-filters" (ngSubmit)="apply()">
+  <div class="cc-field">
+    <label class="cc-field__label" for="cc-status"><i class="pi pi-filter"></i> Consent status</label>
+    <p-multiselect inputId="cc-status" name="status" [(ngModel)]="selectedStatuses" [options]="statusOptions"
+      optionLabel="label" optionValue="value" placeholder="All statuses" display="chip" [maxSelectedLabels]="2"
+      selectedItemsLabel="{0} statuses" [showToggleAll]="true" [filter]="false" [showClear]="true" appendTo="body"
+      styleClass="cc-input">
+      <ng-template #item let-o>
+        <span class="cc-opt"><i [class]="o.icon" [attr.data-sev]="o.severity"></i>{{ o.label }}</span>
+      </ng-template>
+    </p-multiselect>
+  </div>
+
+  <div class="cc-field cc-field--sm">
+    <label class="cc-field__label" for="cc-vip"><i class="pi pi-star"></i> VIP</label>
+    <p-select inputId="cc-vip" name="vip" [(ngModel)]="vipFilter" [options]="vipOptions" optionLabel="label"
+      optionValue="value" appendTo="body" styleClass="cc-input" />
+  </div>
+
+  <div class="cc-field cc-field--sm">
+    <label class="cc-field__label" for="cc-from"><i class="pi pi-calendar"></i> Valid from</label>
+    <p-datepicker inputId="cc-from" name="validFrom" [(ngModel)]="validFrom" [maxDate]="validTo"
+      dateFormat="dd M yy" placeholder="Any date" [showIcon]="true" iconDisplay="input" [showButtonBar]="true"
+      appendTo="body" styleClass="cc-input" />
+  </div>
+
+  <div class="cc-field cc-field--sm">
+    <label class="cc-field__label" for="cc-to"><i class="pi pi-calendar"></i> Valid to</label>
+    <p-datepicker inputId="cc-to" name="validTo" [(ngModel)]="validTo" [minDate]="validFrom"
+      dateFormat="dd M yy" placeholder="Any date" [showIcon]="true" iconDisplay="input" [showButtonBar]="true"
+      appendTo="body" styleClass="cc-input" />
+  </div>
+
+  <div class="cc-field cc-field--grow">
+    <label class="cc-field__label" for="cc-search"><i class="pi pi-search"></i> Search</label>
+    <p-iconfield class="cc-search">
+      <p-inputicon class="pi pi-search" />
+      <input pInputText id="cc-search" name="search" type="text" [(ngModel)]="search"
+        placeholder="Customer ID or mobile…" autocomplete="off" />
+    </p-iconfield>
+  </div>
+
+  <div class="cc-actions">
+    @if (activeFilterCount()) {
+    <p-button type="button" label="Reset" icon="pi pi-filter-slash" severity="secondary" [text]="true"
+      [rounded]="true" pTooltip="Clear all filters" tooltipPosition="top" (onClick)="reset()" />
+    }
+    <p-button type="submit" label="Apply" icon="pi pi-check" [rounded]="true" [loading]="loading()"
+      [badge]="activeFilterCount() ? '' + activeFilterCount() : undefined" badgeSeverity="contrast"
+      styleClass="cc-apply" />
+  </div>
+</form>
+
+<!-- ── Results ─────────────────────────────────────────────────────────── -->
+<section class="cc-card" [class.cc-card--busy]="loading() && rows().length">
+  <div class="cc-progress" [class.cc-progress--on]="loading()">
+    <p-progressbar mode="indeterminate" />
+  </div>
+
+  <p-table [value]="rows()" dataKey="customerId" [lazy]="true" (onLazyLoad)="onLazyLoad($event)"
+    [paginator]="true" [rows]="pageSize()" [first]="currentPage() * pageSize()" [totalRecords]="totalElements()"
+    [rowsPerPageOptions]="[10, 25, 50]" paginatorDropdownAppendTo="body" [showCurrentPageReport]="true"
+    currentPageReportTemplate="Showing {first}–{last} of {totalRecords}" [expandedRowKeys]="expandedRows"
+    (onRowExpand)="onRowExpand($event)" [rowHover]="true" styleClass="cc-table"
+    [tableStyle]="{ 'min-width': '60rem' }">
+
+    <ng-template #header>
       <tr>
-        <th>Customer ID</th>
-        <th>Name</th>
-        <th>Mobile</th>
-        <th>Email</th>
-        <th>Valid until</th>
-        <th>Last invite</th>
-        <th>Last response</th>
-        <th>VIP</th>
-        <th>View</th>
+        <th class="cc-col-toggle" pTooltip="Expand a row to see the customer's consent history" tooltipPosition="top"></th>
+        <th pTooltip="Customer name and customer ID" tooltipPosition="top">Customer</th>
+        <th pTooltip="Registered mobile number and email" tooltipPosition="top">Contact</th>
+        <th pTooltip="Date the customer's consent stays valid until" tooltipPosition="top">Valid until</th>
+        <th pTooltip="When the most recent consent invite was sent" tooltipPosition="top">Last invite</th>
+        <th pTooltip="When the customer last responded to an invite" tooltipPosition="top">Last response</th>
+        <th class="cc-col-vip" pTooltip="Whether the customer is flagged as VIP" tooltipPosition="top">VIP</th>
       </tr>
-    </thead>
-    <tbody>
-      @for (r of rows(); track r.customerId) {
-      <tr>
-        <td class="td-id">{{ r.customerId }}</td>
-        <td class="td-name">{{ r.customerName }}</td>
-        <td class="td-muted">{{ r.mobileNumber }}</td>
-        <td class="td-muted">{{ r.email || '—' }}</td>
-        <td class="td-muted">{{ r.consentValidUntil || '—' }}</td>
-        <td class="td-muted">{{ r.lastConsentInviteSentAt ? (r.lastConsentInviteSentAt | date: 'medium') : '—' }}</td>
-        <td class="td-muted">{{ r.lastConsentResponseAt ? (r.lastConsentResponseAt | date: 'medium') : '—' }}</td>
+    </ng-template>
+
+    <ng-template #body let-r let-expanded="expanded" let-i="rowIndex">
+      <tr class="cc-row" [class.cc-row--open]="expanded" [style.--i]="i % pageSize()">
+        <td class="cc-col-toggle">
+          <p-button type="button" [pRowToggler]="r" icon="pi pi-chevron-right" [text]="true" [rounded]="true"
+            severity="secondary" styleClass="cc-toggle" [class.cc-toggle--open]="expanded"
+            [attr.aria-expanded]="expanded" [ariaLabel]="(expanded ? 'Hide' : 'View') + ' consent history'"
+            [pTooltip]="expanded ? 'Hide history' : 'View consent history'" tooltipPosition="top" />
+        </td>
+        <td [pTooltip]="(r.customerName || 'Unnamed customer') + ' · ' + r.customerId" tooltipPosition="top">
+          <div class="cc-cust">
+            <p-avatar [label]="initials(r.customerName)" shape="circle" styleClass="cc-avatar"
+              [style]="{ background: avatarColor(r.customerId) }" />
+            <div class="cc-cust__text">
+              <span class="cc-cust__name">{{ r.customerName || '—' }}</span>
+              <span class="cc-cust__id">{{ r.customerId }}</span>
+            </div>
+          </div>
+        </td>
         <td>
-          @if (r.vipFlag) {
-          <span class="vip-yes">
-            <mat-icon class="vip-icon">star</mat-icon> VIP
-          </span>
+          <div class="cc-stack">
+            <span class="cc-line" [pTooltip]="r.mobileNumber ? 'Mobile: ' + r.mobileNumber : 'No mobile number'"
+              tooltipPosition="top"><i class="pi pi-phone"></i>{{ r.mobileNumber || '—' }}</span>
+            <span class="cc-line cc-line--muted" [pTooltip]="r.email ? 'Email: ' + r.email : 'No email on file'"
+              tooltipPosition="top">
+              <i class="pi pi-envelope"></i><span class="cc-ellipsis">{{ r.email || '—' }}</span>
+            </span>
+          </div>
+        </td>
+        <td>
+          @let v = validity(r.consentValidUntil);
+          @if (v === 'none') {
+          <span class="cc-dash" pTooltip="No consent validity date" tooltipPosition="top">—</span>
           } @else {
-          <span class="vip-no">No</span>
+          <div class="cc-stack" tooltipPosition="top"
+            [pTooltip]="(v === 'expired' ? 'Consent expired on ' : v === 'soon' ? 'Expiring soon — valid until ' : 'Valid until ')
+              + (r.consentValidUntil | date: 'fullDate')">
+            <span class="cc-valid" [attr.data-v]="v">
+              <span class="cc-dot"></span>{{ r.consentValidUntil | date: 'dd MMM yyyy' }}
+            </span>
+            <span class="cc-rel">{{ v === 'expired' ? 'Expired ' : 'Expires ' }}{{ relative(r.consentValidUntil) }}</span>
+          </div>
           }
         </td>
         <td>
-          <button class="btn-view" type="button" [disabled]="historyLoadingFor() === r.customerId"
-            (click)="toggleHistory(r)">
-            @if (historyLoadingFor() === r.customerId) {
-            <mat-spinner diameter="14" />
-            } @else {
-            <mat-icon class="view-icon">
-              {{ expandedCustomerIds().has(r.customerId) ? 'expand_less' : 'visibility' }}
-            </mat-icon>
-            View
-            }
-          </button>
+          @if (r.lastConsentInviteSentAt) {
+          <div class="cc-stack" [pTooltip]="'Invite sent ' + (r.lastConsentInviteSentAt | date: 'medium')"
+            tooltipPosition="top">
+            <span class="cc-line"><i class="pi pi-send"></i>{{ r.lastConsentInviteSentAt | date: 'dd MMM yyyy' }}</span>
+            <span class="cc-rel">{{ relative(r.lastConsentInviteSentAt) }}</span>
+          </div>
+          } @else { <span class="cc-dash" pTooltip="No invite sent yet" tooltipPosition="top">—</span> }
+        </td>
+        <td>
+          @if (r.lastConsentResponseAt) {
+          <div class="cc-stack" [pTooltip]="'Responded ' + (r.lastConsentResponseAt | date: 'medium')"
+            tooltipPosition="top">
+            <span class="cc-line"><i class="pi pi-reply"></i>{{ r.lastConsentResponseAt | date: 'dd MMM yyyy' }}</span>
+            <span class="cc-rel">{{ relative(r.lastConsentResponseAt) }}</span>
+          </div>
+          } @else {
+          <span class="cc-dash" pTooltip="Customer has not responded yet" tooltipPosition="top">No response</span>
+          }
+        </td>
+        <td class="cc-col-vip">
+          @if (r.vipFlag) {
+          <p-tag value="VIP" icon="pi pi-star-fill" [rounded]="true" styleClass="cc-vip" pTooltip="VIP customer"
+            tooltipPosition="top" />
+          } @else {
+          <span class="cc-dash" pTooltip="Not a VIP customer" tooltipPosition="top">—</span>
+          }
         </td>
       </tr>
+    </ng-template>
 
-      @if (expandedCustomerIds().has(r.customerId)) {
-      <tr class="history-row">
-        <td colspan="9">
-          <div class="history-panel">
-            <div class="history-panel__header">
-              <span class="history-panel__title">Consent record history</span>
-              <span class="cc-record-count">
-                {{ (historyByCustomer()[r.customerId] ?? []).length }}
-                record{{ (historyByCustomer()[r.customerId] ?? []).length !== 1 ? 's' : '' }}
-              </span>
+    <ng-template #expandedrow let-r>
+      <tr class="cc-expand-row">
+        <td colspan="7">
+          <div class="cc-history">
+            <div class="cc-history__head">
+              <span class="cc-history__ico" aria-hidden="true"><i class="pi pi-history"></i></span>
+              <div class="cc-history__titles">
+                <span class="cc-history__title">Consent record history</span>
+                <span class="cc-history__sub">{{ r.customerName }} · {{ r.customerId }}</span>
+              </div>
+              @if (historyLoadingFor() !== r.customerId) {
+              <div class="cc-history__chips">
+                @for (s of historySummary(r.customerId); track s.status) {
+                <p-tag [severity]="statusMeta(s.status).severity" [rounded]="true"
+                  [value]="s.count + ' ' + label(s.status)" />
+                }
+              </div>
+              }
             </div>
 
             @if (historyLoadingFor() === r.customerId) {
-            <div class="cc-loading-row">
-              <mat-spinner diameter="18" />
-              <span>Loading records…</span>
+            <div class="cc-history__skel">
+              @for (i of [1, 2, 3]; track i) { <p-skeleton height="44px" borderRadius="12px" /> }
             </div>
-            } @else if ((historyByCustomer()[r.customerId] ?? []).length === 0) {
-            <div class="cc-empty">
-              <mat-icon>description</mat-icon>
+            } @else {
+            @let history = historyByCustomer()[r.customerId] ?? [];
+            @if (!history.length) {
+            <div class="cc-empty cc-empty--sm">
+              <span class="cc-empty__ico"><i class="pi pi-inbox"></i></span>
               <p>No consent records found for this customer</p>
             </div>
             } @else {
-            <div class="cc-table-wrap">
-              <table class="cc-table">
-                <thead>
-                  <tr>
-                    <th>Consent</th>
-                    <th>Status</th>
-                    <th>Responded</th>
-                    <th>Valid until</th>
-                    <th>Last invite</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (h of getPaginatedHistory(r.customerId); track h.id) {
-                  <tr>
-                    <td class="cc-table__name">{{ h.consentName || '—' }}</td>
-                    <td>
-                      <span [className]="badgeClass(h.status)">{{ label(h.status) }}</span>
-                    </td>
-                    <td class="cc-table__muted">{{ h.respondedAt ? (h.respondedAt | date: 'dd MMM yyyy') : '—' }}</td>
-                    <td class="cc-table__muted">{{ h.consentValidUntil ? (h.consentValidUntil | date: 'dd MMM yyyy') :
-                      '—' }}</td>
-                    <td class="cc-table__muted">{{ h.lastInviteSentAt ? (h.lastInviteSentAt | date: 'dd MMM yyyy') : '—'
-                      }}</td>
-                  </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
+            <p-table [value]="history" [paginator]="history.length > historyPageSize" [rows]="historyPageSize"
+              [rowHover]="true" sortField="lastInviteSentAt" [sortOrder]="-1" styleClass="cc-subtable"
+              [tableStyle]="{ 'min-width': '40rem' }">
+              <ng-template #header>
+                <tr>
+                  <th pSortableColumn="consentName" pTooltip="Consent template name — click to sort"
+                    tooltipPosition="top">Consent <p-sortIcon field="consentName" /></th>
+                  <th pSortableColumn="status" pTooltip="Current status of this consent — click to sort"
+                    tooltipPosition="top">Status <p-sortIcon field="status" /></th>
+                  <th pSortableColumn="respondedAt" pTooltip="When the customer responded — click to sort"
+                    tooltipPosition="top">Responded <p-sortIcon field="respondedAt" /></th>
+                  <th pSortableColumn="consentValidUntil" pTooltip="Consent validity end date — click to sort"
+                    tooltipPosition="top">Valid until <p-sortIcon field="consentValidUntil" /></th>
+                  <th pSortableColumn="lastInviteSentAt" pTooltip="When the latest invite was sent — click to sort"
+                    tooltipPosition="top">Last invite <p-sortIcon field="lastInviteSentAt" /></th>
+                </tr>
+              </ng-template>
+              <ng-template #body let-h let-j="rowIndex">
+                <tr class="cc-subrow" [style.--i]="j % historyPageSize">
+                  <td [pTooltip]="h.consentName ? 'Consent: ' + h.consentName : 'Unnamed consent'" tooltipPosition="top">
+                    <span class="cc-consent"><i class="pi pi-file-check"></i>{{ h.consentName || '—' }}</span>
+                  </td>
+                  <td [pTooltip]="'Status: ' + label(h.status)" tooltipPosition="top">
+                    <p-tag [value]="label(h.status)" [severity]="statusMeta(h.status).severity"
+                      [icon]="statusMeta(h.status).icon" [rounded]="true" />
+                  </td>
+                  <td class="cc-muted" tooltipPosition="top"
+                    [pTooltip]="h.respondedAt ? 'Responded ' + (h.respondedAt | date: 'medium') : 'No response yet'">
+                    {{ h.respondedAt ? (h.respondedAt | date: 'dd MMM yyyy') : '—' }}</td>
+                  <td class="cc-muted" tooltipPosition="top"
+                    [pTooltip]="h.consentValidUntil ? 'Valid until ' + (h.consentValidUntil | date: 'fullDate') : 'No validity date'">
+                    {{ h.consentValidUntil ? (h.consentValidUntil | date: 'dd MMM yyyy') : '—' }}</td>
+                  <td class="cc-muted" tooltipPosition="top"
+                    [pTooltip]="h.lastInviteSentAt ? 'Invite sent ' + (h.lastInviteSentAt | date: 'medium') : 'No invite sent'">
+                    {{ h.lastInviteSentAt ? (h.lastInviteSentAt | date: 'dd MMM yyyy') : '—' }}</td>
+                </tr>
+              </ng-template>
+            </p-table>
+            }
+            }
+          </div>
+        </td>
+      </tr>
+    </ng-template>
 
-            <div class="cc-history-pager">
-              <span class="cc-pager-info">
-                Page <strong>{{ getHistoryCurrentPage(r.customerId) + 1 }}</strong> of <strong>{{
-                  getHistoryTotalPages(r.customerId) }}</strong>
-              </span>
-              <div class="cc-pager-btns">
-                <button class="btn-cc-page" type="button" [disabled]="getHistoryCurrentPage(r.customerId) === 0"
-                  (click)="prevHistoryPage(r.customerId)">
-                  <mat-icon>chevron_left</mat-icon>
-                </button>
-                <button class="btn-cc-page" type="button"
-                  [disabled]="getHistoryCurrentPage(r.customerId) >= getHistoryTotalPages(r.customerId) - 1"
-                  (click)="nextHistoryPage(r.customerId)">
-                  <mat-icon>chevron_right</mat-icon>
-                </button>
-              </div>
-            </div>
+    <ng-template #emptymessage>
+      @if (loading()) {
+      @for (s of skeletonRows; track s) {
+      <tr class="cc-skel-row">
+        <td class="cc-col-toggle"><p-skeleton shape="circle" size="2rem" /></td>
+        <td>
+          <div class="cc-cust">
+            <p-skeleton shape="circle" size="2.5rem" />
+            <div class="cc-cust__text"><p-skeleton width="8rem" /><p-skeleton width="5rem" height=".7rem" /></div>
+          </div>
+        </td>
+        <td><p-skeleton width="9rem" /></td>
+        <td><p-skeleton width="6rem" /></td>
+        <td><p-skeleton width="6rem" /></td>
+        <td><p-skeleton width="6rem" /></td>
+        <td class="cc-col-vip"><p-skeleton width="3.5rem" height="1.6rem" borderRadius="999px" /></td>
+      </tr>
+      }
+      } @else {
+      <tr>
+        <td colspan="7">
+          <div class="cc-empty">
+            <span class="cc-empty__ico"><i class="pi pi-search"></i></span>
+            <p class="cc-empty__title">No customers match your filters</p>
+            <p class="cc-empty__sub">Try widening the date range or clearing some filters.</p>
+            @if (activeFilterCount()) {
+            <p-button label="Clear filters" icon="pi pi-filter-slash" [outlined]="true" [rounded]="true"
+              size="small" (onClick)="reset()" />
             }
           </div>
         </td>
       </tr>
       }
-      } @empty {
-      <tr class="empty-row">
-        <td colspan="9">{{ loading() ? 'Loading…' : 'No rows match your filters.' }}</td>
-      </tr>
-      }
-    </tbody>
-  </table>
-</div>
-
-<div class="pager">
-  <span class="pager-info">
-    Page <strong>{{ currentPage() + 1 }}</strong> of <strong>{{ totalPages() || 1 }}</strong>
-    &nbsp;·&nbsp;
-    <strong>{{ totalElements() }}</strong> total rows
-  </span>
-  <div class="pager-btns">
-    <button class="btn-page" type="button" [disabled]="currentPage() <= 0 || loading()" (click)="prev()">
-      <mat-icon>chevron_left</mat-icon> Previous
-    </button>
-    <button class="btn-page" type="button" [disabled]="currentPage() >= totalPages() - 1 || loading()" (click)="next()">
-      Next <mat-icon>chevron_right</mat-icon>
-    </button>
-  </div>
-</div>
+    </ng-template>
+  </p-table>
+</section>

@@ -49,7 +49,13 @@
       </div>
       <div class="field">
         <span class="k">Delivery Channels</span>
-        <span class="v">{{ channelsLabel(c) || '—' }}</span>
+        <span class="v chip-row">
+          @for (ch of getChannels(c); track ch) {
+            <app-channel-chip [channel]="ch" />
+          } @empty {
+            —
+          }
+        </span>
       </div>
       <div class="field full">
         <span class="k">Tags</span>
@@ -83,6 +89,7 @@
       [channelWhatsapp]="c.channelWhatsapp"
       [channelRcs]="c.channelRcs"
       [renders]="renderMap()"
+      [fallbackContent]="c.consentMessage"
       [mergeTags]="mergeTags"
       [readOnly]="true"
       [viewedCount]="viewedCount()"
@@ -90,41 +97,17 @@
       (combinationViewed)="onCombinationViewed($event)">
     </app-consent-channel-language-preview>
 
-    <div class="spacer"></div>
-
-    <div class="decision" [class.dim]="!canDecide()">
-      <div>
-        <div class="d-title">Make your decision for: {{ c.consentName }} v{{ c.version }}</div>
-        <div class="d-sub">Your decision will be logged and the maker will be notified.</div>
-        <div class="reviewed-tracker" [class.reviewed-tracker--done]="viewedCount() >= totalCombinations()"><mat-icon aria-hidden="true">{{ viewedCount() >= totalCombinations() ? 'task_alt' : 'visibility' }}</mat-icon>{{ viewedCount() }}/{{ totalCombinations() }} combinations viewed</div>
-      </div>
-      <div class="d-btns">
-        <button
-          mat-flat-button
-          class="ciq-btn-success ap"
-          [disabled]="!canDecide() || busy() || viewedCount() < totalCombinations()"
-          (click)="approve()">
-          <mat-icon>check_circle</mat-icon>
-          Approve
-        </button>
-        <button
-          mat-stroked-button
-          class="ciq-btn-warning rev"
-          [disabled]="!canDecide() || busy()"
-          (click)="requestRevision()">
-          <mat-icon>assignment_return</mat-icon>
-          Request Revision
-        </button>
-        <button
-          mat-stroked-button
-          class="reject-btn"
-          [disabled]="!canDecide() || busy()"
-          (click)="reject()">
-          <mat-icon>cancel</mat-icon>
-          Reject
-        </button>
-      </div>
-    </div>
+    <app-decision-bar
+      [title]="'Make your decision for: ' + c.consentName + (c.version ? ' v' + c.version : '')"
+      [disabled]="!canDecide()"
+      [busy]="busy()"
+      [viewed]="viewedCount()"
+      [total]="totalCombinations()"
+      (approve)="approve()"
+      (revise)="requestRevision()"
+      (reject)="reject()">
+      Your decision will be logged and the maker will be notified.
+    </app-decision-bar>
 
   </div>
 }

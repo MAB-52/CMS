@@ -323,7 +323,7 @@ public class ConsentRuleExecutionService {
 				return false;
 			}
 			log.info("Executing DB query | method=findFirstByRoleOrderByIdAsc | param=ADMIN");
-			User systemActor = userRepository.findFirstByRoleOrderByIdAsc(UserRole.ADMIN).orElseThrow(
+			User systemActor = userRepository.findFirstByRoleAndDeletedAtIsNullOrderByIdAsc(UserRole.ADMIN).orElseThrow(
 					() -> new IllegalStateException("No admin user exists to attribute system rule execution."));
 			log.info("DB query completed | method=findFirstByRoleOrderByIdAsc | present=true");
 			auditService.log(systemActor.getId(), "RULE_AUTO_RUN_REQUESTED", "CONSENT_RULE", rule.getId(),

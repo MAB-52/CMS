@@ -1,100 +1,270 @@
-<div class="wrap">
-  <div class="top">
-    <div>
-      <div class="eyebrow">Activity</div>
-      <h1>Audit Trail</h1>
-      <p class="lede">Every action on your consents, broadcasts and rules — including checker decisions.</p>
-    </div>
-    <a mat-stroked-button routerLink="/maker/dashboard"><mat-icon>arrow_back</mat-icon>Back to Dashboard</a>
-  </div>
-
-  <mat-card>
-    <div class="audit-toolbar" role="group" aria-label="Filter activity">
-      <button mat-stroked-button [class.active]="typeFilter() === 'all'" (click)="typeFilter.set('all')">
-        All
-      </button>
-      <button mat-stroked-button [class.active]="typeFilter() === 'decisions'" (click)="typeFilter.set('decisions')">
-        Checker decisions
-      </button>
-      <button mat-stroked-button [class.active]="typeFilter() === 'consents'" (click)="typeFilter.set('consents')">
-        Consents
-      </button>
-      <button mat-stroked-button [class.active]="typeFilter() === 'broadcasts'" (click)="typeFilter.set('broadcasts')">
-        Broadcasts
-      </button>
-      <button mat-stroked-button [class.active]="typeFilter() === 'rules'" (click)="typeFilter.set('rules')">
-        Rules
-      </button>
-    </div>
-
-    <div class="table-wrap">
-      <table mat-table [dataSource]="displayedRows()" class="tbl">
-
-        <ng-container matColumnDef="action">
-          <th mat-header-cell *matHeaderCellDef>Action</th>
-          <td mat-cell *matCellDef="let row">{{ formatActionLabel(row.action) }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="description">
-          <th mat-header-cell *matHeaderCellDef>Description</th>
-          <td mat-cell *matCellDef="let row">
-            <span class="truncate" [matTooltip]="row.description">{{ row.description }}</span>
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="entity">
-          <th mat-header-cell *matHeaderCellDef>Entity</th>
-          <td mat-cell *matCellDef="let row">
-            <span class="entity-cell">
-              <span class="chip" [class]="'chip chip--' + entityChipKind(row.entityType)">
-                {{ entityChipLabel(row.entityType) }}
-              </span>
-              <span class="entity-name truncate">{{ row.entityName }}</span>
-            </span>
-          </td>
-        </ng-container>
-
-        <!-- status column -->
-        <ng-container matColumnDef="status">
-          <th mat-header-cell *matHeaderCellDef>Checker Status</th>
-          <td mat-cell *matCellDef="let row">
-            <span *ngIf="isCheckerDecision(row)" [class]="'badge badge--' + actionBadgeTone(row.action)"
-              [matTooltip]="row.description">
-              {{ statusLabel(row.action) }}
-            </span>
-            <span *ngIf="!isCheckerDecision(row)" class="status-dash">—</span>
-          </td>
-        </ng-container>
-
-        <!-- checker column -->
-        <ng-container matColumnDef="checker">
-          <th mat-header-cell *matHeaderCellDef>Checker</th>
-          <td mat-cell *matCellDef="let row">
-            <span *ngIf="isCheckerDecision(row)">{{ row.userName }}</span>
-            <span *ngIf="!isCheckerDecision(row)" class="status-dash">—</span>
-          </td>
-        </ng-container>
-        <ng-container matColumnDef="when">
-          <th mat-header-cell *matHeaderCellDef>Time Ago</th>
-          <td mat-cell *matCellDef="let row">{{ row.performedAt | timeAgo }}</td>
-        </ng-container>
-
-        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-      </table>
-
-      <div class="empty-state" *ngIf="displayedRows().length === 0 && !loading()">
-        <div class="is-empty">
-          <div class="is-empty__icon"><mat-icon>history_toggle_off</mat-icon></div>
-          <div class="is-empty__title">No activity to show yet.</div>
-        </div>
+<div class="at">
+  <div class="mr-toolbar">
+    <div class="mr-toolbar__text">
+      <span class="mr-toolbar__ico" aria-hidden="true"><i class="pi pi-history"></i></span>
+      <div>
+        <span class="at-eyebrow">Activity</span>
+        <h1 class="mr-toolbar__title">Audit trail</h1>
+        <p class="mr-toolbar__sub">
+          Every action on your consents, broadcasts and rules, including checker decisions
+          @if (!loading() || totalElements()) {
+          <span class="mr-count">{{ totalElements() | number: '1.0-0' }} entr{{ totalElements() === 1 ? 'y' : 'ies' }}</span>
+          }
+        </p>
       </div>
     </div>
+    <a routerLink="/maker/dashboard" class="at-link" pTooltip="Back to your dashboard" tooltipPosition="left">
+      <p-button label="Dashboard" icon="pi pi-arrow-left" [outlined]="true" [rounded]="true" styleClass="mr-btn-outline" />
+    </a>
+  </div>
 
-    <div class="pager">
-      <button mat-stroked-button (click)="prev()" [disabled]="page() === 0"><mat-icon>chevron_left</mat-icon>Previous</button>
-      <span>Page {{ page() + 1 }}</span>
-      <button mat-stroked-button (click)="next()" [disabled]="!hasNext()">Next<mat-icon iconPositionEnd>chevron_right</mat-icon></button>
+  @if (!summary() && loading()) {
+  <div class="mr-kpis">
+    @for (i of [1, 2, 3, 4, 5]; track i) { <p-skeleton height="82px" borderRadius="16px" /> }
+  </div>
+  } @else if (summary(); as s) {
+  <div class="mr-kpis at-kpis">
+    <div class="mr-kpi" style="--c: var(--is-primary); --i: 0" pTooltip="Your actions plus checker decisions on your items" tooltipPosition="top">
+      <span class="mr-kpi__ico"><i class="pi pi-list"></i></span>
+      <span class="mr-kpi__body">
+        <span class="mr-kpi__label">Total activity</span>
+        <span class="mr-kpi__value">{{ s.total | number }}</span>
+      </span>
     </div>
-  </mat-card>
+    <div class="mr-kpi" style="--c: var(--is-blue); --i: 1" pTooltip="Things you created, edited or submitted" tooltipPosition="top">
+      <span class="mr-kpi__ico"><i class="pi pi-user"></i></span>
+      <span class="mr-kpi__body">
+        <span class="mr-kpi__label">My actions</span>
+        <span class="mr-kpi__value">{{ s.myActions | number }}</span>
+      </span>
+    </div>
+    <div class="mr-kpi" style="--c: var(--is-green); --i: 2" pTooltip="Your submissions a checker approved or published" tooltipPosition="top">
+      <span class="mr-kpi__ico"><i class="pi pi-check-circle"></i></span>
+      <span class="mr-kpi__body">
+        <span class="mr-kpi__label">Approved</span>
+        <span class="mr-kpi__value">{{ s.approved | number }}</span>
+      </span>
+    </div>
+    <div class="mr-kpi" style="--c: var(--is-secondary); --i: 3" pTooltip="Your submissions sent back for changes" tooltipPosition="top">
+      <span class="mr-kpi__ico"><i class="pi pi-replay"></i></span>
+      <span class="mr-kpi__body">
+        <span class="mr-kpi__label">Revisions requested</span>
+        <span class="mr-kpi__value">{{ s.revisionRequested | number }}</span>
+      </span>
+    </div>
+    <div class="mr-kpi" style="--c: var(--is-red); --i: 4" pTooltip="Your submissions a checker rejected" tooltipPosition="top">
+      <span class="mr-kpi__ico"><i class="pi pi-times-circle"></i></span>
+      <span class="mr-kpi__body">
+        <span class="mr-kpi__label">Rejected</span>
+        <span class="mr-kpi__value">{{ s.rejected | number }}</span>
+      </span>
+    </div>
+  </div>
+  }
+
+  <form class="mr-card at-filters" style="--d: 120ms" (ngSubmit)="apply()">
+    <p-selectbutton [options]="scopeOptions()" [ngModel]="scope" (ngModelChange)="setScope($event)" name="scope"
+      optionLabel="label" optionValue="value" [allowEmpty]="false" styleClass="mr-seg" aria-label="Show">
+      <ng-template #item let-o>
+        <span class="mr-seg__opt"><i [class]="o.icon"></i>{{ o.label }}
+          @if (o.count != null) { <span class="at-seg-count">{{ o.count }}</span> }
+        </span>
+      </ng-template>
+    </p-selectbutton>
+
+    <div class="at-filters__grid">
+      <div class="mr-field at-filters__search">
+        <label class="mr-field__label" for="at-search">Search</label>
+        <p-iconfield class="at-input">
+          <p-inputicon class="pi pi-search" />
+          <input pInputText id="at-search" name="search" type="text" [(ngModel)]="search"
+            placeholder="Item name or description…" autocomplete="off" />
+        </p-iconfield>
+      </div>
+      <div class="mr-field">
+        <label class="mr-field__label" for="at-type">Item type</label>
+        <p-select inputId="at-type" name="type" [(ngModel)]="type" [options]="typeOptions" optionLabel="label"
+          optionValue="value" appendTo="body" styleClass="mr-input" (onChange)="apply()">
+          <ng-template #selectedItem let-o>
+            <span class="mr-opt"><i [class]="o.icon" [style.color]="o.color"></i>{{ o.label }}</span>
+          </ng-template>
+          <ng-template #item let-o>
+            <span class="mr-opt"><i [class]="o.icon" [style.color]="o.color"></i>{{ o.label }}</span>
+          </ng-template>
+        </p-select>
+      </div>
+      <div class="mr-field">
+        <label class="mr-field__label" for="at-range">Date range</label>
+        <p-datepicker inputId="at-range" name="range" [(ngModel)]="range" selectionMode="range" [readonlyInput]="true"
+          dateFormat="dd M yy" placeholder="Any time" [showIcon]="true" iconDisplay="input" [showButtonBar]="true"
+          [maxDate]="today" appendTo="body" styleClass="mr-input" (onSelect)="onRangeChange()"
+          (onClearClick)="range = null; apply()" />
+      </div>
+      <div class="at-filters__actions">
+        @if (activeFilterCount()) {
+        <p-button type="button" label="Reset" icon="pi pi-filter-slash" [outlined]="true" [rounded]="true"
+          styleClass="mr-btn-outline" pTooltip="Clear all filters" tooltipPosition="top" (onClick)="reset()" />
+        }
+        <p-button type="submit" label="Search" icon="pi pi-search" [rounded]="true" [loading]="loading()"
+          styleClass="mr-btn-primary" />
+      </div>
+    </div>
+  </form>
+
+  <section class="mr-card mr-card--flush" [class.mr-busy]="loading() && rows().length" style="--d: 180ms">
+    <div class="mr-progress" [class.mr-progress--on]="loading()">
+      <p-progressbar mode="indeterminate" />
+    </div>
+
+    <p-table [value]="rows()" dataKey="id" [lazy]="true" (onLazyLoad)="onLazyLoad($event)" [paginator]="true"
+      [rows]="size()" [first]="page() * size()" [totalRecords]="totalElements()" [rowsPerPageOptions]="[15, 30, 50]"
+      paginatorDropdownAppendTo="body" [showCurrentPageReport]="true"
+      currentPageReportTemplate="Showing {first}–{last} of {totalRecords}" [expandedRowKeys]="expandedRows"
+      [rowHover]="true" styleClass="mr-table at-table" [tableStyle]="{ 'min-width': '64rem', 'table-layout': 'fixed' }">
+      <ng-template #colgroup>
+        <colgroup>
+          <col style="width: 15%" />
+          <col style="width: 19%" />
+          <col style="width: 22%" />
+          <col style="width: 17%" />
+          <col style="width: 22%" />
+          <col style="width: 5%" />
+        </colgroup>
+      </ng-template>
+
+      <ng-template #header>
+        <tr>
+          <th pTooltip="Date and time the action was recorded" tooltipPosition="top">When</th>
+          <th pTooltip="What happened" tooltipPosition="top">Action</th>
+          <th pTooltip="The consent, rule or broadcast affected" tooltipPosition="top">Item</th>
+          <th pTooltip="Who performed the action" tooltipPosition="top">Performed by</th>
+          <th pTooltip="Details recorded with the action" tooltipPosition="top">Details</th>
+          <th pTooltip="Expand for full audit details" tooltipPosition="top"></th>
+        </tr>
+      </ng-template>
+
+      <ng-template #body let-e let-expanded="expanded" let-i="rowIndex">
+        @let a = actionOf(e.action);
+        @let en = entityOf(e.entityType);
+        @let decision = isDecision(e);
+        <tr class="mr-row" [class.at-row--decision]="decision" [class.at-row--open]="expanded" [style.--i]="i % size()"
+          [style.--c]="a.color">
+          <td [pTooltip]="(e.performedAt | date: 'EEEE, dd MMMM yyyy, hh:mm:ss a (zzzz)') ?? ''" tooltipPosition="top">
+            <div class="mr-stack">
+              <span class="at-date">{{ e.performedAt | date: 'dd MMM yyyy' }}</span>
+              <span class="mr-line at-clock"><i class="pi pi-clock"></i>{{ e.performedAt | date: 'hh:mm:ss a' }}</span>
+              <span class="mr-rel">{{ relative(e.performedAt) }}</span>
+            </div>
+          </td>
+          <td [pTooltip]="'Action code: ' + e.action" tooltipPosition="top">
+            <span class="at-action"><i [class]="a.icon"></i><span class="at-ellipsis">{{ a.label }}</span></span>
+            @if (decision) { <span class="at-flag"><i class="pi pi-verified"></i>Checker decision</span> }
+          </td>
+          <td [pTooltip]="en.label + ': ' + (e.entityName || '—') + (e.entityId != null ? ' (#' + e.entityId + ')' : '')"
+            tooltipPosition="top">
+            <div class="at-item" [style.--e]="en.color">
+              <span class="at-item__ico"><i [class]="en.icon"></i></span>
+              <div class="mr-stack">
+                <span class="mr-strong at-ellipsis">{{ e.entityName || '—' }}</span>
+                <span class="at-item__type">{{ en.label }}@if (e.entityId != null) { · #{{ e.entityId }} }</span>
+              </div>
+            </div>
+          </td>
+          <td [pTooltip]="isMine(e) ? 'You performed this action' : (decision ? 'Checker: ' : '') + (e.userName || 'Unknown user')"
+            tooltipPosition="top">
+            <div class="mr-person">
+              <p-avatar [label]="initials(e.userName)" shape="circle" styleClass="mr-avatar at-avatar"
+                [style]="{ background: avatarColor(e.userName) }" />
+              <div class="mr-stack">
+                <span class="mr-strong at-ellipsis">{{ isMine(e) ? 'You' : (e.userName || '—') }}</span>
+                <span class="mr-sub">{{ isMine(e) ? 'Maker' : decision ? 'Checker' : 'Team member' }}</span>
+              </div>
+            </div>
+          </td>
+          <td [pTooltip]="e.description || 'No details recorded'" tooltipPosition="top" tooltipStyleClass="at-tip-wide">
+            <span class="at-desc">{{ e.description || '—' }}</span>
+          </td>
+          <td>
+            <p-button type="button" [pRowToggler]="e" icon="pi pi-chevron-down" [text]="true" [rounded]="true"
+              severity="secondary" styleClass="at-toggle" [class.at-toggle--open]="expanded"
+              [ariaLabel]="(expanded ? 'Hide' : 'Show') + ' audit details'"
+              [pTooltip]="expanded ? 'Hide audit details' : 'Show audit details'" tooltipPosition="left" />
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template #expandedrow let-e>
+        @let a = actionOf(e.action);
+        @let en = entityOf(e.entityType);
+        <tr class="at-expand-row">
+          <td colspan="6">
+            <div class="at-detail" [style.--c]="a.color">
+              <dl class="at-detail__grid">
+                <div pTooltip="Exact time the action was recorded" tooltipPosition="top">
+                  <dt><i class="pi pi-calendar-clock"></i>Recorded at</dt>
+                  <dd>{{ e.performedAt | date: 'dd MMM yyyy, hh:mm:ss a' }}<small>{{ e.performedAt | date: 'zzzz' }}</small></dd>
+                </div>
+                <div pTooltip="What happened" tooltipPosition="top">
+                  <dt><i [class]="a.icon"></i>Action</dt>
+                  <dd>{{ a.label }} <code>{{ e.action }}</code></dd>
+                </div>
+                <div [pTooltip]="'Internal ID of the ' + en.label.toLowerCase()" tooltipPosition="top">
+                  <dt><i [class]="en.icon"></i>{{ en.label }}</dt>
+                  <dd>{{ e.entityName || '—' }} <code>#{{ e.entityId ?? '—' }}</code></dd>
+                </div>
+                <div pTooltip="Who performed the action" tooltipPosition="top">
+                  <dt><i class="pi pi-user"></i>Performed by</dt>
+                  <dd>{{ e.userName || '—' }}@if (isMine(e)) { <small>You</small> }</dd>
+                </div>
+                <div pTooltip="Audit log entry ID" tooltipPosition="top">
+                  <dt><i class="pi pi-hashtag"></i>Audit ID</dt>
+                  <dd><code>#{{ e.id }}</code></dd>
+                </div>
+                <div pTooltip="Network address the action came from" tooltipPosition="top">
+                  <dt><i class="pi pi-globe"></i>IP address</dt>
+                  <dd><code>{{ e.ipAddress || '—' }}</code></dd>
+                </div>
+              </dl>
+              <div class="at-detail__desc">
+                <span class="at-detail__k"><i class="pi pi-align-left"></i>Full details</span>
+                <p>{{ e.description || 'No details recorded.' }}</p>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template #emptymessage>
+        @if (loading()) {
+        @for (s of skeletonRows; track s) {
+        <tr>
+          <td><div class="mr-skel-stack"><p-skeleton width="6rem" /><p-skeleton width="5rem" height=".7rem" /></div></td>
+          <td><p-skeleton width="9rem" height="1.6rem" borderRadius="999px" /></td>
+          <td><div class="mr-person"><p-skeleton size="2.25rem" borderRadius="10px" /><div class="mr-skel-stack"><p-skeleton width="8rem" /><p-skeleton width="5rem" height=".7rem" /></div></div></td>
+          <td><div class="mr-person"><p-skeleton shape="circle" size="2rem" /><p-skeleton width="6rem" /></div></td>
+          <td><p-skeleton width="90%" /></td>
+          <td></td>
+        </tr>
+        }
+        } @else {
+        <tr>
+          <td colspan="6">
+            <div class="mr-empty">
+              <span class="mr-empty__ico"><i class="pi pi-history"></i></span>
+              @if (activeFilterCount()) {
+              <p class="mr-empty__title">No activity matches these filters</p>
+              <p class="mr-empty__sub">Try a wider date range or clear the filters.</p>
+              <p-button label="Clear filters" icon="pi pi-filter-slash" [outlined]="true" [rounded]="true"
+                styleClass="mr-btn-outline" (onClick)="reset()" />
+              } @else {
+              <p class="mr-empty__title">No activity yet</p>
+              <p class="mr-empty__sub">Create a consent or rule and every step will be recorded here.</p>
+              }
+            </div>
+          </td>
+        </tr>
+        }
+      </ng-template>
+    </p-table>
+  </section>
 </div>

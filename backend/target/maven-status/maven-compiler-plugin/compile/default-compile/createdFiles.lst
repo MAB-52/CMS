@@ -40,6 +40,7 @@ com\consentiq\model\dto\response\mis\MisConsentInventoryBundleResponse.class
 com\consentiq\scheduler\ReminderScheduler.class
 com\consentiq\util\RuleNextRunUtil.class
 com\consentiq\model\entity\ConsentImage$ConsentImageBuilder.class
+com\consentiq\model\dto\response\MakerTrailResponse.class
 com\consentiq\model\dto\response\MergeTagResponse$MergeTagResponseBuilder.class
 com\consentiq\service\EmailDispatchService.class
 com\consentiq\model\dto\response\JwtResponse$JwtResponseBuilder.class
@@ -90,6 +91,7 @@ com\consentiq\model\dto\response\UserSummaryResponse$UserSummaryResponseBuilder.
 com\consentiq\model\dto\response\mis\MisConsentTrendResponse$MisConsentTrendResponseBuilder.class
 com\consentiq\model\dto\response\mis\MisReEngagementFunnelResponse$MisReEngagementFunnelResponseBuilder.class
 com\consentiq\model\entity\ConsentVersion$ConsentVersionBuilder.class
+com\consentiq\model\dto\response\MakerTrailResponse$MakerTrailResponseBuilder.class
 com\consentiq\enums\BroadcastChannelCode.class
 com\consentiq\service\UserManagementService.class
 com\consentiq\model\dto\request\WorkflowReviewRequest$WorkflowReviewRequestBuilder.class
@@ -101,6 +103,7 @@ com\consentiq\model\dto\response\AdminMisDashboardResponse$ChannelPerformanceRow
 com\consentiq\service\ReminderJobPersistenceService.class
 com\consentiq\model\dto\request\ConsentRuleLinkedDraftRequest$ConsentRuleLinkedDraftRequestBuilder.class
 com\consentiq\model\entity\OnBehalfConsentRecord.class
+com\consentiq\model\dto\response\MakerTrailResponse$Summary$SummaryBuilder.class
 com\consentiq\model\dto\response\mis\MisAgentPerformanceRowResponse.class
 com\consentiq\model\dto\response\AdminConsentTemplateResponse$AdminConsentTemplateResponseBuilder.class
 com\consentiq\model\dto\request\ConsentCreateRequest.class
@@ -145,6 +148,7 @@ com\consentiq\controller\PublicBroadcastEmailImageController.class
 com\consentiq\model\dto\response\ConsentTranslationDto.class
 com\consentiq\model\dto\response\MakerStatsResponse$MakerStatsResponseBuilder.class
 com\consentiq\service\TemplateResolverService.class
+com\consentiq\model\dto\response\MakerTrailResponse$Summary.class
 com\consentiq\model\entity\User.class
 com\consentiq\model\dto\request\ConsentReviewRequest.class
 com\consentiq\enums\ConsentRuleStatus.class
@@ -234,6 +238,7 @@ com\consentiq\model\dto\response\mis\MisActiveConsentsTimelineResponse$MisActive
 com\consentiq\model\entity\CustomerChannelPreference$CustomerChannelPreferenceBuilder.class
 com\consentiq\repository\OnBehalfConsentRecordRepository.class
 com\consentiq\model\dto\response\ConsentChannelRenderDto.class
+com\consentiq\service\SessionAlertService.class
 com\consentiq\model\dto\request\LoginRequest$LoginRequestBuilder.class
 com\consentiq\controller\PublicChannelPreferenceController.class
 com\consentiq\model\entity\MergeTag.class

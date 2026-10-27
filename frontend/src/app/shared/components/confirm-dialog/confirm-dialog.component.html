@@ -1,75 +1,51 @@
-<div class="wrap" [attr.data-tone]="data.confirmColor || 'primary'">
-
-  <!-- Brand bar -->
+<div class="wrap" [attr.data-tone]="tone">
   <div class="brand-bar" aria-hidden="true"></div>
 
-  <!-- Icon -->
-  @if (data.icon) {
-    <div
-      class="icon-wrap"
-      [style.background]="data.iconColor || null"
-      aria-hidden="true"
-    >
-      <mat-icon class="icon">{{ materialIcon() }}</mat-icon>
-    </div>
-  }
+  <p-button icon="pi pi-times" [rounded]="true" [text]="true" severity="secondary" size="small"
+    ariaLabel="Close dialog" styleClass="close-x" (onClick)="cancel()" />
 
-  <!-- Title -->
-  <h2 class="title" mat-dialog-title>
-    {{ data.title }}
-  </h2>
-
-  <!-- Body -->
-  <p class="body">
-    {{ data.body }}
-  </p>
-
-  <!-- Info Panel -->
-  @if (data.infoPanel) {
-    <div class="info-panel">
-      <mat-icon aria-hidden="true">info</mat-icon>
-      <span>{{ data.infoPanel }}</span>
-    </div>
-  }
-
-  <!-- Actions -->
-  <div class="actions">
-
-    <button
-      type="button"
-      mat-stroked-button
-      class="cancel-btn"
-      mat-dialog-close
-    >
-      {{ data.cancelLabel || 'Cancel' }}
-    </button>
-
-    @if (data.confirmColor === 'success') {
-
-      <button
-        type="button"
-        mat-flat-button
-        class="success-btn"
-        [mat-dialog-close]="true"
-      >
-        {{ data.confirmLabel || 'Confirm' }}
-      </button>
-
-    } @else {
-
-      <button
-        type="button"
-        mat-flat-button
-        class="confirm-btn"
-        [color]="matColor()"
-        [mat-dialog-close]="true"
-        cdkFocusInitial
-      >
-        {{ data.confirmLabel || 'Confirm' }}
-      </button>
-
-    }
-
+  <div class="hero">
+    <span class="icon-ring" aria-hidden="true">
+      <span class="icon-tile"><i [class]="iconClass()"></i></span>
+    </span>
+    <h2 class="title">{{ data.title }}</h2>
+    <p class="body">{{ data.body }}</p>
   </div>
 
+  @if (data.identity; as who) {
+    <div class="identity">
+      <p-avatar [label]="who.initials" shape="circle" size="large" styleClass="identity-avatar" />
+      <div class="identity-copy">
+        @if (who.caption) { <span class="identity-caption">{{ who.caption }}</span> }
+        <span class="identity-name">{{ who.name }}</span>
+        @if (who.sub) { <span class="identity-sub">{{ who.sub }}</span> }
+      </div>
+      <i class="pi pi-verified identity-badge" aria-hidden="true"></i>
+    </div>
+  }
+
+  @if (data.infoPanel) {
+    <p-message severity="info" icon="pi pi-info-circle" styleClass="info-panel">{{ data.infoPanel }}</p-message>
+  }
+
+  <div class="actions">
+    <p-button
+      [label]="data.cancelLabel || 'Cancel'"
+      severity="secondary"
+      [outlined]="true"
+      [rounded]="true"
+      styleClass="cancel-btn"
+      (onClick)="cancel()"
+    />
+    <p-button
+      [label]="data.confirmLabel || 'Confirm'"
+      [icon]="data.confirmIcon || ''"
+      iconPos="right"
+      [severity]="confirmSeverity()"
+      [rounded]="true"
+      styleClass="confirm-btn"
+      [autofocus]="tone !== 'warn'"
+      (onClick)="confirm()"
+    />
+  </div>
 </div>

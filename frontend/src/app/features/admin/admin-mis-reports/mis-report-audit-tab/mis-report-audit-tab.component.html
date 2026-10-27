@@ -1,92 +1,233 @@
-<div class="tab-toolbar">
-  <div class="exports">
-    <button mat-stroked-button type="button" [disabled]="exporting()" (click)="exportCsv()">
-      <mat-icon>download</mat-icon> CSV
-    </button>
-    <button mat-stroked-button type="button" [disabled]="exporting()" (click)="exportExcel()">
-      <mat-icon>table_chart</mat-icon> Excel
-    </button>
+<!-- ── Toolbar ─────────────────────────────────────────────────────────── -->
+<div class="au-toolbar">
+  <div class="au-toolbar__text">
+    <span class="au-toolbar__ico" aria-hidden="true"><i class="pi pi-shield"></i></span>
+    <div>
+      <h2 class="au-toolbar__title">Consent audit trail</h2>
+      <p class="au-toolbar__sub">
+        Every change to consents, rules and broadcasts — who did what, and when
+        @if (!loading() || totalElements()) {
+        <span class="au-count">{{ totalElements() | number: '1.0-0' }} event{{ totalElements() === 1 ? '' : 's' }}</span>
+        }
+      </p>
+    </div>
+  </div>
+  <div class="au-exports">
+    <p-button label="CSV" icon="pi pi-download" severity="secondary" [outlined]="true" [rounded]="true"
+      [loading]="exporting() === 'csv'" [disabled]="!!exporting()" pTooltip="Download filtered events as CSV"
+      tooltipPosition="top" (onClick)="exportCsv()" />
+    <p-button label="Excel" icon="pi pi-file-excel" severity="success" [outlined]="true" [rounded]="true"
+      [loading]="exporting() === 'excel'" [disabled]="!!exporting()" pTooltip="Download filtered events as Excel"
+      tooltipPosition="top" (onClick)="exportExcel()" />
   </div>
 </div>
 
-@if (loading()) {
-  <mat-progress-bar mode="indeterminate" />
-}
+<!-- ── Filters ─────────────────────────────────────────────────────────── -->
+<form class="au-filters" (ngSubmit)="apply()">
+  <div class="au-grid">
+    <div class="au-field">
+      <label class="au-field__label" for="au-entity">Entity type</label>
+      <p-select inputId="au-entity" name="entityType" [(ngModel)]="entityType" [options]="entityOptions"
+        optionLabel="label" optionValue="value" appendTo="body" styleClass="au-input">
+        <ng-template #selectedItem let-o>
+          <span class="au-opt"><i [class]="o.icon" [style.color]="o.color"></i>{{ o.label }}</span>
+        </ng-template>
+        <ng-template #item let-o>
+          <span class="au-opt"><i [class]="o.icon" [style.color]="o.color"></i>{{ o.label }}</span>
+        </ng-template>
+      </p-select>
+    </div>
 
-<div class="filters">
-  <mat-form-field appearance="outline" class="ff">
-    <mat-label>Entity type</mat-label>
-    <mat-select [(ngModel)]="entityType">
-      <mat-option value="">All</mat-option>
-      <mat-option value="CONSENT">CONSENT</mat-option>
-      <mat-option value="BROADCAST_REQUEST">BROADCAST_REQUEST</mat-option>
-      <mat-option value="CONSENT_RULE">CONSENT_RULE</mat-option>
-    </mat-select>
-  </mat-form-field>
+    <div class="au-field">
+      <label class="au-field__label" for="au-action">Action</label>
+      <p-select inputId="au-action" name="action" [(ngModel)]="action" [options]="actionOptions()"
+        optionLabel="label" optionValue="value" [filter]="actionOptions().length > 8" filterBy="label"
+        placeholder="All actions" appendTo="body" styleClass="au-input" />
+    </div>
 
-  <mat-form-field appearance="outline" class="ff">
-    <mat-label>Action</mat-label>
-    <mat-select [(ngModel)]="action">
-      <mat-option value="">All</mat-option>
-      @for (a of actions(); track a) {
-        <mat-option [value]="a">{{ a }}</mat-option>
-      }
-    </mat-select>
-  </mat-form-field>
+    <div class="au-field">
+      <label class="au-field__label" for="au-from">From</label>
+      <p-datepicker inputId="au-from" name="from" [(ngModel)]="from" [maxDate]="to" dateFormat="dd M yy"
+        placeholder="Any date" [showIcon]="true" iconDisplay="input" [showButtonBar]="true" appendTo="body"
+        styleClass="au-input" />
+    </div>
 
-  <label class="ff-date">
-    <span>From</span>
-    <input type="date" [(ngModel)]="from" />
-  </label>
+    <div class="au-field">
+      <label class="au-field__label" for="au-to">To</label>
+      <p-datepicker inputId="au-to" name="to" [(ngModel)]="to" [minDate]="from" dateFormat="dd M yy"
+        placeholder="Any date" [showIcon]="true" iconDisplay="input" [showButtonBar]="true" appendTo="body"
+        styleClass="au-input" />
+    </div>
 
-  <label class="ff-date">
-    <span>To</span>
-    <input type="date" [(ngModel)]="to" />
-  </label>
+    <div class="au-field au-field--wide">
+      <label class="au-field__label" for="au-by">Performed by</label>
+      <p-iconfield class="au-search">
+        <p-inputicon class="pi pi-user" />
+        <input pInputText id="au-by" name="performedBy" type="text" [(ngModel)]="performedBy"
+          placeholder="Name contains…" autocomplete="off" />
+      </p-iconfield>
+    </div>
+  </div>
 
-  <mat-form-field appearance="outline" class="ff-grow">
-    <mat-label>Performed by contains</mat-label>
-    <input matInput [(ngModel)]="performedBy" />
-  </mat-form-field>
+  <div class="au-actions">
+    @if (activeFilterCount()) {
+    <span class="au-active">
+      <i class="pi pi-filter"></i>{{ activeFilterCount() }} filter{{ activeFilterCount() === 1 ? '' : 's' }} applied
+    </span>
+    <p-button type="button" label="Reset" icon="pi pi-filter-slash" [outlined]="true" [rounded]="true"
+      styleClass="au-btn-outline" (onClick)="reset()" />
+    }
+    <p-button type="submit" label="Apply filters" icon="pi pi-check" [rounded]="true" [loading]="loading()"
+      styleClass="au-btn-primary" />
+  </div>
+</form>
 
-  <button mat-stroked-button type="button" (click)="apply()">Apply</button>
-</div>
+<!-- ── Results ─────────────────────────────────────────────────────────── -->
+<section class="au-card" [class.au-card--busy]="loading() && rows().length">
+  <div class="au-progress" [class.au-progress--on]="loading()">
+    <p-progressbar mode="indeterminate" />
+  </div>
 
-<div class="table-wrap">
-  <table class="data-table">
-    <thead>
+  <p-table [value]="rows()" dataKey="id" [lazy]="true" (onLazyLoad)="onLazyLoad($event)" [paginator]="true"
+    [rows]="pageSize()" [first]="currentPage() * pageSize()" [totalRecords]="totalElements()"
+    [rowsPerPageOptions]="[15, 30, 50]" paginatorDropdownAppendTo="body" [showCurrentPageReport]="true"
+    currentPageReportTemplate="Showing {first}–{last} of {totalRecords}" [expandedRowKeys]="expandedRows"
+    [rowHover]="true" styleClass="au-table" [tableStyle]="{ 'min-width': '62rem' }">
+
+    <ng-template #header>
       <tr>
-        <th>Timestamp</th>
-        <th>Entity type</th>
-        <th>Entity name</th>
-        <th>Action</th>
-        <th>Performed by</th>
-        <th>Description</th>
+        <th class="au-col-toggle" pTooltip="Expand a row to see full event details" tooltipPosition="top"></th>
+        <th pTooltip="When the event was recorded" tooltipPosition="top">Timestamp</th>
+        <th pTooltip="The record that was affected and its type" tooltipPosition="top">Entity</th>
+        <th pTooltip="What was done to the record" tooltipPosition="top">Action</th>
+        <th pTooltip="User who performed the action" tooltipPosition="top">Performed by</th>
+        <th pTooltip="Additional details logged with the event" tooltipPosition="top">Description</th>
       </tr>
-    </thead>
-    <tbody>
-      @for (r of rows(); track r.id) {
-        <tr>
-          <td>{{ r.performedAt | date: 'medium' }}</td>
-          <td>{{ r.entityType || '—' }}</td>
-          <td>{{ r.entityName || '—' }}</td>
-          <td>{{ r.action }}</td>
-          <td>{{ r.userName }}</td>
-          <td class="desc">{{ r.description || '—' }}</td>
-        </tr>
-      } @empty {
-        <tr>
-          <td colspan="6" class="empty">{{ loading() ? 'Loading…' : 'No audit rows.' }}</td>
-        </tr>
-      }
-    </tbody>
-  </table>
-</div>
+    </ng-template>
 
-<div class="pager">
-  <span>Page {{ currentPage() + 1 }} / {{ totalPages() || 1 }}</span>
-  <div>
-    <button mat-stroked-button type="button" [disabled]="currentPage() <= 0 || loading()" (click)="prev()">Previous</button>
-    <button mat-stroked-button type="button" [disabled]="currentPage() >= totalPages() - 1 || loading()" (click)="next()">Next</button>
-  </div>
-</div>
+    <ng-template #body let-r let-expanded="expanded" let-i="rowIndex">
+      @let e = entity(r.entityType);
+      @let tone = actionTone(r.action);
+      <tr class="au-row" [class.au-row--open]="expanded" [style.--i]="i % pageSize()">
+        <td class="au-col-toggle">
+          <p-button type="button" [pRowToggler]="r" icon="pi pi-chevron-right" [text]="true" [rounded]="true"
+            severity="secondary" styleClass="au-toggle" [class.au-toggle--open]="expanded"
+            [ariaLabel]="(expanded ? 'Hide' : 'Show') + ' event details'"
+            [pTooltip]="expanded ? 'Hide details' : 'Show details'" tooltipPosition="top" />
+        </td>
+        <td>
+          <div class="au-time" [pTooltip]="'Recorded ' + (r.performedAt | date: 'full')" tooltipPosition="top">
+            <span class="au-time__date">{{ r.performedAt | date: 'dd MMM yyyy' }}</span>
+            <span class="au-time__clock"><i class="pi pi-clock"></i>{{ r.performedAt | date: 'hh:mm:ss a' }}</span>
+            <span class="au-time__rel">{{ relative(r.performedAt) }}</span>
+          </div>
+        </td>
+        <td [pTooltip]="e.label + ': ' + (r.entityName || '—') + (r.entityId != null ? ' (ID ' + r.entityId + ')' : '')"
+          tooltipPosition="top">
+          <div class="au-entity" [style.--c]="e.color">
+            <span class="au-entity__ico"><i [class]="e.icon"></i></span>
+            <div class="au-entity__text">
+              <span class="au-entity__name">{{ r.entityName || '—' }}</span>
+              <span class="au-entity__type">{{ e.label }}</span>
+            </div>
+          </div>
+        </td>
+        <td>
+          <p-tag [value]="humanize(r.action)" [severity]="tone.severity" [icon]="tone.icon" [rounded]="true"
+            styleClass="au-action" [pTooltip]="'Action code: ' + r.action" tooltipPosition="top" />
+        </td>
+        <td [pTooltip]="r.userName ? 'Performed by ' + r.userName : 'Unknown user'" tooltipPosition="top">
+          <div class="au-user">
+            <p-avatar [label]="initials(r.userName)" shape="circle" styleClass="au-avatar"
+              [style]="{ background: avatarColor(r.userName) }" />
+            <span class="au-user__name">{{ r.userName || '—' }}</span>
+          </div>
+        </td>
+        <td [pTooltip]="r.description || 'No description recorded'" tooltipPosition="top"
+          tooltipStyleClass="au-tip-wide">
+          <div class="au-desc">
+            @for (p of descriptionParts(r.description); track $index) {
+            @if (p.key) {
+            <span class="au-kv"><span class="au-kv__k">{{ p.key }}</span>{{ p.value }}</span>
+            } @else {
+            <span class="au-desc__text">{{ p.value }}</span>
+            }
+            } @empty {
+            <span class="au-dash">—</span>
+            }
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template #expandedrow let-r>
+      @let e = entity(r.entityType);
+      <tr class="au-expand-row">
+        <td colspan="6">
+          <div class="au-detail">
+            <div class="au-detail__grid">
+              <div class="au-detail__item">
+                <span class="au-detail__k"><i class="pi pi-hashtag"></i>Audit ID</span>
+                <span class="au-detail__v au-mono">#{{ r.id }}</span>
+              </div>
+              <div class="au-detail__item">
+                <span class="au-detail__k"><i [class]="e.icon"></i>{{ e.label }} ID</span>
+                <span class="au-detail__v au-mono">{{ r.entityId ?? '—' }}</span>
+              </div>
+              <div class="au-detail__item">
+                <span class="au-detail__k"><i class="pi pi-code"></i>Action code</span>
+                <span class="au-detail__v au-mono">{{ r.action || '—' }}</span>
+              </div>
+              <div class="au-detail__item">
+                <span class="au-detail__k"><i class="pi pi-globe"></i>IP address</span>
+                <span class="au-detail__v au-mono">{{ r.ipAddress || '—' }}</span>
+              </div>
+              <div class="au-detail__item">
+                <span class="au-detail__k"><i class="pi pi-calendar"></i>Performed at</span>
+                <span class="au-detail__v">{{ r.performedAt | date: 'medium' }}</span>
+              </div>
+            </div>
+            <div class="au-detail__desc">
+              <span class="au-detail__k"><i class="pi pi-align-left"></i>Full description</span>
+              <p>{{ r.description || 'No description recorded.' }}</p>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template #emptymessage>
+      @if (loading()) {
+      @for (s of skeletonRows; track s) {
+      <tr>
+        <td class="au-col-toggle"><p-skeleton shape="circle" size="2rem" /></td>
+        <td><div class="au-skel-stack"><p-skeleton width="6rem" /><p-skeleton width="4.5rem" height=".7rem" /></div></td>
+        <td>
+          <div class="au-entity">
+            <p-skeleton size="2.25rem" borderRadius="8px" />
+            <div class="au-skel-stack"><p-skeleton width="7rem" /><p-skeleton width="5rem" height=".7rem" /></div>
+          </div>
+        </td>
+        <td><p-skeleton width="10rem" height="1.6rem" borderRadius="999px" /></td>
+        <td><div class="au-user"><p-skeleton shape="circle" size="2rem" /><p-skeleton width="6rem" /></div></td>
+        <td><p-skeleton width="14rem" /></td>
+      </tr>
+      }
+      } @else {
+      <tr>
+        <td colspan="6">
+          <div class="au-empty">
+            <span class="au-empty__ico"><i class="pi pi-history"></i></span>
+            <p class="au-empty__title">No audit events found</p>
+            <p class="au-empty__sub">Try a wider date range or fewer filters.</p>
+            @if (activeFilterCount()) {
+            <p-button label="Clear filters" icon="pi pi-filter-slash" [outlined]="true" [rounded]="true"
+              styleClass="au-btn-outline" (onClick)="reset()" />
+            }
+          </div>
+        </td>
+      </tr>
+      }
+    </ng-template>
+  </p-table>
+</section>

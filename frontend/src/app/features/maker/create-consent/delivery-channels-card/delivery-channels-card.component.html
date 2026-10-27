@@ -1,55 +1,48 @@
 <div class="card" [formGroup]="form">
   <div class="head">
-    <span class="head-ico" aria-hidden="true"><mat-icon>campaign</mat-icon></span>
-    <div>
+    <span class="head-ico" aria-hidden="true"><i class="pi pi-megaphone"></i></span>
+    <div class="head-copy">
       <h2 class="title">Delivery Channels &amp; Message Preview</h2>
       <p class="sub">Select channels and preview how your message will appear to recipients</p>
     </div>
+    <p-tag
+      [value]="selectedChannels.length + ' of ' + channels.length + ' selected'"
+      [severity]="selectedChannels.length ? 'success' : 'secondary'"
+      [icon]="selectedChannels.length ? 'pi pi-check-circle' : 'pi pi-circle'"
+      [rounded]="true"
+    />
   </div>
 
-  <div class="channel-row">
+  <div class="channel-row" role="group" aria-label="Delivery channels">
     @for (ch of channels; track ch.id) {
-    <button type="button" class="ch-card" [class.ch-card--on]="isOn(ch.id)" [attr.aria-pressed]="isOn(ch.id)" (click)="toggle(ch.id)">
-      @if (isOn(ch.id)) {
-      <span class="check" aria-hidden="true"><mat-icon>check</mat-icon></span>
-      }
-      <div class="ch-top">
-        <span class="ch-ico" aria-hidden="true">
-          <mat-icon>
-            @switch (ch.id) {
-              @case ('EMAIL') { mail }
-              @case ('SMS') { sms }
-              @case ('WHATSAPP') { chat }
-              @case ('RCS') { forum }
-              @case ('PUSH') { notifications }
-              @default { send }
-            }
-          </mat-icon>
-        </span>
-        <div>
-          <div class="ch-name">{{ ch.name }}</div>
-          <div class="ch-desc">{{ ch.desc }}</div>
+      <label class="ch-card" [class.ch-card--on]="isOn(ch.id)" [style.--ch]="meta(ch.id).color">
+        <div class="ch-top">
+          <span class="ch-ico" aria-hidden="true"><i [class]="meta(ch.id).icon"></i></span>
+          <div class="ch-copy">
+            <div class="ch-name">{{ meta(ch.id).label }}</div>
+            <div class="ch-desc">{{ ch.desc }}</div>
+          </div>
+          <p-checkbox [formControlName]="controlKey(ch.id)" [binary]="true" [inputId]="'channel-' + ch.id" styleClass="ch-check" />
         </div>
-      </div>
-      <div class="ch-foot">
-        @if (isOn(ch.id)) {
-        <span class="sel-yes">Selected</span>
-        } @else {
-        <span class="sel-no">Click to select</span>
-        }
-      </div>
-    </button>
+        <div class="ch-foot">
+          @if (isOn(ch.id)) {
+            <span class="sel-yes"><i class="pi pi-check-circle" aria-hidden="true"></i>Selected</span>
+          } @else {
+            <span class="sel-no"><i class="pi pi-plus-circle" aria-hidden="true"></i>Click to select</span>
+          }
+        </div>
+      </label>
     }
   </div>
 
   @if (!selectedChannels.length) {
   <div class="empty-prev">
-    <div class="empty-ico" aria-hidden="true"><mat-icon>cell_tower</mat-icon></div>
+    <div class="empty-ico" aria-hidden="true"><i class="pi pi-send"></i></div>
     <p>Select a delivery channel above to preview your message</p>
   </div>
   } @else {
   <app-consent-channel-language-preview [channelEmail]="isOn('EMAIL')" [channelSms]="isOn('SMS')"
-    [channelPush]="isOn('PUSH')" [channelWhatsapp]="isOn('WHATSAPP')" [channelRcs]="isOn('RCS')" [renders]="renders"
+    [channelPush]="isOn('PUSH')" [channelWhatsapp]="isOn('WHATSAPP')" [channelRcs]="isOn('RCS')" [renders]="renders" [fallbackContent]="form.get('consentMessage')?.value"
     [mergeTags]="mergeTags" [readOnly]="false" [initialChannel]="initialChannel" [initialLanguage]="initialLanguage">
   </app-consent-channel-language-preview>
   }

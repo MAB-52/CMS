@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 
@@ -84,6 +85,7 @@ public class UserManagementService {
 		log.debug("Transaction started | method=getUser | id={}", id);
 		log.info("Executing DB query | method=findById | param=id={}", id);
 		User user = userRepository.findById(id)
+				.filter(u -> u.getDeletedAt() == null)
 				.orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
 		log.info("DB query completed | method=findById | present=true");
 		UserRowResponse result = toRow(user);
@@ -99,11 +101,13 @@ public class UserManagementService {
 		log.info("User={} | action=createUser | entity=User | id=n/a", cu);
 		log.debug("Transaction started | method=createUser | id=n/a");
 		String email = req.getEmail().trim().toLowerCase(Locale.ROOT);
-		log.info("Executing DB query | method=existsByEmailIgnoreCase | param=email={}", email);
-		boolean exists = userRepository.existsByEmailIgnoreCase(email);
-		log.info("DB query completed | method=existsByEmailIgnoreCase | present={}", exists);
-		if (exists) {
-			throw new IllegalArgumentException("A user with this email already exists.");
+		log.info("Executing DB query | method=findByEmailIgnoreCase | param=email={}", email);
+		User existing = userRepository.findByEmailIgnoreCase(email).orElse(null);
+		log.info("DB query completed | method=findByEmailIgnoreCase | present={}", existing != null);
+		if (existing != null) {
+			throw new IllegalArgumentException(existing.getDeletedAt() != null
+					? "This email belongs to a deleted user and cannot be reused."
+					: "A user with this email already exists.");
 		}
 		User user = User.builder()
 				.fullName(req.getFullName().trim())
@@ -130,6 +134,7 @@ public class UserManagementService {
 		log.debug("Transaction started | method=updateUser | id={}", id);
 		log.info("Executing DB query | method=findById | param=id={}", id);
 		User user = userRepository.findById(id)
+				.filter(u -> u.getDeletedAt() == null)
 				.orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
 		log.info("DB query completed | method=findById | present=true");
 
@@ -168,22 +173,55 @@ public class UserManagementService {
 		return result;
 	}
 
+	/**
+	 * Deletes a user. Users referenced by audit logs, consents, rules etc. are soft-deleted
+	 * (deactivated, sessions revoked, hidden from user management) so that history stays
+	 * attributable; users with no history are removed outright.
+	 *
+	 * @return {@code true} when the user was soft-deleted (archived), {@code false} when hard-deleted
+	 */
 	@Transactional
-	public void deleteUser(Long id) {
+	public boolean deleteUser(Long id) {
 		String cu = currentUser();
 		log.debug("Entering deleteUser | params: id={}", id);
 		log.info("User={} | action=deleteUser | entity=User | id={}", cu, id != null ? String.valueOf(id) : "n/a");
 		log.debug("Transaction started | method=deleteUser | id={}", id);
 		log.info("Executing DB query | method=findById | param=id={}", id);
 		User user = userRepository.findById(id)
+				.filter(u -> u.getDeletedAt() == null)
 				.orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
 		log.info("DB query completed | method=findById | present=true");
-		log.info("Executing DB query | method=delete | param=id={}", id);
-		userRepository.delete(user);
-		log.info("DB query completed | method=delete | completed");
-		log.info("User deleted | id={} | email={}", id, user.getEmail());
+
+		if (user.getEmail().equalsIgnoreCase(cu)) {
+			throw new IllegalArgumentException("You cannot delete your own account.");
+		}
+		if (user.getRole() == UserRole.ADMIN
+				&& userRepository.findByRoleAndDeletedAtIsNull(UserRole.ADMIN).size() <= 1) {
+			throw new IllegalArgumentException("You cannot delete the last remaining admin.");
+		}
+
+		log.info("Executing DB query | method=hasActivityHistory | param=id={}", id);
+		boolean hasHistory = userRepository.hasActivityHistory(id) > 0;
+		log.info("DB query completed | method=hasActivityHistory | present={}", hasHistory);
+
+		if (hasHistory) {
+			user.setActive(false);
+			user.setDeletedAt(Instant.now());
+			// Invalidate any JWTs already issued to this user.
+			user.setTokenVersion(user.getTokenVersion() + 1);
+			log.info("Executing DB query | method=save | param=id={} | softDelete=true", id);
+			userRepository.save(user);
+			log.info("DB query completed | method=save | completed");
+			log.info("User soft-deleted (has activity history) | id={} | email={}", id, user.getEmail());
+		} else {
+			log.info("Executing DB query | method=delete | param=id={}", id);
+			userRepository.delete(user);
+			log.info("DB query completed | method=delete | completed");
+			log.info("User deleted | id={} | email={}", id, user.getEmail());
+		}
 		log.debug("Transaction completing | method=deleteUser | id={}", id);
-		log.debug("Exiting deleteUser | completed successfully");
+		log.debug("Exiting deleteUser | result=softDeleted={}", hasHistory);
+		return hasHistory;
 	}
 
 	private UserRowResponse toRow(User u) {

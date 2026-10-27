@@ -35,7 +35,7 @@
           [attr.aria-expanded]="drawerOpen()"
           aria-label="Open navigation"
         >
-          <mat-icon>menu</mat-icon>
+          <i class="pi pi-bars" aria-hidden="true"></i>
         </button>
       }
       <img src="assets/images/logo-white.png" alt="Aurionpro — Lead the next" class="brand-logo" />
@@ -47,27 +47,51 @@
     </div>
 
     <div class="header__right">
-      <button type="button" class="user-chip" [matMenuTriggerFor]="userMenu" aria-label="Account menu">
+      <button type="button" class="user-chip" [class.user-chip--open]="menuOpen()" (click)="userMenu.toggle($event)"
+        aria-label="Account menu" aria-haspopup="dialog" [attr.aria-expanded]="menuOpen()">
         <span class="user-chip__avatar" aria-hidden="true">{{ initials() }}</span>
         <span class="user-chip__meta">
           <span class="user-chip__name">{{ userName() }}</span>
           <span class="user-chip__role">{{ roleLabel }}</span>
         </span>
-        <mat-icon class="user-chip__chev" aria-hidden="true">expand_more</mat-icon>
+        <i class="pi pi-chevron-down user-chip__chev" aria-hidden="true"></i>
       </button>
-      <mat-menu #userMenu="matMenu" xPosition="before" class="is-user-menu">
-        <div class="user-menu__head">
-          <span class="user-menu__avatar" aria-hidden="true">{{ initials() }}</span>
-          <div>
-            <div class="user-menu__name">{{ userName() }}</div>
-            <div class="user-menu__role">{{ roleLabel }}</div>
+
+      <p-popover #userMenu styleClass="is-user-popover" (onShow)="menuOpen.set(true)" (onHide)="menuOpen.set(false)">
+        <div class="um" role="menu" aria-label="Account">
+          <div class="um-head">
+            <p-avatar [label]="initials()" shape="circle" size="large" styleClass="um-avatar" />
+            <div class="um-id">
+              <div class="um-name">{{ userName() }}</div>
+              @if (userEmail(); as email) {
+                <div class="um-email" [title]="email">{{ email }}</div>
+              }
+            </div>
           </div>
+
+          <div class="um-info">
+            <div class="um-row">
+              <i class="pi pi-id-card" aria-hidden="true"></i>
+              <span class="um-k">Role</span>
+              <p-tag [value]="roleLabel" severity="secondary" [rounded]="true" styleClass="um-tag" />
+            </div>
+            <div class="um-row">
+              <i class="pi pi-th-large" aria-hidden="true"></i>
+              <span class="um-k">Workspace</span>
+              <span class="um-v">{{ workspaceLabel }}</span>
+            </div>
+          </div>
+
+          <button type="button" class="um-logout" role="menuitem" (click)="userMenu.hide(); logout.confirmAndLogout()">
+            <span class="um-logout__ico" aria-hidden="true"><i class="pi pi-sign-out"></i></span>
+            <span class="um-logout__copy">
+              <span class="um-logout__label">Sign out</span>
+              <span class="um-logout__hint">End your session on this device</span>
+            </span>
+            <i class="pi pi-angle-right um-logout__arrow" aria-hidden="true"></i>
+          </button>
         </div>
-        <button mat-menu-item type="button" (click)="logout.confirmAndLogout()">
-          <mat-icon>logout</mat-icon>
-          <span>Logout</span>
-        </button>
-      </mat-menu>
+      </p-popover>
     </div>
   </header>
 
@@ -82,34 +106,25 @@
       [cdkTrapFocus]="isMobile() && drawerOpen()"
       [cdkTrapFocusAutoCapture]="true"
     >
-      @if (isMobile()) {
-        <div class="drawer-head">
-          <span class="drawer-title">{{ workspaceLabel }}</span>
+      <!-- Workspace identity -->
+      <div class="ws">
+        <span class="ws-ico" aria-hidden="true"><i [class]="workspaceIcon"></i></span>
+        <span class="ws-copy">
+          <span class="ws-name">{{ workspaceLabel }}</span>
+          <span class="ws-sub">Consent<strong>IQ</strong></span>
+        </span>
+        @if (isMobile()) {
           <button type="button" class="drawer-close" (click)="drawerOpen.set(false)" aria-label="Close navigation">
-            <mat-icon>close</mat-icon>
+            <i class="pi pi-times" aria-hidden="true"></i>
           </button>
-        </div>
-      }
-
-      @if (!isMobile()) {
-        <button
-          type="button"
-          class="collapse-btn"
-          (click)="toggleCollapse()"
-          [attr.aria-label]="isRail() ? 'Show the menu' : 'Hide the menu'"
-          [attr.aria-expanded]="!isRail()"
-          [matTooltip]="isRail() ? 'Show the menu' : 'Hide the menu'"
-          matTooltipPosition="right"
-        >
-          <mat-icon>{{ isRail() ? 'chevron_right' : 'chevron_left' }}</mat-icon>
-        </button>
-      }
+        }
+      </div>
 
       <nav class="nav-scroll">
-        @for (group of nav; track group.label) {
-          <div class="group">
-            <div class="group-label">{{ group.label }}</div>
-            @for (item of group.items; track item.link) {
+        @for (group of nav; track group.label; let gi = $index) {
+          <div class="group" [style.--g]="gi">
+            <div class="group-label"><span>{{ group.label }}</span></div>
+            @for (item of group.items; track item.link; let ii = $index) {
               <a
                 class="nav-link"
                 [routerLink]="item.link"
@@ -117,18 +132,25 @@
                 [routerLinkActiveOptions]="{ exact: !!item.exact }"
                 #rla="routerLinkActive"
                 [attr.aria-current]="rla.isActive ? 'page' : null"
-                matRipple
-                [matTooltip]="item.label"
-                matTooltipPosition="right"
-                [matTooltipDisabled]="!isRail()"
+                [attr.aria-label]="isRail() ? item.label : null"
+                [style.--i]="ii"
+                pRipple
+                [pTooltip]="item.label"
+                tooltipPosition="right"
+                [showDelay]="250"
+                [hideDelay]="0"
+                tooltipStyleClass="nav-tooltip"
+                appendTo="body"
               >
-                <span class="nav-icon"><mat-icon>{{ item.icon }}</mat-icon></span>
+                <span class="nav-indicator" aria-hidden="true"></span>
+                <span class="nav-icon" aria-hidden="true"><i [class]="item.icon"></i></span>
                 <span class="nav-label">{{ item.label }}</span>
                 @if (item.count) {
-                  <span class="nav-count" [attr.aria-label]="item.count + ' items'">{{ item.count > 99 ? '99+' : item.count }}</span>
+                  <p-badge class="nav-count" [value]="item.count > 99 ? '99+' : item.count" severity="warn"
+                    [attr.aria-label]="item.count + ' items'" />
                 }
                 @if (item.tag) {
-                  <span class="nav-tag">{{ item.tag }}</span>
+                  <p-tag class="nav-tag" [value]="item.tag" severity="warn" [rounded]="true" />
                 }
               </a>
             }
@@ -136,14 +158,30 @@
         }
       </nav>
 
-      @if (isMobile()) {
-        <div class="sidebar-footer">
-          <button type="button" class="btn-logout" (click)="logout.confirmAndLogout()">
-            <mat-icon>logout</mat-icon>
-            <span>Logout</span>
+      <div class="sidebar-footer">
+        @if (isMobile()) {
+          <button type="button" class="side-action side-action--danger" (click)="logout.confirmAndLogout()">
+            <span class="side-action__ico" aria-hidden="true"><i class="pi pi-sign-out"></i></span>
+            <span class="side-action__label">Sign out</span>
           </button>
-        </div>
-      }
+        } @else {
+          <button
+            type="button"
+            class="side-action collapse-btn"
+            (click)="toggleCollapse()"
+            [attr.aria-label]="isRail() ? 'Expand the menu' : 'Collapse the menu'"
+            [attr.aria-expanded]="!isRail()"
+            aria-controls="app-sidebar"
+            pRipple
+            [pTooltip]="isRail() ? 'Expand the menu' : ''"
+            tooltipPosition="right"
+            [tooltipDisabled]="!isRail()"
+          >
+            <span class="side-action__ico" aria-hidden="true"><i class="pi pi-angle-double-left"></i></span>
+            <span class="side-action__label">Collapse menu</span>
+          </button>
+        }
+      </div>
     </aside>
 
     @if (isMobile() && drawerOpen()) {
@@ -152,16 +190,25 @@
 
     <!-- ── Content panel ─────────────────────────────────── -->
     <main class="content" id="main-content" tabindex="-1">
-      <nav class="crumb" aria-label="Breadcrumb">
-        @if (crumbLabel) {
-          <span class="crumb__label">{{ crumbLabel }}</span>
-          <mat-icon class="crumb__divider" aria-hidden="true">chevron_right</mat-icon>
-        }
-        <span class="crumb__current" aria-current="page">{{ pageTitle }}</span>
-      </nav>
-      <div class="content__inner">
-        <ng-content />
-      </div>
+      <p-scrollpanel #scroller styleClass="content__scroll">
+        <div class="content__pad" #scrollContent>
+          <nav class="crumb" aria-label="Breadcrumb">
+            @if (crumbLabel) {
+              <span class="crumb__label">{{ crumbLabel }}</span>
+              <i class="pi pi-angle-right crumb__divider" aria-hidden="true"></i>
+            }
+            <span class="crumb__current" aria-current="page">{{ pageTitle }}</span>
+          </nav>
+          <div class="content__inner">
+            <ng-content />
+          </div>
+        </div>
+      </p-scrollpanel>
+      @if (dock.portal(); as portal) {
+        <div class="content__dock">
+          <ng-template [cdkPortalOutlet]="portal" />
+        </div>
+      }
     </main>
   </div>
 

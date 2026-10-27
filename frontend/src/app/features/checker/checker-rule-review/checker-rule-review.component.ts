@@ -2,21 +2,22 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatDialog } from '@angular/material/dialog';
 import { ConsentRulesService } from '../../../core/services/consent-rules.service';
 import { AuditService } from '../../../core/services/audit.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ConsentRule } from '../../../core/models/workflow.model';
 import { AuditLogEntry } from '../../../core/models/audit.model';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
-import { ReviewActionDialogComponent, ReviewActionDialogData } from '../../../shared/components/review-action-dialog/review-action-dialog.component';
+import { ReviewActionDialogData } from '../../../shared/components/review-action-dialog/review-action-dialog.component';
+import { ReviewActionDialogService } from '../../../shared/components/review-action-dialog/review-action-dialog.service';
 import { WorkflowStatusBadgeComponent } from '../../../shared/components/workflow-status-badge/workflow-status-badge.component';
+import { DecisionBarComponent } from '../../../shared/components/decision-bar/decision-bar.component';
 import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-checker-rule-review',
   standalone: true,
-  imports: [RouterLink, MatButtonModule, MatIconModule, WorkflowStatusBadgeComponent, CommonModule],
+  imports: [RouterLink, MatButtonModule, MatIconModule, WorkflowStatusBadgeComponent, CommonModule, DecisionBarComponent],
   templateUrl: './checker-rule-review.component.html',
   styleUrl: './checker-rule-review.component.css',
 })
@@ -25,7 +26,7 @@ export class CheckerRuleReviewComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly api = inject(ConsentRulesService);
   private readonly auditApi = inject(AuditService);
-  private readonly dialog = inject(MatDialog);
+  private readonly reviewDialog = inject(ReviewActionDialogService);
   private readonly notify = inject(NotificationService);
 
   readonly rule = signal<ConsentRule | null>(null);
@@ -99,14 +100,9 @@ export class CheckerRuleReviewComponent implements OnInit {
       minLength: 10,
     };
 
-    const ref = this.dialog.open(ReviewActionDialogComponent, {
-      width: '520px',
-      disableClose: true,
-      data,
-    });
-
-    ref.afterClosed().subscribe((approveReason: string | undefined) => {
-      if (!approveReason) return;   // user cancelled
+    this.reviewDialog.open(data).subscribe((result) => {
+      if (!result) return;   // user cancelled
+      const approveReason = result.message;
 
       this.busy.set(true);
       this.api.review(r.id, { action: 'APPROVE', approveReason }).subscribe({
@@ -137,13 +133,12 @@ export class CheckerRuleReviewComponent implements OnInit {
       confirmColor: 'warning',
       minLength: 20,
     };
-    const ref = this.dialog.open(ReviewActionDialogComponent, { width: '520px', disableClose: true, data });
-    ref.afterClosed().subscribe((msg) => {
-      if (!msg) {
+    this.reviewDialog.open(data).subscribe((result) => {
+      if (!result) {
         return;
       }
       this.busy.set(true);
-      this.api.review(r.id, { action: 'REQUEST_REVISION', revisionMessage: msg }).subscribe({
+      this.api.review(r.id, { action: 'REQUEST_REVISION', revisionMessage: result.message }).subscribe({
         next: (res) => {
           this.busy.set(false);
           if (res.success) {
@@ -171,13 +166,12 @@ export class CheckerRuleReviewComponent implements OnInit {
       confirmColor: 'warn',
       minLength: 20,
     };
-    const ref = this.dialog.open(ReviewActionDialogComponent, { width: '520px', disableClose: true, data });
-    ref.afterClosed().subscribe((reason) => {
-      if (!reason) {
+    this.reviewDialog.open(data).subscribe((result) => {
+      if (!result) {
         return;
       }
       this.busy.set(true);
-      this.api.review(r.id, { action: 'REJECT', reason }).subscribe({
+      this.api.review(r.id, { action: 'REJECT', reason: result.message }).subscribe({
         next: (res) => {
           this.busy.set(false);
           if (res.success) {

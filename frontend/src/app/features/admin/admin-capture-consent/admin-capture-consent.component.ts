@@ -1,8 +1,18 @@
-import { DatePipe, SlicePipe, UpperCasePipe, LowerCasePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatExpansionModule } from '@angular/material/expansion';
+import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
+import { SelectModule } from 'primeng/select';
+import { CheckboxModule } from 'primeng/checkbox';
+import { RadioButtonModule } from 'primeng/radiobutton';
+import { TableModule } from 'primeng/table';
+import { TagModule } from 'primeng/tag';
+import { AvatarModule } from 'primeng/avatar';
+import { SkeletonModule } from 'primeng/skeleton';
+import { TooltipModule } from 'primeng/tooltip';
+import { CHANNEL_META, ChannelId, ChannelMeta } from '../../../core/utils/channel.util';
 import {
   AdminConsentTemplate,
   CaptureConsentSearchResult,
@@ -26,7 +36,22 @@ const ALL_LANGUAGES = [
 @Component({
   selector: 'app-admin-capture-consent',
   standalone: true,
-  imports: [FormsModule, MatButtonModule, MatProgressSpinnerModule, MatExpansionModule, DatePipe, SlicePipe, UpperCasePipe, LowerCasePipe],
+  imports: [
+    FormsModule,
+    DatePipe,
+    ButtonModule,
+    InputTextModule,
+    IconFieldModule,
+    InputIconModule,
+    SelectModule,
+    CheckboxModule,
+    RadioButtonModule,
+    TableModule,
+    TagModule,
+    AvatarModule,
+    SkeletonModule,
+    TooltipModule,
+  ],
   templateUrl: './admin-capture-consent.component.html',
   styleUrl: './admin-capture-consent.component.css',
 })
@@ -72,12 +97,65 @@ export class AdminCaptureConsentComponent implements OnInit {
   readonly modeOptions   = MODE_OPTIONS;
   readonly sourceOptions = SOURCE_OPTIONS;
 
-  readonly STATUS_OPTIONS: { value: string; label: string }[] = [
-    { value: 'ACCEPTED',  label: 'Accepted'  },
-    { value: 'PENDING',   label: 'Pending'   },
-    { value: 'WITHDRAWN', label: 'Withdrawn' },
-    { value: 'REJECTED',  label: 'Rejected'  },
+  readonly STATUS_OPTIONS: { value: string; label: string; icon: string; color: string }[] = [
+    { value: 'ACCEPTED',  label: 'Accepted',  icon: 'pi pi-check-circle', color: '#198754' },
+    { value: 'PENDING',   label: 'Pending',   icon: 'pi pi-clock',        color: '#C98A00' },
+    { value: 'WITHDRAWN', label: 'Withdrawn', icon: 'pi pi-undo',         color: '#64748B' },
+    { value: 'REJECTED',  label: 'Rejected',  icon: 'pi pi-times-circle', color: '#DC3545' },
   ];
+
+  /** Icon-labelled options for the PrimeNG selects (values unchanged from the API contract). */
+  readonly modeItems = [
+    { value: 'Digital In-person', icon: 'pi pi-tablet' },
+    { value: 'Verbal', icon: 'pi pi-microphone' },
+    { value: 'Written', icon: 'pi pi-pencil' },
+  ];
+  readonly sourceItems = [
+    { value: 'Branch Walk-in', icon: 'pi pi-building' },
+    { value: 'Call Centre', icon: 'pi pi-phone' },
+    { value: 'Field Agent', icon: 'pi pi-map-marker' },
+  ];
+
+  channelMeta(ch: string): ChannelMeta {
+    return CHANNEL_META[ch.toUpperCase() as ChannelId] ?? { label: ch, icon: 'pi pi-send', color: '#45329E' };
+  }
+
+  initials(name: string | null | undefined): string {
+    const parts = (name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '?';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  statusSeverity(status: string): 'success' | 'warn' | 'danger' | 'secondary' | 'info' | 'contrast' {
+    switch (status) {
+      case 'ACCEPTED': return 'success';
+      case 'PENDING': return 'warn';
+      case 'EXPIRING_SOON': return 'warn';
+      case 'REJECTED': return 'danger';
+      case 'EXPIRED': return 'contrast';
+      default: return 'secondary';
+    }
+  }
+
+  statusIcon(status: string): string {
+    switch (status) {
+      case 'ACCEPTED': return 'pi pi-check-circle';
+      case 'PENDING': return 'pi pi-clock';
+      case 'EXPIRING_SOON': return 'pi pi-hourglass';
+      case 'REJECTED': return 'pi pi-times-circle';
+      case 'EXPIRED': return 'pi pi-calendar-times';
+      case 'WITHDRAWN': return 'pi pi-undo';
+      default: return 'pi pi-circle';
+    }
+  }
+
+  /** "EXPIRING_SOON" → "Expiring soon". */
+  humanize(code: string | null | undefined): string {
+    if (!code) return '';
+    const s = code.replace(/_/g, ' ').toLowerCase();
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
 
   // Computed
   readonly infoMessage = computed(() => {
@@ -119,7 +197,7 @@ export class AdminCaptureConsentComponent implements OnInit {
     return this.templates().find((x) => x.id === id)?.consentName ?? '';
   }
 
-  onLeftTemplateChange(value: string): void {
+  onLeftTemplateChange(value: string | number | null): void {
     const id = this.parseSelectNumber(value);
     this.leftTemplateId.set(id);
     this.lastInviteLink.set('');
@@ -154,7 +232,7 @@ export class AdminCaptureConsentComponent implements OnInit {
     return this.selectedCaptureChannels().some((c) => /email/i.test(c));
   }
 
-  onRightTemplateChange(value: string): void {
+  onRightTemplateChange(value: string | number | null): void {
     const id = this.parseSelectNumber(value);
     this.rightTemplateId.set(id);
     this.rightSelectedChannels.set([]);
@@ -340,7 +418,8 @@ export class AdminCaptureConsentComponent implements OnInit {
 
   resetLinkOnLeftChange(): void { this.lastInviteLink.set(''); }
 
-  parseSelectNumber(v: string): number | null {
+  parseSelectNumber(v: string | number | null): number | null {
+    if (v == null || v === '') return null;
     const n = Number(v);
     return Number.isFinite(n) && n > 0 ? n : null;
   }

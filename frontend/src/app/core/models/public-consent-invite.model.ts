@@ -28,7 +28,7 @@ export interface PublicConsentInviteDetail {
   descriptionPreview: string;
   messagePreview: string;
   resolvedMessageHtml?: string | null;
-  customerDisplayName: string;
+  customerDisplayName: string | null;
   expiresAt: string | null;
   respondedAt: string | null;
   recordedDecision: string | null;

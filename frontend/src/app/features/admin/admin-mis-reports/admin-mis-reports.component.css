@@ -69,56 +69,153 @@
   color: rgba(255, 255, 255, 0.82);
 }
 
-/* ── Tabs: pill segmented bar ─────────────────────────── */
-.tab-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: var(--is-fw-bold);
-  font-size: var(--is-fs-sm);
-  white-space: nowrap;
-}
-.tab-label .mat-icon {
-  font-size: 18px;
-  width: 18px;
-  height: 18px;
-}
+/* ── Report tabs (PrimeNG p-tabs as a segmented bar) ────── */
+.mis-tabs { display: block; }
 
-:host ::ng-deep .mis-tabs > .mat-mdc-tab-header {
-  padding: 6px;
+/* Track */
+:host ::ng-deep .mis-tabs .p-tablist {
   margin-bottom: var(--is-card-gap);
+  padding: 6px;
   border: 1px solid var(--is-border);
-  border-bottom: 1px solid var(--is-border);
-  border-radius: var(--is-r-pill);
+  border-radius: 22px;
   background: var(--is-surface);
   box-shadow: var(--is-shadow-soft);
-  --mat-tab-header-divider-height: 0;
 }
-:host ::ng-deep .mis-tabs .mdc-tab {
-  height: 44px !important;
-  min-width: 0;
-  padding: 0 18px;
-  border-radius: var(--is-r-pill);
-  transition: background-color var(--is-dur) ease;
+:host ::ng-deep .mis-tabs .p-tablist-content { border-radius: 16px; }
+:host ::ng-deep .mis-tabs .p-tablist-tab-list {
+  gap: 4px;
+  border: 0;
+  background: transparent;
 }
-:host ::ng-deep .mis-tabs .mdc-tab + .mdc-tab { margin-left: 4px; }
-:host ::ng-deep .mis-tabs .mdc-tab:hover:not(.mdc-tab--active) { background: var(--is-tint-purple); }
-:host ::ng-deep .mis-tabs .mdc-tab .tab-label { color: var(--is-text-2); transition: color var(--is-dur) ease; }
-:host ::ng-deep .mis-tabs .mdc-tab:hover .tab-label { color: var(--is-primary); }
-:host ::ng-deep .mis-tabs .mdc-tab--active {
+:host ::ng-deep .mis-tabs .p-tablist-active-bar { display: none; }
+
+/* Scroll arrows — a full-height edge fade (so clipped tabs dissolve instead of
+   colliding with the button) holding a compact brand-tinted chevron. */
+:host ::ng-deep .mis-tabs .p-tablist-nav-button {
+  top: 0;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  width: 64px;
+  height: 100%;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 16px;
+  box-shadow: none;
+  color: var(--is-primary);
+  transform: none;
+  cursor: pointer;
+  outline: none;
+}
+:host ::ng-deep .mis-tabs .p-tablist-prev-button {
+  left: 0;
+  justify-content: flex-start;
+  background: linear-gradient(90deg, var(--is-surface) 45%, rgba(255, 255, 255, 0));
+}
+:host ::ng-deep .mis-tabs .p-tablist-next-button {
+  right: 0;
+  justify-content: flex-end;
+  background: linear-gradient(270deg, var(--is-surface) 45%, rgba(255, 255, 255, 0));
+}
+/* The chevron icon itself becomes the button face */
+:host ::ng-deep .mis-tabs .p-tablist-nav-button svg {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  padding: 10px;
+  border: 1px solid var(--is-border-tint);
+  border-radius: 50%;
+  background: var(--is-tint-purple);
+  color: var(--is-primary);
+  box-shadow: var(--is-shadow-xs);
+  transition: background var(--is-dur) var(--is-ease), color var(--is-dur) ease,
+    transform var(--is-dur) var(--is-ease), box-shadow var(--is-dur) ease, border-color var(--is-dur) ease;
+}
+:host ::ng-deep .mis-tabs .p-tablist-nav-button:hover svg {
+  border-color: transparent;
+  background: var(--is-grad-banner);
+  color: var(--is-text-inverse);
+  box-shadow: var(--is-shadow-primary);
+}
+:host ::ng-deep .mis-tabs .p-tablist-prev-button:hover svg { transform: translateX(-2px); }
+:host ::ng-deep .mis-tabs .p-tablist-next-button:hover svg { transform: translateX(2px); }
+:host ::ng-deep .mis-tabs .p-tablist-nav-button:active svg { transform: scale(0.92); }
+:host ::ng-deep .mis-tabs .p-tablist-nav-button:focus-visible svg { box-shadow: 0 0 0 3px color-mix(in srgb, var(--is-primary) 25%, transparent); }
+
+/* Tab */
+:host ::ng-deep .mis-tab {
+  --c: var(--is-primary);
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 18px 6px 7px;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--is-text-2);
+  font-family: var(--is-font);
+  font-size: var(--is-fs-sm);
+  font-weight: var(--is-fw-bold);
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background var(--is-dur) ease, color var(--is-dur) ease,
+              box-shadow var(--is-dur) ease, transform var(--is-dur) var(--is-ease);
+}
+.mis-tab__ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--c) 11%, white);
+  color: var(--c);
+  transition: background var(--is-dur) ease, color var(--is-dur) ease, transform var(--is-dur) var(--is-ease);
+}
+.mis-tab__ico .pi { font-size: 15px; }
+
+:host ::ng-deep .mis-tab:not(.p-tab-active):hover {
+  background: color-mix(in srgb, var(--c) 7%, white);
+  color: var(--is-text);
+  transform: translateY(-1px);
+}
+:host ::ng-deep .mis-tab:not(.p-tab-active):hover .mis-tab__ico {
+  background: var(--c);
+  color: #fff;
+  transform: rotate(-6deg) scale(1.06);
+}
+
+:host ::ng-deep .mis-tab.p-tab-active {
   background: var(--is-grad-primary);
-  box-shadow: 0 6px 16px rgba(46, 20, 117, 0.24);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(46, 20, 117, 0.26);
 }
-:host ::ng-deep .mis-tabs .mdc-tab--active .tab-label,
-:host ::ng-deep .mis-tabs .mdc-tab--active:hover .tab-label { color: #fff; }
-:host ::ng-deep .mis-tabs .mdc-tab--active .tab-label .mat-icon { color: var(--is-secondary-on-dark); }
-:host ::ng-deep .mis-tabs .mdc-tab-indicator { display: none; }
-:host ::ng-deep .mis-tabs .mat-mdc-tab-header-pagination { border-radius: var(--is-r-pill); }
-:host ::ng-deep .mis-tabs .mat-mdc-tab-body-content { overflow: visible; }
-:host ::ng-deep .mis-tabs .mat-mdc-tab-body-wrapper { overflow: visible; }
+:host ::ng-deep .mis-tab.p-tab-active .mis-tab__ico {
+  background: #fff;
+  color: var(--c);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+  animation: tab-pop 0.35s var(--is-ease);
+}
+:host ::ng-deep .mis-tab:focus-visible { outline: 2px solid var(--is-primary); outline-offset: 2px; }
+
+@keyframes tab-pop {
+  0% { transform: scale(0.8); }
+  60% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+/* Panels: no PrimeNG padding; the selected report fades in on switch. */
+:host ::ng-deep .mis-tabs .p-tabpanels { padding: 0; background: transparent; }
+:host ::ng-deep .mis-tabs .p-tabpanel:not([hidden]) {
+  animation: is-fade-up var(--is-dur-slow) var(--is-ease) both;
+}
 
 @media (max-width: 600px) {
   .mis-header { padding: var(--is-s-5); }
-  :host ::ng-deep .mis-tabs > .mat-mdc-tab-header { border-radius: var(--is-r-md); }
-  :host ::ng-deep .mis-tabs .mdc-tab { padding: 0 12px; }
+  :host ::ng-deep .mis-tabs .p-tablist { border-radius: var(--is-r-md); }
+  :host ::ng-deep .mis-tab { padding-right: 14px; }
 }

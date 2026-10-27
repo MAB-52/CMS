@@ -1,19 +1,19 @@
 import { Component, inject } from '@angular/core';
-import { AsyncPipe } from '@angular/common';
-import { NotificationService } from '../../../core/services/notification.service';
-import { ToastItemComponent } from '../toast-item/toast-item.component';
+import { ToastModule } from 'primeng/toast';
+import { APP_TOAST_KEY, NotificationService } from '../../../core/services/notification.service';
 
 @Component({
   selector: 'app-toast-container',
   standalone: true,
-  imports: [AsyncPipe, ToastItemComponent],
+  imports: [ToastModule],
   templateUrl: './toast-container.component.html',
   styleUrl: './toast-container.component.css',
 })
 export class ToastContainerComponent {
-  readonly notifications = inject(NotificationService);
+  private readonly notifications = inject(NotificationService);
+  readonly toastKey = APP_TOAST_KEY;
 
-  onDismiss(id: string): void {
-    this.notifications.dismiss(id);
+  onClose(contentKey: string | undefined): void {
+    this.notifications.released(contentKey);
   }
 }

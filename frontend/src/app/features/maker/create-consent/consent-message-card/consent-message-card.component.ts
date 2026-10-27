@@ -37,7 +37,7 @@ import {
 import { VoiceInputService } from './voice-input.service';
 import { ConsentLanguageCode, DEFAULT_LANGUAGE, isRtl } from '../../../../core/constants/consent-languages';
 import { environment } from '../../../../environments/environment';
-import { AddMergeTagDialogComponent } from '../../../../shared/components/add-merge-tag-dialog/add-merge-tag-dialog.component';
+import { AddMergeTagDialogService } from '../../../../shared/components/add-merge-tag-dialog/add-merge-tag-dialog.service';
 import { AiInsertEvent } from './ai-content-generator/ai-content-generator.component';
 
 @Component({
@@ -50,6 +50,7 @@ import { AiInsertEvent } from './ai-content-generator/ai-content-generator.compo
 })
 export class ConsentMessageCardComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy {
   private readonly dialog       = inject(MatDialog);
+  private readonly addTagDialog = inject(AddMergeTagDialogService);
   private readonly logger       = inject(LoggerService);
   private readonly notify       = inject(NotificationService);
   private readonly http         = inject(HttpClient);
@@ -370,12 +371,7 @@ export class ConsentMessageCardComponent implements OnInit, AfterViewInit, OnCha
   }
 
   openAddTagDialog(): void {
-    const ref = this.dialog.open(AddMergeTagDialogComponent, {
-      width: '480px',
-      disableClose: true,
-    });
-
-    ref.afterClosed().subscribe((newTag: MergeTag | null) => {
+    this.addTagDialog.open().subscribe((newTag) => {
       if (!newTag) return;
       this.tagAdded.emit(newTag);
       this.insertTag(newTag);

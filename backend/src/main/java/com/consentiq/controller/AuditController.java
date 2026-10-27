@@ -2,7 +2,9 @@ package com.consentiq.controller;
 
 import com.consentiq.model.dto.response.ApiResponse;
 import com.consentiq.model.dto.response.AuditLogResponse;
+import com.consentiq.model.dto.response.MakerTrailResponse;
 import com.consentiq.model.dto.response.PagedResponse;
+import com.consentiq.model.dto.response.ReviewHistoryResponse;
 import com.consentiq.security.UserDetailsImpl;
 import com.consentiq.service.AuditService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,6 +17,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 
 @RestController
@@ -51,6 +54,64 @@ public class AuditController {
         ResponseEntity<ApiResponse<PagedResponse<AuditLogResponse>>> result =
                 ResponseEntity.ok(ApiResponse.success("Activity retrieved successfully", data));
         log.debug("Exiting getMyActivity | result={}", result.getStatusCode());
+        return result;
+    }
+
+    /**
+     * The signed-in checker's own review decisions, filtered server-side, with summary counts.
+     * {@code from}/{@code to} are ISO-8601 instants; {@code to} is exclusive.
+     */
+    @GetMapping("/my-reviews")
+    @PreAuthorize("hasAnyRole('CHECKER','ADMIN')")
+    public ResponseEntity<ApiResponse<ReviewHistoryResponse>> getMyReviews(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "15") int size,
+            @RequestParam(defaultValue = "ALL") String type,
+            @RequestParam(defaultValue = "ALL") String decision,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Instant from,
+            @RequestParam(required = false) Instant to,
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
+        String cu = currentUser();
+        log.info(
+                "HTTP REQUEST | method={} | uri={} | user={}",
+                httpRequest.getMethod(),
+                httpRequest.getRequestURI(),
+                cu);
+        log.debug("Entering getMyReviews | params: page={} | size={} | type={} | decision={}", page, size, type, decision);
+        Long userId = ((UserDetailsImpl) authentication.getPrincipal()).getId();
+        ReviewHistoryResponse data = auditService.getMyReviews(userId, page, size, type, decision, search, from, to);
+        ResponseEntity<ApiResponse<ReviewHistoryResponse>> result =
+                ResponseEntity.ok(ApiResponse.success("Review history retrieved successfully", data));
+        log.debug("Exiting getMyReviews | result={}", result.getStatusCode());
+        return result;
+    }
+
+    @GetMapping("/my-trail")
+    @PreAuthorize("hasAnyRole('MAKER','ADMIN')")
+    public ResponseEntity<ApiResponse<MakerTrailResponse>> getMakerTrail(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "15") int size,
+            @RequestParam(defaultValue = "ALL") String scope,
+            @RequestParam(defaultValue = "ALL") String type,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Instant from,
+            @RequestParam(required = false) Instant to,
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
+        String cu = currentUser();
+        log.info(
+                "HTTP REQUEST | method={} | uri={} | user={}",
+                httpRequest.getMethod(),
+                httpRequest.getRequestURI(),
+                cu);
+        log.debug("Entering getMakerTrail | params: page={} | size={} | scope={} | type={}", page, size, scope, type);
+        Long userId = ((UserDetailsImpl) authentication.getPrincipal()).getId();
+        MakerTrailResponse data = auditService.getMakerTrail(userId, page, size, scope, type, search, from, to);
+        ResponseEntity<ApiResponse<MakerTrailResponse>> result =
+                ResponseEntity.ok(ApiResponse.success("Audit trail retrieved successfully", data));
+        log.debug("Exiting getMakerTrail | result={}", result.getStatusCode());
         return result;
     }
 
