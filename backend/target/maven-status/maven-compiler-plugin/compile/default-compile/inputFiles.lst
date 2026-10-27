@@ -48,6 +48,7 @@ D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\model\dto\request\CreateMer
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\enums\ConsentType.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\exception\DuplicateConsentException.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\config\SchedulingConfig.java
+D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\controller\OllamaProxyController.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\model\entity\ConsentChannelRender.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\repository\CustomerChannelPreferenceRepository.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\controller\PasswordResetController.java

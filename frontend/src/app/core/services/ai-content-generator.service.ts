@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { catchError, map } from 'rxjs/operators';
 import { Observable, throwError, switchMap } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface OllamaModel {
   name: string;
@@ -22,15 +23,15 @@ export interface GenerateResult {
 
 @Injectable({ providedIn: 'root' })
 export class AiContentGeneratorService {
-  /** Default Ollama base URL — override via environment if needed */
-  private readonly ollamaBase = 'http://localhost:11434';
+  /** Backend proxy to the Ollama instance on the server (never call Ollama directly from the browser) */
+  private readonly ollamaBase = `${environment.apiUrl}/ai/ollama`;
 
   constructor(private readonly http: HttpClient) {}
 
   /** Fetch list of locally-installed Ollama models */
   listModels(): Observable<OllamaModel[]> {
     return this.http
-      .get<OllamaModelsResponse>(`${this.ollamaBase}/api/tags`)
+      .get<OllamaModelsResponse>(`${this.ollamaBase}/tags`)
       .pipe(
         map(r => r.models ?? []),
         catchError(this._handleError)
@@ -78,7 +79,7 @@ export class AiContentGeneratorService {
         model: string;
         eval_count?: number;
         prompt_eval_count?: number;
-      }>(`${this.ollamaBase}/api/generate`, {
+      }>(`${this.ollamaBase}/generate`, {
         model,
         prompt,
         stream: false,
@@ -97,7 +98,7 @@ export class AiContentGeneratorService {
           // Unload the model by setting keep_alive to 0.
           // We fire-and-forget this — if it fails the user already has their result.
           return this.http
-            .post<unknown>(`${this.ollamaBase}/api/generate`, {
+            .post<unknown>(`${this.ollamaBase}/generate`, {
               model,
               prompt: '',
               keep_alive: 0,
@@ -119,8 +120,10 @@ export class AiContentGeneratorService {
   private _handleError(err: HttpErrorResponse): Observable<never> {
     const msg =
       err.status === 0
-        ? 'Cannot reach Ollama. Make sure it is running on localhost:11434.'
-        : `Ollama error ${err.status}: ${err.statusText}`;
+        ? 'Cannot reach the ConsentIQ server.'
+        : err.status === 503
+          ? 'Ollama is not running on the server.'
+          : `Ollama error ${err.status}: ${err.error?.error ?? err.statusText}`;
     return throwError(() => new Error(msg));
   }
 }

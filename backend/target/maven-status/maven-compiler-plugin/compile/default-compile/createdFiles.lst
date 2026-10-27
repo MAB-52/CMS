@@ -29,6 +29,7 @@ com\consentiq\util\HtmlTextUtil.class
 com\consentiq\model\dto\request\ConsentBroadcastUpsertRequest$ConsentBroadcastUpsertRequestBuilder.class
 com\consentiq\model\dto\request\ConsentRuleLinkedDraftRequest.class
 com\consentiq\model\dto\response\AdminMisDashboardResponse$MisKpiSummary$MisKpiSummaryBuilder.class
+com\consentiq\model\dto\response\ReviewHistoryResponse$ReviewHistoryResponseBuilder.class
 com\consentiq\security\JwtTokenProvider.class
 com\consentiq\enums\BroadcastRequestStatus.class
 com\consentiq\model\dto\request\SendConsentLinkRequest$SendConsentLinkRequestBuilder.class
@@ -99,6 +100,7 @@ com\consentiq\model\dto\response\mis\MisChannelTemplatePerformanceRowResponse.cl
 com\consentiq\model\dto\response\UserRowResponse$UserRowResponseBuilder.class
 com\consentiq\service\CustomerChannelPreferenceService.class
 com\consentiq\model\dto\response\mis\MisTatReportBundleResponse.class
+com\consentiq\exception\AccountUnavailableException.class
 com\consentiq\model\dto\response\AdminMisDashboardResponse$ChannelPerformanceRow$ChannelPerformanceRowBuilder.class
 com\consentiq\service\ReminderJobPersistenceService.class
 com\consentiq\model\dto\request\ConsentRuleLinkedDraftRequest$ConsentRuleLinkedDraftRequestBuilder.class
@@ -121,6 +123,7 @@ com\consentiq\model\dto\response\JwtResponse.class
 com\consentiq\model\dto\response\mis\MisExpiryRowResponse$MisExpiryRowResponseBuilder.class
 com\consentiq\model\dto\response\mis\MisLeaderboardChannelSplitResponse.class
 com\consentiq\model\dto\response\mis\MisChannelTemplatePerformanceRowResponse$MisChannelTemplatePerformanceRowResponseBuilder.class
+com\consentiq\model\dto\response\ReviewHistoryResponse$Summary.class
 com\consentiq\model\dto\response\ConsentDetailResponse$ConsentDetailResponseBuilder.class
 com\consentiq\model\dto\response\mis\MisExpiryRowResponse.class
 com\consentiq\controller\PublicConsentSessionController.class
@@ -192,6 +195,7 @@ com\consentiq\service\ConsentIdGeneratorService.class
 com\consentiq\model\dto\request\PublicConsentRespondRequest$PublicConsentRespondRequestBuilder.class
 com\consentiq\repository\ConsentOneTimeCodeRepository.class
 com\consentiq\model\entity\ConsentRule.class
+com\consentiq\controller\OllamaProxyController$OllamaCall.class
 com\consentiq\model\dto\request\ConsentRuleUpsertRequest$ConsentRuleUpsertRequestBuilder.class
 com\consentiq\model\dto\response\mis\MisTatConsentRowResponse$MisTatConsentRowResponseBuilder.class
 com\consentiq\model\dto\response\mis\MisLeaderboardChannelSplitResponse$MisLeaderboardChannelSplitResponseBuilder.class
@@ -250,6 +254,7 @@ com\consentiq\model\dto\request\UpdateUserRequest.class
 com\consentiq\model\dto\response\mis\MisChannelPerformanceRowResponse$MisChannelPerformanceRowResponseBuilder.class
 com\consentiq\config\ConsentMailProperties.class
 com\consentiq\model\dto\response\AudienceDrillDownPreviewResponse$AudienceDrillDownPreviewResponseBuilder.class
+com\consentiq\controller\OllamaProxyController.class
 com\consentiq\service\SchedulerExecutionFacade.class
 com\consentiq\controller\AdminRuleEngineController.class
 com\consentiq\model\dto\response\ApiResponse$ApiResponseBuilder.class
@@ -270,6 +275,7 @@ com\consentiq\service\ConsentChannelRenderService.class
 com\consentiq\service\CustomerLanguagePreferenceService.class
 com\consentiq\model\dto\request\RecordOnBehalfConsentRequest$RecordOnBehalfConsentRequestBuilder.class
 com\consentiq\model\entity\Consent$ConsentBuilder.class
+com\consentiq\model\dto\response\ReviewHistoryResponse.class
 com\consentiq\model\dto\response\mis\MisCustomerConsentRowResponse$MisCustomerConsentRowResponseBuilder.class
 com\consentiq\model\dto\response\AudienceSegmentResponse$AudienceSegmentResponseBuilder.class
 com\consentiq\service\BatchEmailChunkExecutor$ChunkEmailOutcome.class
@@ -292,6 +298,7 @@ com\consentiq\model\dto\response\AdminRuleEngineDashboardStatsResponse$AdminRule
 com\consentiq\model\dto\response\CustomerChannelPreferenceResponse.class
 com\consentiq\model\dto\response\CaptureConsentSearchResponse$CaptureConsentSearchResponseBuilder.class
 com\consentiq\model\dto\response\mis\MisDemographicGeoRowResponse$MisDemographicGeoRowResponseBuilder.class
+com\consentiq\model\dto\response\ReviewHistoryResponse$Summary$SummaryBuilder.class
 com\consentiq\model\dto\request\ConsentUpdateRequest$ConsentUpdateRequestBuilder.class
 com\consentiq\model\dto\request\ConsentUpdateRequest.class
 com\consentiq\exception\InvalidWorkflowStateException.class
