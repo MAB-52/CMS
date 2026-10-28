@@ -15,6 +15,15 @@ import { EMAIL_PATTERN, notBlank } from '../../../core/validators/form-validator
 
 const REMEMBER_KEY = 'ciq_remember_email';
 
+const LOGOUT_REASON_MESSAGES: Record<string, string> = {
+  session_expired: 'Session expired. Please sign in again.',
+  session_invalidated: 'Your session ended because your account was signed in elsewhere or its access changed. Please sign in again.',
+  account_inactive: 'Your account has been deactivated. Please contact your administrator.',
+  account_changed: 'Your sign-in details were changed. Please sign in with your new email.',
+  email_changed: 'Your email was updated. Please sign in with your new email.',
+  password_changed: 'Your password was changed. Please sign in with your new password.',
+};
+
 @Component({
   selector: 'app-login',
   standalone: true,
@@ -70,8 +79,10 @@ export class LoginComponent {
       this.form.controls.email.setValue(saved);
       this.remember = true;
     }
-    if (this.route.snapshot.queryParamMap.get('reason') === 'session_expired') {
-      this.notify.warnOnce('session-expired', 'Session expired. Please sign in again.');
+    const reason = this.route.snapshot.queryParamMap.get('reason');
+    const reasonMessage = reason ? LOGOUT_REASON_MESSAGES[reason] : undefined;
+    if (reason && reasonMessage) {
+      this.notify.warnOnce(`logout-${reason}`, reasonMessage);
     }
   }
 

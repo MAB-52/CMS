@@ -88,53 +88,73 @@
           </h2>
         </div>
 
-        <a mat-stroked-button class="crd-btn crd-btn--secondary" routerLink="/checker/pending">
-          View All
-          <mat-icon iconPositionEnd>arrow_forward</mat-icon>
-        </a>
+        <div class="crd-card__actions">
+          @if (pendingItems().length) {
+          <span class="crd-feed-count" pTooltip="Consents, linked pairs and broadcast rules waiting for you" tooltipPosition="top">
+            <i class="pi pi-inbox" aria-hidden="true"></i>{{ pendingItems().length }} waiting
+          </span>
+          }
+          <a pButton routerLink="/checker/pending" [rounded]="true" [outlined]="true" size="small" class="crd-viewall"
+            pTooltip="Open the full review queue" tooltipPosition="top">
+            <span pButtonLabel>View all</span>
+            <i class="pi pi-arrow-right" pButtonIcon></i>
+          </a>
+        </div>
       </div>
       @if (pendingLoading()) {
       <ul class="crd-list" aria-busy="true">
         @for (s of skeletons; track s) {
-        <li class="crd-list__item"><div class="is-skeleton crd-skel"></div></li>
+        <li class="crd-skel-row">
+          <p-skeleton shape="circle" size="1.75rem" />
+          <p-skeleton size="2.5rem" borderRadius="12px" />
+          <div class="crd-skel-stack"><p-skeleton width="60%" /><p-skeleton width="85%" height=".8rem" /></div>
+        </li>
         }
       </ul>
       } @else if (pendingError()) {
       <div class="crd-empty is-empty">
-        <div class="is-empty__icon"><mat-icon>cloud_off</mat-icon></div>
+        <div class="is-empty__icon"><i class="pi pi-cloud"></i></div>
         <div class="is-empty__title">Couldn't load the queue</div>
         <div class="is-empty__text">Check your connection and try again.</div>
-        <button mat-stroked-button type="button" (click)="loadPending()"><mat-icon>refresh</mat-icon>Retry</button>
+        <p-button label="Retry" icon="pi pi-refresh" [outlined]="true" [rounded]="true" size="small" (onClick)="loadPending()" />
       </div>
-      } @else if (!topPending().length) {
+      } @else if (!pendingItems().length) {
       <div class="crd-empty is-empty">
-        <div class="is-empty__icon"><mat-icon>inbox</mat-icon></div>
+        <div class="is-empty__icon"><i class="pi pi-inbox"></i></div>
         <div class="is-empty__title">All caught up</div>
         <div class="is-empty__text">Nothing is waiting for your review.</div>
       </div>
       } @else {
       <ul class="crd-list">
-        @for (p of topPending(); track p.key) {
+        @for (p of pagedPending(); track p.key; let i = $index) {
         @let k = kindMeta(p.kind);
-        <li class="crd-list__item">
-          <a class="crd-list__link" [routerLink]="p.link">
-            <span class="crd-list__ico" aria-hidden="true"><mat-icon>{{ k.icon }}</mat-icon></span>
+        @let w = waitInfo(p.submittedAt);
+        <li class="crd-list__item" [style.--i]="i">
+          <a class="crd-list__link" [routerLink]="p.link" [style.--k]="k.color" [style.--u]="w.color"
+            [attr.aria-label]="'Review ' + p.title">
+            <span class="crd-rank" aria-hidden="true">{{ pendingPage() * pendingSize() + i + 1 }}</span>
+            <span class="crd-list__ico" aria-hidden="true"><i [class]="k.icon"></i></span>
             <span class="crd-list__text">
-              <span class="crd-list__name">{{ p.title }}</span>
+              <span class="crd-list__name" [pTooltip]="p.title" tooltipPosition="top" [showDelay]="400">{{ p.title }}</span>
               <span class="crd-list__meta">
-                <span class="crd-kind" [class]="'crd-kind crd-kind--' + p.kind.toLowerCase()">{{ k.label }}</span>
-                <span class="crd-list__id">{{ p.ref }}</span>
-                @if (p.submittedAt) {
-                <span class="crd-list__dot"></span>
-                <span>Waiting {{ p.submittedAt | timeAgo }}</span>
-                }
+                <p-tag [value]="k.label" [severity]="k.severity" [rounded]="true" styleClass="crd-tag" />
+                <span class="crd-ref">{{ p.ref }}</span>
+                <p-tag [value]="'Waiting ' + w.label" icon="pi pi-clock" [severity]="w.severity" [rounded]="true"
+                  styleClass="crd-tag" [pTooltip]="w.tooltip" tooltipPosition="top" />
               </span>
             </span>
-            <span class="crd-list__go" aria-hidden="true">Review <mat-icon>chevron_right</mat-icon></span>
+            <span class="crd-go" pTooltip="Review" tooltipPosition="left" aria-hidden="true"><i class="pi pi-chevron-right"></i></span>
           </a>
         </li>
         }
       </ul>
+
+      @if (pendingItems().length > 5) {
+      <p-paginator [first]="pendingPage() * pendingSize()" [rows]="pendingSize()" [totalRecords]="pendingItems().length"
+        [rowsPerPageOptions]="[5, 10, 20]" [pageLinkSize]="3" [showFirstLastIcon]="false"
+        [showCurrentPageReport]="true" currentPageReportTemplate="{first}–{last} of {totalRecords}"
+        dropdownAppendTo="body" styleClass="crd-paginator" (onPageChange)="onPendingPage($event)" />
+      }
       }
     </section>
 

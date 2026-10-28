@@ -37,6 +37,7 @@ public class CustomerConsentRecordService {
     private final CustomerConsentRecordRepository recordRepository;
     private final CustomerRepository customerRepository;
     private final ConsentRepository consentRepository;
+    private final CustomerCurrentStatusService customerCurrentStatusService;
 
     @Transactional
     public CustomerConsentRecord upsertOnInviteSent(
@@ -67,6 +68,7 @@ public class CustomerConsentRecordService {
                 log.info("DB query completed | method=save | result=completed");
                 log.debug("Transaction completing | method=upsertOnInviteSent | id={}", consentDbId);
                 log.debug("Exiting upsertOnInviteSent | result=id={}", saved.getId());
+                customerCurrentStatusService.recompute(customerId);
                 return saved;
             }
             CustomerConsentRecord r = existing.get();
@@ -85,6 +87,7 @@ public class CustomerConsentRecordService {
             log.info("DB query completed | method=save | result=completed");
             log.debug("Transaction completing | method=upsertOnInviteSent | id={}", consentDbId);
             log.debug("Exiting upsertOnInviteSent | result=id={}", saved.getId());
+            customerCurrentStatusService.recompute(customerId);
             return saved;
         } catch (Exception e) {
             log.error("Exception in upsertOnInviteSent | user={} | message={}", cu, e.getMessage(), e);
@@ -128,8 +131,11 @@ public class CustomerConsentRecordService {
                             .status(CustomerConsentRecordStatus.PENDING)
                             .build());
 
+            boolean responded = newStatus != CustomerConsentRecordStatus.PENDING;
             r.setStatus(newStatus);
-            r.setRespondedAt(respondedAt);
+            if (responded) {
+                r.setRespondedAt(respondedAt);
+            }
 
             if (newStatus == CustomerConsentRecordStatus.ACCEPTED) {
                 r.setConsentValidUntil(consentValidUntil);
@@ -147,7 +153,9 @@ public class CustomerConsentRecordService {
             Optional<Customer> custOpt = customerRepository.findByCustomerIdIgnoreCase(customerId);
             log.info("DB query completed | method=findByCustomerIdIgnoreCase | present={}", custOpt.isPresent());
             custOpt.ifPresent(customer -> {
-                customer.setLastConsentResponseAt(respondedAt);
+                if (responded) {
+                    customer.setLastConsentResponseAt(respondedAt);
+                }
                 switch (newStatus) {
                     case ACCEPTED -> {
                         customer.setConsentValidUntil(consentValidUntil);
@@ -168,6 +176,7 @@ public class CustomerConsentRecordService {
 
             log.debug("Transaction completing | method=updateOnResponse | id={}", consentDbId);
             log.debug("Exiting updateOnResponse | result=id={}", saved.getId());
+            customerCurrentStatusService.recompute(customerId);
             return saved;
         } catch (Exception e) {
             log.error("Exception in updateOnResponse | user={} | message={}", cu, e.getMessage(), e);
@@ -412,9 +421,20 @@ public class CustomerConsentRecordService {
         Consent co = consents.get(r.getConsentDbId());
 
         Long onBehalfRecordId = null;
+        String captureMode = null;
+        String sourceChannel = null;
+        String evidenceReference = null;
+        String recordedByName = null;
+        Instant recordedAt = null;
         if (r.getOnBehalfRecord() != null) {
             try {
-                onBehalfRecordId = r.getOnBehalfRecord().getId();
+                OnBehalfConsentRecord ob = r.getOnBehalfRecord();
+                onBehalfRecordId = ob.getId();
+                captureMode = ob.getMode();
+                sourceChannel = ob.getSourceChannel();
+                evidenceReference = ob.getEvidenceReference();
+                recordedAt = ob.getRecordedAt();
+                recordedByName = ob.getRecordedBy() != null ? ob.getRecordedBy().getFullName() : null;
             } catch (Exception ignored) {
                 // Proxy not initialized in read-only context
             }
@@ -433,6 +453,11 @@ public class CustomerConsentRecordService {
                 .sourceRuleId(r.getSourceRuleId())
                 .sourceBroadcastId(r.getSourceBroadcastId())
                 .onBehalfRecordId(onBehalfRecordId)
+                .captureMode(captureMode)
+                .sourceChannel(sourceChannel)
+                .evidenceReference(evidenceReference)
+                .recordedByName(recordedByName)
+                .recordedAt(recordedAt)
                 .createdAt(r.getCreatedAt())
                 .updatedAt(r.getUpdatedAt())
                 .build();

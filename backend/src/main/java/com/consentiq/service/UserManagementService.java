@@ -7,6 +7,8 @@ import com.consentiq.model.dto.response.PagedResponse;
 import com.consentiq.model.dto.response.UserRowResponse;
 import com.consentiq.model.entity.User;
 import com.consentiq.repository.UserRepository;
+import com.consentiq.security.UserDetailsImpl;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -38,6 +41,25 @@ public class UserManagementService {
 
 	private final UserRepository userRepository;
 	private final PasswordEncoder passwordEncoder;
+	private final AuditService auditService;
+
+	private static Long currentUserId() {
+		var auth = SecurityContextHolder.getContext().getAuthentication();
+		return auth != null && auth.getPrincipal() instanceof UserDetailsImpl u ? u.getId() : null;
+	}
+
+	private void audit(String action, User target, String description, HttpServletRequest http) {
+		Long actor = currentUserId();
+		if (actor == null) {
+			return;
+		}
+		auditService.log(actor, action, "USER", target.getId(), target.getFullName() + " (" + target.getEmail() + ")",
+				description, http);
+	}
+
+	private static String roleLabel(UserRole r) {
+		return r == null ? "—" : r.name().charAt(0) + r.name().substring(1).toLowerCase(Locale.ROOT);
+	}
 
 	@Transactional(readOnly = true)
 	public PagedResponse<UserRowResponse> listUsers(
@@ -95,7 +117,7 @@ public class UserManagementService {
 	}
 
 	@Transactional
-	public UserRowResponse createUser(CreateUserRequest req) {
+	public UserRowResponse createUser(CreateUserRequest req, HttpServletRequest http) {
 		String cu = currentUser();
 		log.debug("Entering createUser | params: email={}", req.getEmail());
 		log.info("User={} | action=createUser | entity=User | id=n/a", cu);
@@ -120,6 +142,7 @@ public class UserManagementService {
 		User saved = userRepository.save(user);
 		log.info("DB query completed | method=save | completed");
 		log.info("User created | id={} | email={} | role={}", saved.getId(), saved.getEmail(), saved.getRole());
+		audit("USER_CREATED", saved, "User created with role " + roleLabel(saved.getRole()), http);
 		UserRowResponse result = toRow(saved);
 		log.debug("Transaction completing | method=createUser | id=n/a");
 		log.debug("Exiting createUser | result=userId={}", result.getId());
@@ -127,7 +150,7 @@ public class UserManagementService {
 	}
 
 	@Transactional
-	public UserRowResponse updateUser(Long id, UpdateUserRequest req) {
+	public UserRowResponse updateUser(Long id, UpdateUserRequest req, HttpServletRequest http) {
 		String cu = currentUser();
 		log.debug("Entering updateUser | params: id={}", id);
 		log.info("User={} | action=updateUser | entity=User | id={}", cu, id != null ? String.valueOf(id) : "n/a");
@@ -138,28 +161,46 @@ public class UserManagementService {
 				.orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
 		log.info("DB query completed | method=findById | present=true");
 
-		if (StringUtils.hasText(req.getFullName())) {
+		Long actorId = currentUserId();
+		boolean self = actorId != null ? actorId.equals(user.getId()) : user.getEmail().equalsIgnoreCase(cu);
+		boolean deactivating = Boolean.FALSE.equals(req.getActive()) && Boolean.TRUE.equals(user.getActive());
+		boolean demoting = req.getRole() != null && user.getRole() == UserRole.ADMIN && req.getRole() != UserRole.ADMIN;
+		if (self && deactivating) {
+			throw new IllegalArgumentException("You cannot deactivate your own account.");
+		}
+		if (self && req.getRole() != null && req.getRole() != user.getRole()) {
+			throw new IllegalArgumentException("You cannot change your own role.");
+		}
+		if (req.getPassword() != null && !StringUtils.hasText(req.getPassword())) {
+			throw new IllegalArgumentException("Password must be between 8 and 100 characters");
+		}
+
+		List<String> changes = new ArrayList<>();
+		boolean revokeSessions = false;
+		if (StringUtils.hasText(req.getFullName()) && !req.getFullName().trim().equals(user.getFullName())) {
+			changes.add("name " + user.getFullName() + " → " + req.getFullName().trim());
 			user.setFullName(req.getFullName().trim());
 		}
 		if (StringUtils.hasText(req.getEmail())) {
 			String newEmail = req.getEmail().trim().toLowerCase(Locale.ROOT);
-			if (!newEmail.equals(user.getEmail())) {
-				log.info("Executing DB query | method=existsByEmailIgnoreCase | param=email={}", newEmail);
-				boolean taken = userRepository.existsByEmailIgnoreCase(newEmail);
-				log.info("DB query completed | method=existsByEmailIgnoreCase | present={}", taken);
-				if (taken) {
-					throw new IllegalArgumentException("A user with this email already exists.");
+			if (!newEmail.equalsIgnoreCase(user.getEmail())) {
+				log.info("Executing DB query | method=findByEmailIgnoreCase | param=email={}", newEmail);
+				User other = userRepository.findByEmailIgnoreCase(newEmail).orElse(null);
+				log.info("DB query completed | method=findByEmailIgnoreCase | present={}", other != null);
+				if (other != null) {
+					throw new IllegalArgumentException(other.getDeletedAt() != null
+							? "This email belongs to a deleted user and cannot be reused."
+							: "A user with this email already exists.");
 				}
+				changes.add("email " + user.getEmail() + " → " + newEmail);
+				user.setEmail(newEmail);
+				revokeSessions = true;
 			}
-			user.setEmail(newEmail);
 		}
 		if (StringUtils.hasText(req.getPassword())) {
 			user.setPassword(passwordEncoder.encode(req.getPassword()));
-		}
-		boolean deactivating = Boolean.FALSE.equals(req.getActive()) && Boolean.TRUE.equals(user.getActive());
-		boolean demoting = req.getRole() != null && user.getRole() == UserRole.ADMIN && req.getRole() != UserRole.ADMIN;
-		if (deactivating && user.getEmail().equalsIgnoreCase(cu)) {
-			throw new IllegalArgumentException("You cannot deactivate your own account.");
+			changes.add("password reset");
+			revokeSessions = true;
 		}
 		if ((deactivating || demoting) && user.getRole() == UserRole.ADMIN && Boolean.TRUE.equals(user.getActive())) {
 			long otherActiveAdmins = userRepository.findByRoleAndDeletedAtIsNull(UserRole.ADMIN).stream()
@@ -169,13 +210,15 @@ public class UserManagementService {
 				throw new IllegalArgumentException("At least one active admin must remain.");
 			}
 		}
-		if (req.getRole() != null) {
+		if (req.getRole() != null && req.getRole() != user.getRole()) {
+			changes.add("role " + roleLabel(user.getRole()) + " → " + roleLabel(req.getRole()));
 			user.setRole(req.getRole());
 		}
-		if (req.getActive() != null) {
+		if (req.getActive() != null && !req.getActive().equals(user.getActive())) {
+			changes.add(req.getActive() ? "status Inactive → Active" : "status Active → Inactive");
 			user.setActive(req.getActive());
 		}
-		if (deactivating) {
+		if (deactivating || revokeSessions) {
 			user.setTokenVersion(user.getTokenVersion() + 1);
 		}
 
@@ -183,6 +226,9 @@ public class UserManagementService {
 		User saved = userRepository.save(user);
 		log.info("DB query completed | method=save | completed");
 		log.info("User updated | id={} | email={}", saved.getId(), saved.getEmail());
+		if (!changes.isEmpty()) {
+			audit("USER_UPDATED", saved, "Updated: " + String.join("; ", changes), http);
+		}
 		UserRowResponse result = toRow(saved);
 		log.debug("Transaction completing | method=updateUser | id={}", id);
 		log.debug("Exiting updateUser | result=userId={}", result.getId());
@@ -197,7 +243,7 @@ public class UserManagementService {
 	 * @return {@code true} when the user was soft-deleted (archived), {@code false} when hard-deleted
 	 */
 	@Transactional
-	public boolean deleteUser(Long id) {
+	public boolean deleteUser(Long id, HttpServletRequest http) {
 		String cu = currentUser();
 		log.debug("Entering deleteUser | params: id={}", id);
 		log.info("User={} | action=deleteUser | entity=User | id={}", cu, id != null ? String.valueOf(id) : "n/a");
@@ -234,6 +280,9 @@ public class UserManagementService {
 			userRepository.delete(user);
 			log.info("DB query completed | method=delete | completed");
 			log.info("User deleted | id={} | email={}", id, user.getEmail());
+		}
+		if (hasHistory) {
+			audit("USER_DELETED", user, "User archived (has activity history)", http);
 		}
 		log.debug("Transaction completing | method=deleteUser | id={}", id);
 		log.debug("Exiting deleteUser | result=softDeleted={}", hasHistory);

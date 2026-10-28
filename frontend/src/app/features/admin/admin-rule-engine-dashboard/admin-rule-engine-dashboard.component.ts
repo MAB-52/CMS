@@ -72,18 +72,10 @@ export class AdminRuleEngineDashboardComponent implements OnInit, OnDestroy {
 
   readonly allScheduleTypes = ALL_SCHEDULE_TYPES;
 
-  private readonly _filterTick = signal(0);
-
-  readonly rules = computed(() => {
-    this._filterTick();
-    const search = this.filterSearch.trim().toLowerCase();
-    const schedule = this.filterSchedule;
-    return this.allRules().filter((r) => {
-      const matchesSearch = !search || r.ruleName.toLowerCase().includes(search);
-      const matchesSchedule = !schedule || r.scheduleType === schedule;
-      return matchesSearch && matchesSchedule;
-    });
-  });
+  readonly rules = computed(() => this.allRules());
+  readonly rulesLoading = signal(false);
+  readonly appliedFilters = signal(false);
+  private searchTimer?: ReturnType<typeof setTimeout>;
 
   readonly execPageIndex = signal(0);
   readonly execPageSize = signal(5);
@@ -97,20 +89,27 @@ export class AdminRuleEngineDashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    clearTimeout(this.searchTimer);
     this.destroy$.next();
     this.destroy$.complete();
   }
 
   applyFilters(): void {
+    clearTimeout(this.searchTimer);
     this.pageIndex.set(0);
-    this._filterTick.update((v) => v + 1);
+    this.loadRulesOnly();
+  }
+
+  onSearchInput(value: string): void {
+    this.filterSearch = value;
+    clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.applyFilters(), 300);
   }
 
   clearFilters(): void {
     this.filterSearch = '';
     this.filterSchedule = '';
-    this.pageIndex.set(0);
-    this._filterTick.update((v) => v + 1);
+    this.applyFilters();
   }
 
   loadExecutions() {
@@ -123,7 +122,7 @@ export class AdminRuleEngineDashboardComponent implements OnInit, OnDestroy {
 
     forkJoin({
       stats: this.api.getDashboardStats(),
-      rules: this.api.listApprovedRules(this.pageIndex(), this.pageSize()),
+      rules: this.api.listApprovedRules(this.pageIndex(), this.pageSize(), this.filterSearch, this.filterSchedule),
       executions: this.loadExecutions(),
     })
       .pipe(takeUntil(this.destroy$))
@@ -307,20 +306,22 @@ export class AdminRuleEngineDashboardComponent implements OnInit, OnDestroy {
   }
 
   private loadRulesOnly(): void {
-    this.loading.set(true);
+    this.rulesLoading.set(true);
+    const filtered = !!(this.filterSearch.trim() || this.filterSchedule);
     this.api
-      .listApprovedRules(this.pageIndex(), this.pageSize())
+      .listApprovedRules(this.pageIndex(), this.pageSize(), this.filterSearch, this.filterSchedule)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (rules) => {
-          this.loading.set(false);
+          this.rulesLoading.set(false);
           if (rules.success && rules.data) {
+            this.appliedFilters.set(filtered);
             this.allRules.set(rules.data.content);
             this.totalPages.set(rules.data.totalPages);
             this.totalItems.set(rules.data.totalElements);
           }
         },
-        error: () => this.loading.set(false),
+        error: () => this.rulesLoading.set(false),
       });
   }
 

@@ -17,6 +17,7 @@ import {
 } from '../../../../core/models/admin.model';
 import { AdminService } from '../../../../core/services/admin.service';
 import { LoggerService } from '../../../../core/services/logger.service';
+import { blobErrorMessage, saveBlob } from '../../../../core/utils/download.util';
 import { NotificationService } from '../../../../core/services/notification.service';
 
 type ExpiryMode = 'EXPIRING' | 'EXPIRED';
@@ -90,7 +91,7 @@ export class MisReportExpiryTabComponent implements OnDestroy {
         next: (res) => {
           this.loading.set(false);
           if (res.success && res.data) {
-            this.rows.set(res.data.content);
+            this.rows.set(res.data.content.map((r) => ({ ...r, rowKey: `${r.customerId}:${r.consentDbId ?? ''}` })));
             this.totalElements.set(res.data.totalElements);
             this.currentPage.set(res.data.currentPage);
           }
@@ -186,13 +187,8 @@ export class MisReportExpiryTabComponent implements OnDestroy {
 
   // ── Export ──────────────────────────────────────────────────────────────
 
-  private dl(blob: Blob, n: string): void {
-    const u = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = u;
-    a.download = n;
-    a.click();
-    URL.revokeObjectURL(u);
+  private dl(blob: Blob, base: string, ext: string): void {
+    saveBlob(blob, base, ext);
   }
 
   exportCsv(): void {
@@ -203,12 +199,12 @@ export class MisReportExpiryTabComponent implements OnDestroy {
       .subscribe({
         next: (b) => {
           this.exporting.set(null);
-          this.dl(b, 'expiry-report.csv');
-          this.notify.success('Export', 'CSV started.');
+          this.dl(b, 'expiry-report', 'csv');
+          this.notify.success('Export', `CSV with ${this.totalElements()} consent(s) downloaded.`);
         },
-        error: () => {
+        error: async (err) => {
           this.exporting.set(null);
-          this.notify.error('Export', 'Failed.');
+          this.notify.error('Export', await blobErrorMessage(err, 'Export failed.'));
         },
       });
   }
@@ -221,12 +217,12 @@ export class MisReportExpiryTabComponent implements OnDestroy {
       .subscribe({
         next: (b) => {
           this.exporting.set(null);
-          this.dl(b, 'expiry-report.xlsx');
-          this.notify.success('Export', 'Excel started.');
+          this.dl(b, 'expiry-report', 'xlsx');
+          this.notify.success('Export', `Excel with ${this.totalElements()} consent(s) downloaded.`);
         },
-        error: () => {
+        error: async (err) => {
           this.exporting.set(null);
-          this.notify.error('Export', 'Failed.');
+          this.notify.error('Export', await blobErrorMessage(err, 'Export failed.'));
         },
       });
   }

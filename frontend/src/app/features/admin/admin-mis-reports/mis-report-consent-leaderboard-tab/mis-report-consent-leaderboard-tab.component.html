@@ -57,7 +57,7 @@
       <span class="lb-podium__label">{{ v.label }}</span>
     </div>
     <div class="lb-podium__stats">
-      <span pTooltip="Broadcast executions" tooltipPosition="bottom"><i class="pi pi-megaphone"></i>{{ p.totalBroadcastExecutions | number }}</span>
+      <span pTooltip="Rule runs" tooltipPosition="bottom"><i class="pi pi-megaphone"></i>{{ p.totalBroadcastExecutions | number }}</span>
       <span pTooltip="Invites accepted" tooltipPosition="bottom"><i class="pi pi-check"></i>{{ p.totalAccepted | number }}</span>
       <span pTooltip="Acceptance rate" tooltipPosition="bottom"><i class="pi pi-percentage"></i>{{ p.acceptanceRatePercent | number: '1.0-1' }}</span>
     </div>
@@ -76,30 +76,33 @@
     [rows]="pageSize()" [first]="currentPage() * pageSize()" [totalRecords]="totalElements()"
     [rowsPerPageOptions]="[10, 25, 50]" paginatorDropdownAppendTo="body" [showCurrentPageReport]="true"
     currentPageReportTemplate="Showing {first}–{last} of {totalRecords}" [expandedRowKeys]="expandedRows"
-    [rowHover]="true" styleClass="mr-table lb-table" [tableStyle]="{ 'min-width': '64rem', 'table-layout': 'fixed' }">
+    [rowHover]="true" [scrollable]="true" styleClass="mr-table lb-table"
+    [tableStyle]="{ 'min-width': '84rem', 'table-layout': 'fixed' }">
 
     <ng-template #colgroup>
       <colgroup>
-        <col style="width: 7%" />
-        <col style="width: 22%" />
-        <col style="width: 10%" />
-        <col style="width: 9%" />
-        <col style="width: 9%" />
-        <col style="width: 15%" />
-        <col style="width: 13%" />
-        <col style="width: 9%" />
-        <col style="width: 6%" />
+        <col style="width: 5.5rem" />
+        <col style="width: 16rem" />
+        <col style="width: 7.5rem" />
+        <col style="width: 8rem" />
+        <col style="width: 9rem" />
+        <col style="width: 7.5rem" />
+        <col style="width: 10rem" />
+        <col style="width: 10rem" />
+        <col style="width: 7.5rem" />
+        <col style="width: 4rem" />
       </colgroup>
     </ng-template>
 
     <ng-template #header>
       <tr>
-        <th pTooltip="Overall rank for the selected metric" tooltipPosition="top">Rank</th>
-        <th class="lb-left" pTooltip="Consent template name and ID" tooltipPosition="top">Template</th>
-        <th pTooltip="Broadcast executions that used this template" tooltipPosition="top">Broadcasts</th>
-        <th [class.lb-col-on]="sortKey() === 'REACH'" pTooltip="Customers invited — drives the Reach ranking" tooltipPosition="top">Invites</th>
+        <th pFrozenColumn pTooltip="Overall rank for the selected metric" tooltipPosition="top">Rank</th>
+        <th pFrozenColumn class="lb-left lb-frozen-edge" pTooltip="Consent template name and ID" tooltipPosition="top">Template</th>
+        <th pTooltip="Broadcast rule runs that used this template" tooltipPosition="top">Rule runs</th>
+        <th [class.lb-col-on]="sortKey() === 'REACH'" pTooltip="Distinct customers invited — drives the Reach ranking" tooltipPosition="top">Distinct reach</th>
+        <th pTooltip="All invites sent, including repeat invites to the same customer" tooltipPosition="top">Total invites</th>
         <th pTooltip="Invites the customer accepted" tooltipPosition="top">Accepted</th>
-        <th [class.lb-col-on]="sortKey() === 'ACCEPTANCE'" pTooltip="Accepted ÷ invited — drives the Acceptance ranking" tooltipPosition="top">Acceptance</th>
+        <th [class.lb-col-on]="sortKey() === 'ACCEPTANCE'" pTooltip="Accepted ÷ invited — drives the Acceptance ranking (needs at least 5 invites)" tooltipPosition="top">Acceptance</th>
         <th [class.lb-col-on]="sortKey() === 'REENGAGEMENT'" pTooltip="Customers re-engaged — drives the Re-engagement ranking" tooltipPosition="top">Re-engagement</th>
         <th pTooltip="Average hours from invite to acceptance" tooltipPosition="top">Avg TAT</th>
         <th pTooltip="Expand to see the per-channel breakdown" tooltipPosition="top"></th>
@@ -111,30 +114,41 @@
       @let md = medal(rk);
       <tr class="mr-row" [class.lb-row--open]="expanded" [class.lb-row--top]="!!md" [style.--i]="i % pageSize()"
         [style.--m]="md?.color">
-        <td [pTooltip]="md ? md.label + ' — rank ' + rk : 'Rank ' + rk" tooltipPosition="top">
+        <td pFrozenColumn [pTooltip]="md ? md.label + ' — rank ' + rk : 'Rank ' + rk" tooltipPosition="top">
           @if (md) {
           <span class="lb-medal"><i class="pi pi-trophy"></i>{{ rk }}</span>
           } @else {
           <span class="lb-rank">{{ rk }}</span>
           }
         </td>
-        <td class="lb-left" [pTooltip]="r.consentName + ' · ' + r.consentId" tooltipPosition="top">
+        <td pFrozenColumn class="lb-left lb-frozen-edge" [pTooltip]="r.consentName + ' · ' + r.consentId" tooltipPosition="top">
           <div class="lb-name">
             <span class="lb-name__text">{{ r.consentName }}</span>
             <span class="mr-mono">{{ r.consentId }}</span>
           </div>
         </td>
-        <td [pTooltip]="(r.totalBroadcastExecutions | number) + ' broadcast executions'" tooltipPosition="top">
+        <td [pTooltip]="(r.totalBroadcastExecutions | number) + ' rule runs'" tooltipPosition="top">
           <span class="lb-num"><i class="pi pi-megaphone"></i>{{ r.totalBroadcastExecutions | number }}</span>
         </td>
-        <td [class.lb-col-on]="sortKey() === 'REACH'" [pTooltip]="(r.totalRecipientsInvited | number) + ' customers invited'" tooltipPosition="top">
-          <span class="lb-num"><i class="pi pi-send"></i>{{ r.totalRecipientsInvited | number }}</span>
+        <td [class.lb-col-on]="sortKey() === 'REACH'" [pTooltip]="(reach(r) | number) + ' distinct customers'" tooltipPosition="top">
+          <span class="lb-num"><i class="pi pi-users"></i>{{ reach(r) | number }}</span>
+        </td>
+        <td [pTooltip]="repeatInvites(r) > 0
+            ? (r.totalRecipientsInvited | number) + ' invites · ' + (repeatInvites(r) | number) + ' were repeat invites to customers already reached'
+            : (r.totalRecipientsInvited | number) + ' invites'" tooltipPosition="top">
+          <span class="lb-invites">
+            <span class="lb-num"><i class="pi pi-send"></i>{{ r.totalRecipientsInvited | number }}</span>
+            @if (repeatInvites(r) > 0) {
+            <p-tag [value]="'+' + (repeatInvites(r) | number) + ' repeat'" icon="pi pi-replay" severity="secondary" [rounded]="true"
+              styleClass="lb-repeat" />
+            }
+          </span>
         </td>
         <td [pTooltip]="(r.totalAccepted | number) + ' invites accepted'" tooltipPosition="top">
           <span class="lb-num lb-num--pos"><i class="pi pi-check"></i>{{ r.totalAccepted | number }}</span>
         </td>
         <td [class.lb-col-on]="sortKey() === 'ACCEPTANCE'" tooltipPosition="top"
-          [pTooltip]="'Acceptance rate: ' + (r.acceptanceRatePercent | number: '1.0-1') + '% (' + r.totalAccepted + ' of ' + r.totalRecipientsInvited + ')'">
+          [pTooltip]="'Acceptance rate: ' + (r.acceptanceRatePercent | number: '1.0-1') + '% (' + r.totalAccepted + ' of ' + r.totalRecipientsInvited + ')' + (r.totalRecipientsInvited < 5 ? ' · fewer than 5 invites, ranked last' : '')">
           <div class="mr-meter lb-meter" [style.--c]="rateColor(r.acceptanceRatePercent)">
             <span class="mr-meter__val">{{ r.acceptanceRatePercent | number: '1.0-1' }}%</span>
             <p-progressbar [value]="r.acceptanceRatePercent" [showValue]="false" />
@@ -164,7 +178,7 @@
 
     <ng-template #expandedrow let-r>
       <tr class="lb-expand-row">
-        <td colspan="9">
+        <td colspan="10">
           <div class="lb-detail">
             <div class="lb-detail__head">
               <span class="lb-detail__ico"><i class="pi pi-sitemap"></i></span>
@@ -207,9 +221,9 @@
       @if (loading()) {
       @for (s of skeletonRows; track s) {
       <tr>
-        <td><p-skeleton shape="circle" size="2rem" styleClass="lb-center" /></td>
-        <td class="lb-left"><div class="mr-skel-stack"><p-skeleton width="10rem" /><p-skeleton width="6rem" height=".7rem" /></div></td>
-        @for (c of [1, 2, 3]; track c) { <td><p-skeleton width="3.5rem" styleClass="lb-center" /></td> }
+        <td pFrozenColumn><p-skeleton shape="circle" size="2rem" styleClass="lb-center" /></td>
+        <td pFrozenColumn class="lb-left lb-frozen-edge"><div class="mr-skel-stack"><p-skeleton width="10rem" /><p-skeleton width="6rem" height=".7rem" /></div></td>
+        @for (c of [1, 2, 3, 4]; track c) { <td><p-skeleton width="3.5rem" styleClass="lb-center" /></td> }
         <td><p-skeleton width="80%" height=".8rem" styleClass="lb-center" /></td>
         <td><p-skeleton width="80%" height=".8rem" styleClass="lb-center" /></td>
         <td><p-skeleton width="3.5rem" styleClass="lb-center" /></td>
@@ -218,7 +232,7 @@
       }
       } @else {
       <tr>
-        <td colspan="9">
+        <td colspan="10">
           <div class="mr-empty">
             <span class="mr-empty__ico"><i class="pi pi-trophy"></i></span>
             <p class="mr-empty__title">No published templates to rank</p>

@@ -33,9 +33,18 @@ export class CheckerRuleReviewComponent implements OnInit {
   readonly rule = signal<ConsentRule | null>(null);
   readonly audit = signal<AuditLogEntry[]>([]);
   readonly busy = signal(false);
+  readonly loading = signal(true);
+  readonly loadState = signal<'ok' | 'notFound' | 'error'>('ok');
+  private ruleId = 0;
 
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
+    this.ruleId = id;
+    if (!Number.isFinite(id) || id <= 0) {
+      this.loading.set(false);
+      this.loadState.set('notFound');
+      return;
+    }
     this.loadRule(id);
     this.auditApi.getEntityAuditTrail('CONSENT_RULE', id).subscribe((r) => {
       if (r.success && r.data) {
@@ -45,11 +54,67 @@ export class CheckerRuleReviewComponent implements OnInit {
   }
 
   private loadRule(id: number): void {
-    this.api.getById(id).subscribe((res) => {
-      if (res.success && res.data) {
-        this.rule.set(res.data);
-      }
+    this.loading.set(true);
+    this.api.getById(id).subscribe({
+      next: (res) => {
+        this.loading.set(false);
+        if (res.success && res.data) {
+          this.rule.set(res.data);
+          this.loadState.set('ok');
+        } else {
+          this.loadState.set('notFound');
+        }
+      },
+      error: (err: HttpErrorResponse) => {
+        this.loading.set(false);
+        this.loadState.set(err.status === 404 || err.status === 400 ? 'notFound' : 'error');
+      },
     });
+  }
+
+  retry(): void {
+    this.loadRule(this.ruleId);
+  }
+
+  statusBanner(r: ConsentRule): { title: string; desc: string; icon: string; tone: string } {
+    switch (r.status) {
+      case 'PENDING_CHECKER_APPROVAL':
+        return {
+          title: 'Review Pending Approval',
+          desc: 'Validate the rule configuration carefully before approving, rejecting, or requesting changes.',
+          icon: 'settings_suggest',
+          tone: 'pending',
+        };
+      case 'LIVE':
+      case 'APPROVED':
+        return {
+          title: r.status === 'LIVE' ? 'Approved and live' : 'Approved · execution paused',
+          desc: 'This rule has already been approved. No further checker decision is needed.',
+          icon: 'task_alt',
+          tone: 'done',
+        };
+      case 'REJECTED':
+        return {
+          title: 'Rejected',
+          desc: r.rejectionReason || 'This rule was rejected.',
+          icon: 'cancel',
+          tone: 'rejected',
+        };
+      case 'REVISION_REQUESTED':
+        return {
+          title: 'Revision requested',
+          desc: r.revisionReason || 'Sent back to the maker for changes.',
+          icon: 'assignment_return',
+          tone: 'revision',
+        };
+      default:
+        return {
+          title: 'Not submitted yet',
+          desc: 'This rule is still a draft with the maker.',
+          icon: 'edit_note',
+          tone: 'draft',
+        };
+    }
   }
 
   private onDecisionError(id: number, err: HttpErrorResponse): void {

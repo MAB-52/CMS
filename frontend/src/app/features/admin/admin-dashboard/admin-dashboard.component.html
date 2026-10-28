@@ -30,21 +30,29 @@
 } @else if (mis(); as m) {
 <div class="db-kpis" role="list">
   <article class="db-kpi" style="--c: var(--is-primary); --i: 0" role="listitem"
-    pTooltip="Active ÷ (active + pending + declined) customer consents" tooltipPosition="top">
+    pTooltip="Active customers ÷ customers who have at least one consent record" tooltipPosition="top">
     <span class="db-kpi__ico"><i class="pi pi-verified"></i></span>
     <div class="db-kpi__body">
       <span class="db-kpi__label">Consent rate</span>
       <span class="db-kpi__value">{{ m.kpi.consentRate | number: '1.0-1' }}<small>%</small></span>
       <p-progressbar [value]="clampPct(m.kpi.consentRate)" [showValue]="false" styleClass="db-kpi__bar" />
+      <span class="db-kpi__hint">of customers with a consent</span>
     </div>
   </article>
   <article class="db-kpi" style="--c: var(--is-blue); --i: 1" role="listitem"
-    pTooltip="Total customers in the directory" tooltipPosition="top">
+    [pTooltip]="'Active ' + m.kpi.activeConsents + ' · Pending ' + m.kpi.pendingResponse + ' · Declined ' + m.kpi.declined + ' · Other ' + (m.kpi.other ?? 0) + ' (' + otherBreakdown() + ')'"
+    tooltipPosition="top">
     <span class="db-kpi__ico"><i class="pi pi-users"></i></span>
     <div class="db-kpi__body">
       <span class="db-kpi__label">Total customers</span>
       <span class="db-kpi__value">{{ m.kpi.totalCustomers | number }}</span>
-      <span class="db-kpi__hint">Directory size</span>
+      <div class="db-split" aria-hidden="true">
+        <span class="db-split__seg" style="--c: var(--is-success)" [style.width.%]="share(m.kpi.activeConsents)"></span>
+        <span class="db-split__seg" style="--c: var(--is-warning)" [style.width.%]="share(m.kpi.pendingResponse)"></span>
+        <span class="db-split__seg" style="--c: var(--is-danger)" [style.width.%]="share(m.kpi.declined)"></span>
+        <span class="db-split__seg" style="--c: var(--is-text-3)" [style.width.%]="share(m.kpi.other)"></span>
+      </div>
+      <span class="db-kpi__hint">{{ m.kpi.other ?? 0 | number }} other (withdrawn, expired, no consent)</span>
     </div>
   </article>
   <article class="db-kpi" style="--c: var(--is-green); --i: 2" role="listitem"
@@ -53,7 +61,7 @@
     <div class="db-kpi__body">
       <span class="db-kpi__label">Active consents</span>
       <span class="db-kpi__value">{{ m.kpi.activeConsents | number }}</span>
-      <span class="db-kpi__hint">Accepted &amp; valid</span>
+      <span class="db-kpi__hint">Accepted &amp; valid today</span>
     </div>
   </article>
   <article class="db-kpi" style="--c: var(--is-yellow); --i: 3" role="listitem"
@@ -66,7 +74,7 @@
     </div>
   </article>
   <article class="db-kpi" style="--c: var(--is-red); --i: 4" role="listitem"
-    pTooltip="Customers who declined consent" tooltipPosition="top">
+    pTooltip="Customers whose current status is declined (their latest decision)" tooltipPosition="top">
     <span class="db-kpi__ico"><i class="pi pi-times-circle"></i></span>
     <div class="db-kpi__body">
       <span class="db-kpi__label">Declined</span>
@@ -75,12 +83,14 @@
     </div>
   </article>
   <article class="db-kpi" style="--c: var(--is-secondary); --i: 5" role="listitem"
-    pTooltip="Maker submissions waiting for a checker decision" tooltipPosition="top">
+    pTooltip="Maker submissions waiting for a checker decision: consents, linked consent + rule pairs, rules and broadcasts"
+    tooltipPosition="top">
     <span class="db-kpi__ico"><i class="pi pi-list-check"></i></span>
     <div class="db-kpi__body">
       <span class="db-kpi__label">Pending MC approvals</span>
       <span class="db-kpi__value">{{ m.kpi.pendingMcApprovals | number }}</span>
-      <span class="db-kpi__hint">Awaiting checker</span>
+      <span class="db-kpi__hint">{{ m.kpi.pendingMcConsents ?? 0 }} consents · {{ m.kpi.pendingMcLinked ?? 0 }} linked ·
+        {{ m.kpi.pendingMcRules ?? 0 }} rules</span>
     </div>
   </article>
 </div>
@@ -112,7 +122,7 @@
       </li>
       } @empty {
       <li class="mr-empty"><span class="mr-empty__ico"><i class="pi pi-sitemap"></i></span>
-        <p class="mr-empty__sub">No channel data yet.</p></li>
+        <p class="mr-empty__sub">No published templates yet.</p></li>
       }
     </ul>
   </section>
@@ -132,17 +142,17 @@
         <span class="db-mc__label">Consent MC</span>
         <span class="db-mc__cap">Approvals completed</span>
       </div>
-      <div class="db-mc__cell" style="--c: var(--is-blue); --i: 1" pTooltip="Broadcast rules sent back with revision requests" tooltipPosition="top">
-        <span class="db-mc__ico"><i class="pi pi-replay"></i></span>
+      <div class="db-mc__cell" style="--c: var(--is-blue); --i: 1" pTooltip="Broadcast rules approved by a checker" tooltipPosition="top">
+        <span class="db-mc__ico"><i class="pi pi-sitemap"></i></span>
         <span class="db-mc__num">{{ m.makerChecker.ruleMcCompleted | number }}</span>
         <span class="db-mc__label">Rule MC</span>
-        <span class="db-mc__cap">Revision requests</span>
+        <span class="db-mc__cap">Rules approved</span>
       </div>
-      <div class="db-mc__cell" style="--c: var(--is-green); --i: 2" pTooltip="Broadcasts approved to go live" tooltipPosition="top">
+      <div class="db-mc__cell" style="--c: var(--is-green); --i: 2" pTooltip="Broadcasts approved by a checker" tooltipPosition="top">
         <span class="db-mc__ico"><i class="pi pi-megaphone"></i></span>
         <span class="db-mc__num">{{ m.makerChecker.broadcastMcCompleted | number }}</span>
         <span class="db-mc__label">Broadcast MC</span>
-        <span class="db-mc__cap">Go-live publishes</span>
+        <span class="db-mc__cap">Broadcasts approved</span>
       </div>
       <div class="db-mc__cell" style="--c: var(--is-red); --i: 3" pTooltip="Submissions the checker declined" tooltipPosition="top">
         <span class="db-mc__ico"><i class="pi pi-ban"></i></span>
@@ -173,7 +183,7 @@
     <div class="mr-card__titles">
       <h2 id="customers-heading" class="mr-card__title">Customer directory</h2>
       <p class="mr-card__sub">
-        Search customers and review their latest consent status
+        Each customer's current status, with every consent they hold
         @if (!loading() || totalElements()) {
         <span class="mr-count">{{ totalElements() | number: '1.0-0' }} customer{{ totalElements() === 1 ? '' : 's' }}</span>
         }
@@ -204,14 +214,38 @@
       </p-iconfield>
     </div>
     <div class="mr-field">
-      <label class="mr-field__label" for="db-status">Consent status</label>
+      <label class="mr-field__label" for="db-status">Customer status</label>
       <p-select inputId="db-status" name="status" [(ngModel)]="filterConsentStatus" [options]="statusOptions"
-        optionLabel="label" optionValue="value" appendTo="body" styleClass="mr-input">
+        optionLabel="label" optionValue="value" appendTo="body" styleClass="mr-input"
+        pTooltip="Matches the current status shown on each row" tooltipPosition="top">
         <ng-template #selectedItem let-o>
           <span class="mr-opt"><i [class]="o.icon" [attr.data-sev]="o.severity"></i>{{ o.label }}</span>
         </ng-template>
         <ng-template #item let-o>
           <span class="mr-opt"><i [class]="o.icon" [attr.data-sev]="o.severity"></i>{{ o.label }}</span>
+        </ng-template>
+      </p-select>
+    </div>
+    <div class="mr-field">
+      <label class="mr-field__label" for="db-consent-status">Has a consent that is</label>
+      <p-multiselect inputId="db-consent-status" name="consentStatuses" [(ngModel)]="filterConsentStatuses"
+        [options]="consentStatusOptions" optionLabel="label" optionValue="value" display="chip"
+        placeholder="Any consent" appendTo="body" styleClass="mr-input" [showToggleAll]="false"
+        pTooltip="Finds customers with at least one consent in these statuses, whatever their current status"
+        tooltipPosition="top">
+        <ng-template #item let-o>
+          <span class="mr-opt"><i [class]="o.icon" [attr.data-sev]="o.severity"></i>{{ o.label }}</span>
+        </ng-template>
+      </p-multiselect>
+    </div>
+    <div class="mr-field">
+      <label class="mr-field__label" for="db-template">Template</label>
+      <p-select inputId="db-template" name="templateId" [(ngModel)]="filterTemplateId" [options]="templates()"
+        optionLabel="consentName" optionValue="id" [showClear]="true" placeholder="Any template"
+        [filter]="templates().length > 6" filterBy="consentName" appendTo="body" styleClass="mr-input"
+        pTooltip="Narrows 'Has a consent that is' to one template" tooltipPosition="top">
+        <ng-template #item let-t>
+          <span class="mr-opt"><i class="pi pi-file"></i>{{ t.consentName }}</span>
         </ng-template>
       </p-select>
     </div>
@@ -230,29 +264,38 @@
       <p-progressbar mode="indeterminate" />
     </div>
     <p-table [value]="rows()" dataKey="customerId" [lazy]="true" (onLazyLoad)="onLazyLoad($event)" [paginator]="true"
+      [expandedRowKeys]="expandedRows"
       [rows]="pageSize()" [first]="currentPage() * pageSize()" [totalRecords]="totalElements()"
       [rowsPerPageOptions]="[10, 25, 50]" paginatorDropdownAppendTo="body" [showCurrentPageReport]="true"
-      currentPageReportTemplate="Showing {first}–{last} of {totalRecords}" [rowHover]="true" styleClass="mr-table"
-      [tableStyle]="{ 'min-width': '56rem', 'table-layout': 'fixed' }">
+      currentPageReportTemplate="Showing {first}–{last} of {totalRecords}" [rowHover]="true" [scrollable]="true"
+      styleClass="mr-table" [tableStyle]="{ 'min-width': '62rem', 'table-layout': 'fixed' }">
       <ng-template #colgroup>
         <colgroup>
-          <col style="width: 28%" />
-          <col style="width: 30%" />
-          <col style="width: 18%" />
-          <col style="width: 24%" />
+          <col style="width: 3.5rem" />
+          <col style="width: 27%" />
+          <col style="width: 29%" />
+          <col />
+          <col style="width: 11.5rem" />
         </colgroup>
       </ng-template>
       <ng-template #header>
         <tr>
+          <th pTooltip="Expand to see every consent this customer holds" tooltipPosition="top"></th>
           <th pTooltip="Customer name and customer ID" tooltipPosition="top">Customer</th>
           <th pTooltip="Registered mobile number and email" tooltipPosition="top">Contact</th>
-          <th pTooltip="Latest consent status for the customer" tooltipPosition="top">Consent status</th>
+          <th pTooltip="Current status, plus a summary of all their consents" tooltipPosition="top">Status</th>
           <th pTooltip="When the customer record last changed" tooltipPosition="top">Last updated</th>
         </tr>
       </ng-template>
-      <ng-template #body let-row let-i="rowIndex">
-        @let st = statusMeta(row.consentStatus);
+      <ng-template #body let-row let-i="rowIndex" let-expanded="expanded">
+        @let st = customerStatus(row);
+        @let chip = summaryChip(row);
         <tr class="mr-row" [style.--i]="i % pageSize()">
+          <td>
+            <p-button type="button" [pRowToggler]="row" [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+              [text]="true" [rounded]="true" severity="secondary" [disabled]="!chip.total"
+              [ariaLabel]="(expanded ? 'Hide' : 'Show') + ' consents for ' + row.customerId" />
+          </td>
           <td [pTooltip]="(row.customerName || 'Unnamed customer') + ' · ' + row.customerId" tooltipPosition="top">
             <div class="mr-person">
               <p-avatar [label]="initials(row.customerName)" shape="circle" styleClass="mr-avatar"
@@ -271,16 +314,53 @@
                 tooltipPosition="top"><i class="pi pi-envelope"></i><span class="db-ellipsis">{{ row.email || '—' }}</span></span>
             </div>
           </td>
-          <td [pTooltip]="row.consentStatus ? 'Consent status: ' + consentStatusDisplay(row.consentStatus) : 'No consent recorded for this customer yet'"
-            tooltipPosition="top">
-            <p-tag [value]="consentStatusDisplay(row.consentStatus)" [severity]="st.severity" [icon]="st.icon"
-              [rounded]="true" />
+          <td>
+            <div class="db-status">
+              <p-tag [value]="st.label" [severity]="st.severity" [icon]="st.icon" [rounded]="true" />
+              @if (chip.total) {
+              <span class="db-chip" [pTooltip]="chip.tooltip" tooltipPosition="top" tooltipStyleClass="db-chip-tip">
+                {{ chip.total }} consent{{ chip.total === 1 ? '' : 's' }}
+                @if (chip.declined) { <span class="db-chip__bad">· {{ chip.declined }} <i class="pi pi-times"></i></span> }
+                @if (chip.pending) { <span class="db-chip__wait">· {{ chip.pending }} <i class="pi pi-clock"></i></span> }
+              </span>
+              }
+            </div>
           </td>
           <td [pTooltip]="'Last updated ' + (row.lastUpdated | date: 'medium')" tooltipPosition="top">
-            <div class="mr-stack">
-              <span class="mr-line"><i class="pi pi-calendar"></i>{{ row.lastUpdated | date: 'dd MMM yyyy, hh:mm a' }}</span>
-              <span class="mr-rel">{{ relative(row.lastUpdated) }}</span>
+            @if (row.lastUpdated) {
+            <div class="db-when">
+              <span class="mr-line mr-strong"><i class="pi pi-calendar"></i>{{ row.lastUpdated | date: 'dd MMM yyyy' }}</span>
+              <span class="mr-line mr-sub"><i class="pi pi-clock"></i>{{ row.lastUpdated | date: 'hh:mm a' }}</span>
+              <p-tag [value]="relative(row.lastUpdated)" icon="pi pi-history" severity="secondary" [rounded]="true"
+                styleClass="db-rel" />
             </div>
+            } @else {
+            <span class="mr-dash">—</span>
+            }
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #expandedrow let-row>
+        <tr class="db-expand-row">
+          <td colspan="5">
+            <ul class="db-consents">
+              @for (c of row.consents; track c.consentDbId) {
+              @let cs = consentStatus(c);
+              <li class="db-consent">
+                <span class="db-consent__name"><i class="pi pi-file"></i>{{ c.consentName }}</span>
+                <p-tag [value]="cs.label" [severity]="cs.severity" [icon]="cs.icon" [rounded]="true" />
+                <span class="db-consent__meta">
+                  @if (c.respondedAt) { Responded {{ c.respondedAt | date: 'dd MMM yyyy' }} }
+                  @else if (c.lastInviteSentAt) { Invited {{ c.lastInviteSentAt | date: 'dd MMM yyyy' }} }
+                </span>
+                <span class="db-consent__meta">
+                  @if (c.consentValidUntil) {
+                  {{ c.status === 'EXPIRED' ? 'Expired' : 'Valid until' }} {{ c.consentValidUntil | date: 'dd MMM yyyy' }}
+                  } @else { — }
+                </span>
+              </li>
+              }
+            </ul>
           </td>
         </tr>
       </ng-template>
@@ -288,6 +368,7 @@
         @if (loading()) {
         @for (s of skeletonRows; track s) {
         <tr>
+          <td></td>
           <td>
             <div class="mr-person"><p-skeleton shape="circle" size="2.25rem" />
               <div class="mr-skel-stack"><p-skeleton width="8rem" /><p-skeleton width="5rem" height=".7rem" /></div>
@@ -300,7 +381,7 @@
         }
         } @else {
         <tr>
-          <td colspan="4">
+          <td colspan="5">
             <div class="mr-empty">
               <span class="mr-empty__ico"><i class="pi pi-search"></i></span>
               <p class="mr-empty__title">No customers found</p>

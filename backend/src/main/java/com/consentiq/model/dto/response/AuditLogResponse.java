@@ -16,6 +16,7 @@ public class AuditLogResponse {
     private Long id;
     private Long userId;
     private String userName;
+    private String userRole;
     private String action;
     private String entityType;
     private Long entityId;
@@ -25,4 +26,5 @@ public class AuditLogResponse {
     private Instant performedAt;
     private String checkerStatus;
     private String checkerName;
+    private boolean linked;
 }

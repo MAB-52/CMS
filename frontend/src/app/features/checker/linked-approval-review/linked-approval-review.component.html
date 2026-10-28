@@ -211,6 +211,11 @@
           </div>
         </section>
 
+        <section class="block history-block">
+          <app-consent-history-timeline [consentDbId]="c.id" [showRevisionNote]="true" title="Review history"
+            subtitle="Consent and linked rule steps, newest first" />
+        </section>
+
       </div><!-- /detail-inner -->
 
       @if (canDecide(c)) {

@@ -141,6 +141,8 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
   readonly previewHtml = signal('');
   readonly viewOnly = signal(false);
   readonly revisionMessage = signal('');
+  readonly rejectionReason = signal('');
+  private loadedConsent: Consent | null = null;
 
   // ── Per-language content + render state ────────────────────────────────────
   readonly activeLanguages = signal<ConsentLanguageCode[]>([DEFAULT_LANGUAGE]);
@@ -421,6 +423,8 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
     this.consentIdPreview.set(c.consentId);
     this.loadedStatus.set(c.status);
     this.revisionMessage.set(c.revisionMessage || '');
+    this.rejectionReason.set(c.rejectionReason || '');
+    this.loadedConsent = c;
     const preset = this.inferPreset(c);
     this.form.patchValue({
       consentName: c.consentName,
@@ -1310,6 +1314,13 @@ export class CreateConsentComponent implements OnInit, OnDestroy {
         },
       }),
     );
+  }
+
+  duplicateAsNew(): void {
+    if (!this.loadedConsent) {
+      return;
+    }
+    void this.router.navigate(['/maker/consents/new'], { state: { from: this.loadedConsent } });
   }
 
   private markSubmitted(status: ConsentStatus): void {

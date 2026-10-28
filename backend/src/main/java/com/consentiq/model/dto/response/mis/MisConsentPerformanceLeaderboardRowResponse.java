@@ -13,6 +13,7 @@ public class MisConsentPerformanceLeaderboardRowResponse {
     String consentName;
     long totalBroadcastExecutions;
     long totalRecipientsInvited;
+    long distinctCustomersReached;
     long totalAccepted;
     double acceptanceRatePercent;
     double reEngagementRatePercent;

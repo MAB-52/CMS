@@ -324,6 +324,19 @@ public class GlobalExceptionHandler {
         return result;
     }
 
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDataIntegrity(
+            org.springframework.dao.DataIntegrityViolationException ex, HttpServletRequest request) {
+        String user = currentUser();
+        log.error("Exception in handleDataIntegrity | user={} | uri={} | message={}", user, request.getRequestURI(),
+                ex.getMostSpecificCause().getMessage());
+        String detail = String.valueOf(ex.getMostSpecificCause().getMessage()).toLowerCase(java.util.Locale.ROOT);
+        String message = request.getRequestURI().contains("/users") && detail.contains("email")
+                ? "A user with this email already exists."
+                : "This change conflicts with existing data. Please refresh and try again.";
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(message, "BAD_REQUEST"));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGeneric(Exception ex, HttpServletRequest request) {
         String user = currentUser();

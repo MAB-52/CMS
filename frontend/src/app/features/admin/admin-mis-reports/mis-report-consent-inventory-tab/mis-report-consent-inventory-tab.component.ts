@@ -27,6 +27,7 @@ import {
 import { AdminService } from '../../../../core/services/admin.service';
 import { LoggerService } from '../../../../core/services/logger.service';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { blobErrorMessage, saveBlob } from '../../../../core/utils/download.util';
 import { channelVisual } from '../../../../core/utils/channel.util';
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
@@ -90,6 +91,7 @@ export class MisReportConsentInventoryTabComponent implements OnDestroy {
   search         = '';
   categoryFilter = '';
   statusFilter   = '';
+  private applied: { category?: string; status?: string; search?: string } = {};
 
   readonly categories = ['MARKETING', 'TRANSACTIONAL', 'SERVICE'];
   readonly statuses   = [
@@ -205,9 +207,7 @@ export class MisReportConsentInventoryTabComponent implements OnDestroy {
       .getMisConsentInventoryBundle({
         page,
         size:          this.pageSize(),
-        category:      this.categoryFilter || undefined,
-        status:        this.statusFilter   || undefined,
-        search:        this.search.trim()  || undefined,
+        ...this.applied,
         sortBy:        this.sortBy(),
         sortDirection: this.sortDir(),
       })
@@ -240,7 +240,14 @@ export class MisReportConsentInventoryTabComponent implements OnDestroy {
     this.load(Math.floor((event.first ?? 0) / rows));
   }
 
-  apply(): void { this.load(0); }
+  apply(): void {
+    this.applied = {
+      category: this.categoryFilter || undefined,
+      status:   this.statusFilter   || undefined,
+      search:   this.search.trim()  || undefined,
+    };
+    this.load(0);
+  }
 
   reset(): void {
     this.search = '';
@@ -250,7 +257,8 @@ export class MisReportConsentInventoryTabComponent implements OnDestroy {
   }
 
   activeFilterCount(): number {
-    return [!!this.categoryFilter, !!this.statusFilter, !!this.search.trim()].filter(Boolean).length;
+    const a = this.applied;
+    return [!!a.category, !!a.status, !!a.search].filter(Boolean).length;
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
@@ -287,42 +295,43 @@ export class MisReportConsentInventoryTabComponent implements OnDestroy {
     return this.relTime.format(Math.round(days / 365), 'year');
   }
 
-  private dl(blob: Blob, name: string): void {
-    const u = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = u;
-    a.download = name;
-    a.click();
-    URL.revokeObjectURL(u);
+  private exportParams() {
+    return { ...this.applied, sortBy: this.sortBy(), sortDirection: this.sortDir() };
   }
 
   exportCsv(): void {
     this.exporting.set('csv');
     this.adminApi
-      .exportMisConsentInventoryCsv({
-        category: this.categoryFilter || undefined,
-        status:   this.statusFilter   || undefined,
-        search:   this.search.trim()  || undefined,
-      })
+      .exportMisConsentInventoryCsv(this.exportParams())
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (b) => { this.exporting.set(null); this.dl(b, 'consent-inventory.csv');  this.notify.success('Export', 'CSV started.'); },
-        error: ()  => { this.exporting.set(null); this.notify.error('Export', 'Failed.'); },
+        next: (b) => {
+          this.exporting.set(null);
+          saveBlob(b, 'consent-inventory', 'csv');
+          this.notify.success('Export', `CSV with ${this.totalElements()} template(s) downloaded.`);
+        },
+        error: async (err) => {
+          this.exporting.set(null);
+          this.notify.error('Export', await blobErrorMessage(err, 'Export failed.'));
+        },
       });
   }
 
   exportExcel(): void {
     this.exporting.set('excel');
     this.adminApi
-      .exportMisConsentInventoryExcel({
-        category: this.categoryFilter || undefined,
-        status:   this.statusFilter   || undefined,
-        search:   this.search.trim()  || undefined,
-      })
+      .exportMisConsentInventoryExcel(this.exportParams())
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (b) => { this.exporting.set(null); this.dl(b, 'consent-inventory.xlsx'); this.notify.success('Export', 'Excel started.'); },
-        error: ()  => { this.exporting.set(null); this.notify.error('Export', 'Failed.'); },
+        next: (b) => {
+          this.exporting.set(null);
+          saveBlob(b, 'consent-inventory', 'xlsx');
+          this.notify.success('Export', `Excel with ${this.totalElements()} template(s) downloaded.`);
+        },
+        error: async (err) => {
+          this.exporting.set(null);
+          this.notify.error('Export', await blobErrorMessage(err, 'Export failed.'));
+        },
       });
   }
 }

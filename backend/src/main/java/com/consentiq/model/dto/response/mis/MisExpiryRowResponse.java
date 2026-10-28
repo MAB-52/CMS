@@ -27,4 +27,6 @@ public class MisExpiryRowResponse {
     private Instant   lastConsentInviteSentAt;
     private Long      daysUntilExpiry;
     private boolean   vipFlag;
+    private Long      consentDbId;
+    private String    consentName;
 }

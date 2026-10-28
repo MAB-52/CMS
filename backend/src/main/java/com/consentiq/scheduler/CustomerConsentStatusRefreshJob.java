@@ -27,6 +27,7 @@ public class CustomerConsentStatusRefreshJob {
 
     private final CustomerConsentRecordRepository recordRepository;
     private final CustomerConsentRecordService customerConsentRecordService;
+    private final com.consentiq.service.CustomerCurrentStatusService customerCurrentStatusService;
 
     @Value("${consentiq.segmentation.expiry-warning-days:10}")
     private int expiryWarningDays;
@@ -46,7 +47,7 @@ public class CustomerConsentStatusRefreshJob {
         log.debug("Entering refreshConsentStatuses | params: none");
         log.info("User={} | action=refreshConsentStatuses | entity=CustomerConsentRecord | id=n/a", cu);
         log.debug("Transaction started | method=refreshConsentStatuses | id=n/a");
-        ZoneId zone = ZoneId.systemDefault();
+        ZoneId zone = ZoneId.of("Asia/Kolkata");
         LocalDate today = LocalDate.now(zone);
         LocalDate warnThrough = today.plusDays(expiryWarningDays);
         log.info(
@@ -86,6 +87,7 @@ public class CustomerConsentStatusRefreshJob {
         log.info("Executing service | method=refreshExpiryStatuses | param=today,warnThrough");
         customerConsentRecordService.refreshExpiryStatuses(today, warnThrough);
         log.info("Service completed | method=refreshExpiryStatuses | param=today,warnThrough");
+        customerCurrentStatusService.recomputeAll();
 
         log.info(
                 "CustomerConsentStatusRefreshJob | done | EXPIRED={} | EXPIRING_SOON={}",

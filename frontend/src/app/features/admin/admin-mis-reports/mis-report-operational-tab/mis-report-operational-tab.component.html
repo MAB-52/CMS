@@ -17,6 +17,14 @@
       <h3 class="mr-card__title">Channel performance</h3>
       <p class="mr-card__sub">Invite metrics are derived from consent invite tokens; template mix reflects published templates.</p>
     </div>
+    <div class="mr-exports">
+      <p-button label="CSV" icon="pi pi-download" severity="secondary" [outlined]="true" [rounded]="true"
+        [loading]="exportingSection() === 'channel-performance:csv'" [disabled]="!!exportingSection()"
+        pTooltip="Download channel performance as CSV" tooltipPosition="top" (onClick)="exportSection('channel-performance', 'csv')" />
+      <p-button label="Excel" icon="pi pi-file-excel" severity="success" [outlined]="true" [rounded]="true"
+        [loading]="exportingSection() === 'channel-performance:excel'" [disabled]="!!exportingSection()"
+        pTooltip="Download channel performance as Excel" tooltipPosition="top" (onClick)="exportSection('channel-performance', 'excel')" />
+    </div>
   </div>
 
   @if (channelsLoading()) {
@@ -26,10 +34,11 @@
   <p-skeleton height="280px" borderRadius="16px" />
   } @else {
   <div class="mr-kpis">
-    <div class="mr-kpi" style="--c: var(--is-primary); --i: 0" pTooltip="Invites sent across every channel" tooltipPosition="top">
+    <div class="mr-kpi" style="--c: var(--is-primary); --i: 0"
+      pTooltip="Invite deliveries across channels: an invite sent by email and SMS counts once per channel" tooltipPosition="top">
       <span class="mr-kpi__ico"><i class="pi pi-send"></i></span>
       <div class="mr-kpi__body">
-        <span class="mr-kpi__label">Total invites</span>
+        <span class="mr-kpi__label">Channel deliveries</span>
         <span class="mr-kpi__value">{{ totalInvites() | number: '1.0-0' }}</span>
       </div>
     </div>
@@ -160,7 +169,15 @@
     <span class="mr-card__ico" style="--c: var(--is-secondary)" aria-hidden="true"><i class="pi pi-users"></i></span>
     <div class="mr-card__titles">
       <h3 class="mr-card__title">Maker performance</h3>
-      <p class="mr-card__sub">Consent templates created by each maker and how quickly they move through approval.</p>
+      <p class="mr-card__sub">Consent templates created by each maker. Created = draft + pending + approved + rejected + revision.</p>
+    </div>
+    <div class="mr-exports">
+      <p-button label="CSV" icon="pi pi-download" severity="secondary" [outlined]="true" [rounded]="true"
+        [loading]="exportingSection() === 'agent-performance:csv'" [disabled]="!!exportingSection()"
+        pTooltip="Download maker performance as CSV" tooltipPosition="top" (onClick)="exportSection('agent-performance', 'csv')" />
+      <p-button label="Excel" icon="pi pi-file-excel" severity="success" [outlined]="true" [rounded]="true"
+        [loading]="exportingSection() === 'agent-performance:excel'" [disabled]="!!exportingSection()"
+        pTooltip="Download maker performance as Excel" tooltipPosition="top" (onClick)="exportSection('agent-performance', 'excel')" />
     </div>
   </div>
 
@@ -176,12 +193,16 @@
             Role <p-sortIcon field="role" /></th>
           <th pSortableColumn="totalConsentsCreated" pTooltip="Consent templates created — click to sort" tooltipPosition="top">
             Created <p-sortIcon field="totalConsentsCreated" /></th>
+          <th pSortableColumn="draftConsents" pTooltip="Templates still in draft — click to sort" tooltipPosition="top">
+            Draft <p-sortIcon field="draftConsents" /></th>
           <th pSortableColumn="pendingApprovals" pTooltip="Templates awaiting checker approval — click to sort" tooltipPosition="top">
             Pending <p-sortIcon field="pendingApprovals" /></th>
           <th pSortableColumn="approvedOrPublished" pTooltip="Templates approved or published — click to sort" tooltipPosition="top">
             Approved / published <p-sortIcon field="approvedOrPublished" /></th>
           <th pSortableColumn="rejectedConsents" pTooltip="Templates rejected by a checker — click to sort" tooltipPosition="top">
             Rejected <p-sortIcon field="rejectedConsents" /></th>
+          <th pSortableColumn="revisionRequested" pTooltip="Templates sent back for revision — click to sort" tooltipPosition="top">
+            Revision <p-sortIcon field="revisionRequested" /></th>
           <th pSortableColumn="averageProcessingHours" pTooltip="Average hours from creation to submission — click to sort"
             tooltipPosition="top">Avg submit <p-sortIcon field="averageProcessingHours" /></th>
           <th pSortableColumn="sla24hSubmitCompliancePercent" pTooltip="Share of templates submitted within 24 hours — click to sort"
@@ -206,6 +227,9 @@
           <td [pTooltip]="a.totalConsentsCreated + ' consent templates created'" tooltipPosition="top">
             <span class="mr-num">{{ a.totalConsentsCreated | number: '1.0-0' }}</span>
           </td>
+          <td [pTooltip]="(a.draftConsents ?? 0) + ' in draft'" tooltipPosition="top">
+            <span class="op-count" data-t="neutral"><i class="pi pi-pencil"></i>{{ a.draftConsents ?? 0 | number: '1.0-0' }}</span>
+          </td>
           <td [pTooltip]="a.pendingApprovals + ' awaiting approval'" tooltipPosition="top">
             <span class="op-count" data-t="warn"><i class="pi pi-clock"></i>{{ a.pendingApprovals | number: '1.0-0' }}</span>
           </td>
@@ -214,6 +238,9 @@
           </td>
           <td [pTooltip]="a.rejectedConsents + ' rejected'" tooltipPosition="top">
             <span class="op-count" data-t="danger"><i class="pi pi-times"></i>{{ a.rejectedConsents | number: '1.0-0' }}</span>
+          </td>
+          <td [pTooltip]="(a.revisionRequested ?? 0) + ' sent back for revision'" tooltipPosition="top">
+            <span class="op-count" data-t="warn"><i class="pi pi-replay"></i>{{ a.revisionRequested ?? 0 | number: '1.0-0' }}</span>
           </td>
           <td [pTooltip]="'Average ' + (a.averageProcessingHours | number: '1.0-1') + ' hours to submit'" tooltipPosition="top">
             <span class="mr-num">{{ a.averageProcessingHours | number: '1.0-1' }}</span><span class="op-unit">h</span>
@@ -236,13 +263,13 @@
               <div class="mr-skel-stack"><p-skeleton width="8rem" /><p-skeleton width="10rem" height=".7rem" /></div>
             </div>
           </td>
-          @for (c of [1, 2, 3, 4, 5, 6]; track c) { <td><p-skeleton width="3.5rem" /></td> }
+          @for (c of [1, 2, 3, 4, 5, 6, 7, 8]; track c) { <td><p-skeleton width="3.5rem" /></td> }
           <td><p-skeleton width="6rem" /></td>
         </tr>
         }
         } @else {
         <tr>
-          <td colspan="8">
+          <td colspan="10">
             <div class="mr-empty">
               <span class="mr-empty__ico"><i class="pi pi-users"></i></span>
               <p class="mr-empty__title">No makers found</p>
@@ -257,13 +284,95 @@
 </section>
 
 <!-- ══ Turnaround time ═══════════════════════════════════════════════════ -->
+<section class="mr-card" style="--d: 150ms">
+  <div class="mr-card__head">
+    <span class="mr-card__ico" style="--c: var(--is-green)" aria-hidden="true"><i class="pi pi-verified"></i></span>
+    <div class="mr-card__titles">
+      <h3 class="mr-card__title">Checker performance</h3>
+      <p class="mr-card__sub">Decisions per checker from the audit trail. A linked consent + rule decision counts once. Follows the TAT date filter.</p>
+    </div>
+    <div class="mr-exports">
+      <p-button label="CSV" icon="pi pi-download" severity="secondary" [outlined]="true" [rounded]="true"
+        [loading]="exportingSection() === 'checker-performance:csv'" [disabled]="!!exportingSection()"
+        pTooltip="Download checker performance as CSV" tooltipPosition="top" (onClick)="exportSection('checker-performance', 'csv')" />
+      <p-button label="Excel" icon="pi pi-file-excel" severity="success" [outlined]="true" [rounded]="true"
+        [loading]="exportingSection() === 'checker-performance:excel'" [disabled]="!!exportingSection()"
+        pTooltip="Download checker performance as Excel" tooltipPosition="top" (onClick)="exportSection('checker-performance', 'excel')" />
+    </div>
+  </div>
+
+  <div class="mr-table-wrap">
+    <p-table [value]="checkersLoading() ? [] : checkers()" [rowHover]="true" sortField="totalDecisions" [sortOrder]="-1"
+      [paginator]="checkers().length > 10" [rows]="10" styleClass="mr-table" [tableStyle]="{ 'min-width': '52rem' }">
+      <ng-template #header>
+        <tr>
+          <th pSortableColumn="fullName" pTooltip="Checker name and email — click to sort" tooltipPosition="top">
+            Checker <p-sortIcon field="fullName" /></th>
+          <th pSortableColumn="approved" pTooltip="Approvals — click to sort" tooltipPosition="top">
+            Approved <p-sortIcon field="approved" /></th>
+          <th pSortableColumn="rejected" pTooltip="Rejections — click to sort" tooltipPosition="top">
+            Rejected <p-sortIcon field="rejected" /></th>
+          <th pSortableColumn="revisionRequested" pTooltip="Revision requests — click to sort" tooltipPosition="top">
+            Revision <p-sortIcon field="revisionRequested" /></th>
+          <th pSortableColumn="totalDecisions" pTooltip="All decisions — click to sort" tooltipPosition="top">
+            Total <p-sortIcon field="totalDecisions" /></th>
+          <th pSortableColumn="averageTatHours" pTooltip="Average hours from submission to this checker's decision — click to sort"
+            tooltipPosition="top">Avg TAT <p-sortIcon field="averageTatHours" /></th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-c let-i="rowIndex">
+        <tr class="mr-row" [style.--i]="i % 10">
+          <td [pTooltip]="c.fullName + ' · ' + c.email" tooltipPosition="top">
+            <div class="mr-person">
+              <p-avatar [label]="initials(c.fullName)" shape="circle" styleClass="mr-avatar"
+                [style]="{ background: avatarColor(c.fullName) }" />
+              <div class="mr-stack">
+                <span class="mr-strong">{{ c.fullName }}</span>
+                <span class="mr-line mr-sub"><i class="pi pi-envelope"></i><span class="mr-ellipsis">{{ c.email }}</span></span>
+              </div>
+            </div>
+          </td>
+          <td><span class="op-count" data-t="success"><i class="pi pi-check"></i>{{ c.approved | number: '1.0-0' }}</span></td>
+          <td><span class="op-count" data-t="danger"><i class="pi pi-times"></i>{{ c.rejected | number: '1.0-0' }}</span></td>
+          <td><span class="op-count" data-t="warn"><i class="pi pi-replay"></i>{{ c.revisionRequested | number: '1.0-0' }}</span></td>
+          <td><span class="mr-num">{{ c.totalDecisions | number: '1.0-0' }}</span></td>
+          <td [pTooltip]="tatHint(c.averageTatHours)" tooltipPosition="top">
+            @if (c.averageTatHours != null) {
+            <span class="mr-num">{{ c.averageTatHours | number: '1.0-1' }}</span><span class="op-unit">h</span>
+            } @else { <span class="mr-sub">—</span> }
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage>
+        @if (checkersLoading()) {
+        @for (s of skeletonRows.slice(0, 3); track s) {
+        <tr>
+          <td><div class="mr-person"><p-skeleton shape="circle" size="2.25rem" /><p-skeleton width="8rem" /></div></td>
+          @for (c of [1, 2, 3, 4, 5]; track c) { <td><p-skeleton width="3.5rem" /></td> }
+        </tr>
+        }
+        } @else {
+        <tr>
+          <td colspan="6">
+            <div class="mr-empty">
+              <span class="mr-empty__ico"><i class="pi pi-verified"></i></span>
+              <p class="mr-empty__title">No checker decisions in this period</p>
+            </div>
+          </td>
+        </tr>
+        }
+      </ng-template>
+    </p-table>
+  </div>
+</section>
+
 <section class="mr-card" style="--d: 180ms">
   <div class="mr-card__head">
     <span class="mr-card__ico" style="--c: var(--is-blue)" aria-hidden="true"><i class="pi pi-stopwatch"></i></span>
     <div class="mr-card__titles">
       <h3 class="mr-card__title">Turnaround time (consent workflow)</h3>
       <p class="mr-card__sub">
-        Hours from creation to checker review for each consent template
+        Hours from submission to checker decision for each consent template (date filter applies to the submitted date)
         @if (tatTotal()) { <span class="mr-count">{{ tatTotal() | number: '1.0-0' }} templates</span> }
       </p>
     </div>
@@ -387,7 +496,7 @@
           <th pTooltip="When the template was created" tooltipPosition="top">Created</th>
           <th pTooltip="When the maker submitted it for approval" tooltipPosition="top">Submitted</th>
           <th pTooltip="When the checker reviewed it" tooltipPosition="top">Reviewed</th>
-          <th pTooltip="Total turnaround in hours (creation → review)" tooltipPosition="top">TAT</th>
+          <th pTooltip="Turnaround in hours from submission to checker decision" tooltipPosition="top">TAT</th>
           <th pTooltip="Maker who created the template" tooltipPosition="top">Creator</th>
         </tr>
       </ng-template>

@@ -5,6 +5,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { TooltipModule } from 'primeng/tooltip';
 import { ButtonModule } from 'primeng/button';
 import { PaginatorModule, PaginatorState } from 'primeng/paginator';
+import { TagModule } from 'primeng/tag';
+import { SkeletonModule } from 'primeng/skeleton';
 import { Observable, catchError, forkJoin, map, of } from 'rxjs';
 import { CheckerStats } from '../../../core/models/consent.model';
 import { AuthService } from '../../../core/services/auth.service';
@@ -27,11 +29,29 @@ interface PendingItem {
   link: (string | number)[];
 }
 
-const KIND_META: Record<PendingKind, { label: string; icon: string }> = {
-  CONSENT: { label: 'Consent', icon: 'description' },
-  LINKED: { label: 'Consent + rule', icon: 'link' },
-  RULE: { label: 'Broadcast rule', icon: 'campaign' },
+type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary';
+
+interface KindMeta {
+  label: string;
+  icon: string;
+  severity: TagSeverity;
+  color: string;
+}
+
+interface WaitInfo {
+  label: string;
+  severity: TagSeverity;
+  color: string;
+  tooltip: string;
+}
+
+const KIND_META: Record<PendingKind, KindMeta> = {
+  CONSENT: { label: 'Consent', icon: 'pi pi-file', severity: 'info', color: 'var(--is-primary)' },
+  LINKED: { label: 'Consent + rule', icon: 'pi pi-link', severity: 'warn', color: 'var(--is-secondary)' },
+  RULE: { label: 'Broadcast rule', icon: 'pi pi-megaphone', severity: 'success', color: 'var(--is-success)' },
 };
+
+const DAY_MS = 86_400_000;
 
 const ACTION_META: Record<string, { label: string; icon: string; tone: string }> = {
   APPROVED: { label: 'Approved', icon: 'task_alt', tone: 'green' },
@@ -49,7 +69,17 @@ const ENTITY_LABEL: Record<string, string> = {
 @Component({
   selector: 'app-checker-dashboard',
   standalone: true,
-  imports: [RouterLink, MatButtonModule, MatIconModule, TooltipModule, ButtonModule, PaginatorModule, TimeAgoPipe],
+  imports: [
+    RouterLink,
+    MatButtonModule,
+    MatIconModule,
+    TooltipModule,
+    ButtonModule,
+    PaginatorModule,
+    TagModule,
+    SkeletonModule,
+    TimeAgoPipe,
+  ],
   templateUrl: './checker-dashboard.component.html',
   styleUrl: './checker-dashboard.component.css',
 })
@@ -73,7 +103,13 @@ export class CheckerDashboardComponent implements OnInit {
   readonly feedSize = signal(5);
   readonly feedTotal = signal(0);
 
-  readonly topPending = computed(() => this.pendingItems().slice(0, 3));
+  readonly pendingPage = signal(0);
+  readonly pendingSize = signal(5);
+
+  readonly pagedPending = computed(() => {
+    const start = this.pendingPage() * this.pendingSize();
+    return this.pendingItems().slice(start, start + this.pendingSize());
+  });
   readonly skeletons = [1, 2, 3];
 
   ngOnInit(): void {
@@ -108,6 +144,7 @@ export class CheckerDashboardComponent implements OnInit {
   loadPending(): void {
     this.pendingLoading.set(true);
     this.pendingError.set(false);
+    this.pendingPage.set(0);
     forkJoin({
       consents: this.safe(this.api.getPendingApprovals()),
       linked: this.safe(this.api.getLinkedPendingApprovals()),
@@ -153,6 +190,11 @@ export class CheckerDashboardComponent implements OnInit {
     });
   }
 
+  onPendingPage(e: PaginatorState): void {
+    this.pendingSize.set(e.rows ?? this.pendingSize());
+    this.pendingPage.set(e.page ?? 0);
+  }
+
   onFeedPage(e: PaginatorState): void {
     this.feedSize.set(e.rows ?? this.feedSize());
     this.feedPage.set(e.page ?? 0);
@@ -175,8 +217,31 @@ export class CheckerDashboardComponent implements OnInit {
     });
   }
 
-  kindMeta(kind: PendingKind): { label: string; icon: string } {
+  kindMeta(kind: PendingKind): KindMeta {
     return KIND_META[kind];
+  }
+
+  waitInfo(iso: string | null): WaitInfo {
+    const t = iso ? new Date(iso).getTime() : NaN;
+    if (Number.isNaN(t)) {
+      return { label: '—', severity: 'secondary', color: 'var(--is-text-3)', tooltip: 'Submission time unknown' };
+    }
+    const ms = Math.max(0, Date.now() - t);
+    const min = Math.floor(ms / 60_000);
+    const hr = Math.floor(ms / 3_600_000);
+    const day = Math.floor(ms / DAY_MS);
+    const label =
+      day >= 1 ? `${day} day${day === 1 ? '' : 's'}` : hr >= 1 ? `${hr} hr${hr === 1 ? '' : 's'}` : `${Math.max(1, min)} min`;
+    const tooltip =
+      'Submitted ' +
+      new Date(t).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+    if (ms > 3 * DAY_MS) {
+      return { label, severity: 'danger', color: 'var(--is-danger)', tooltip };
+    }
+    if (ms >= DAY_MS) {
+      return { label, severity: 'warn', color: 'var(--is-warning)', tooltip };
+    }
+    return { label, severity: 'secondary', color: 'var(--is-text-3)', tooltip };
   }
 
   actionMeta(action: string): { label: string; icon: string; tone: string } {

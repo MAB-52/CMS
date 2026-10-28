@@ -1,6 +1,7 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { MultiSelectModule } from 'primeng/multiselect';
 import { AvatarModule } from 'primeng/avatar';
 import { ButtonModule } from 'primeng/button';
 import { IconFieldModule } from 'primeng/iconfield';
@@ -12,22 +13,35 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { TableLazyLoadEvent, TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
-import { AdminCustomerRow, AdminMisDashboard, customerConsentStatusLabel } from '../../../core/models/admin.model';
+import {
+  AdminConsentTemplate,
+  AdminCustomerRow,
+  AdminMisDashboard,
+  CustomerConsentSummary,
+  customerConsentStatusLabel,
+} from '../../../core/models/admin.model';
+import {
+  CONSENT_STATUS_FILTER_OPTIONS,
+  CUSTOMER_STATUS_OPTIONS,
+  ConsentSummaryChip,
+  StatusMeta,
+  consentStatusMeta,
+  consentSummaryChip,
+  customerStatusMeta,
+} from '../../../core/utils/consent-status.util';
+import { blobErrorMessage, saveBlob } from '../../../core/utils/download.util';
 import { AdminService } from '../../../core/services/admin.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { LoggerService } from '../../../core/services/logger.service';
 import { channelVisual } from '../../../core/utils/channel.util';
 
-type ConsentFilter =
-  | 'ALL'
-  | 'ACTIVE'
-  | 'ACCEPTED'
-  | 'PENDING'
-  | 'INVITED'
-  | 'EXPIRING_SOON'
-  | 'EXPIRED'
-  | 'DECLINED'
-  | 'WITHDRAWN';
+interface DirectoryFilters {
+  mobile: string;
+  customerId: string;
+  customerStatus: string;
+  consentStatuses: string[];
+  templateId: number | null;
+}
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
 
@@ -52,6 +66,7 @@ const DAY_MS = 86_400_000;
     DatePipe,
     DecimalPipe,
     FormsModule,
+    MultiSelectModule,
     AvatarModule,
     ButtonModule,
     IconFieldModule,
@@ -86,22 +101,28 @@ export class AdminDashboardComponent implements OnInit {
 
   filterMobile = '';
   filterCustomerId = '';
-  filterConsentStatus: ConsentFilter = 'ALL';
+  filterConsentStatus = 'ALL';
+  filterConsentStatuses: string[] = [];
+  filterTemplateId: number | null = null;
 
-  readonly statusOptions: { value: ConsentFilter; label: string; icon: string; severity: TagSeverity }[] = [
-    { value: 'ALL', label: 'All statuses', icon: 'pi pi-th-large', severity: 'secondary' },
-    { value: 'ACTIVE', label: 'Active (legacy)', ...STATUS_META['ACTIVE'] },
-    { value: 'ACCEPTED', label: 'Active (accepted)', ...STATUS_META['ACCEPTED'] },
-    { value: 'PENDING', label: 'Pending', ...STATUS_META['PENDING'] },
-    { value: 'INVITED', label: 'Invited', ...STATUS_META['INVITED'] },
-    { value: 'EXPIRING_SOON', label: 'Expiring soon', ...STATUS_META['EXPIRING_SOON'] },
-    { value: 'EXPIRED', label: 'Expired', ...STATUS_META['EXPIRED'] },
-    { value: 'DECLINED', label: 'Declined', ...STATUS_META['DECLINED'] },
-    { value: 'WITHDRAWN', label: 'Withdrawn', ...STATUS_META['WITHDRAWN'] },
+  private applied: DirectoryFilters = { mobile: '', customerId: '', customerStatus: 'ALL', consentStatuses: [], templateId: null };
+
+  expandedRows: Record<string, boolean> = {};
+  readonly templates = signal<AdminConsentTemplate[]>([]);
+
+  readonly statusOptions: { value: string; label: string; icon: string; severity: TagSeverity }[] = [
+    { value: 'ALL', label: 'All customers', icon: 'pi pi-th-large', severity: 'secondary' },
+    ...CUSTOMER_STATUS_OPTIONS,
   ];
+
+  readonly consentStatusOptions = CONSENT_STATUS_FILTER_OPTIONS;
 
   ngOnInit(): void {
     this.loadMis();
+    this.adminApi.listConsentTemplates().subscribe({
+      next: (res) => this.templates.set(res.success && res.data ? res.data : []),
+      error: () => this.templates.set([]),
+    });
   }
 
   loadMis(): void {
@@ -130,6 +151,14 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   applyFilters(): void {
+    this.applied = {
+      mobile: this.filterMobile.trim(),
+      customerId: this.filterCustomerId.trim(),
+      customerStatus: this.filterConsentStatus,
+      consentStatuses: [...this.filterConsentStatuses],
+      templateId: this.filterTemplateId,
+    };
+    this.expandedRows = {};
     this.loadPage(0);
   }
 
@@ -137,12 +166,15 @@ export class AdminDashboardComponent implements OnInit {
     this.filterMobile = '';
     this.filterCustomerId = '';
     this.filterConsentStatus = 'ALL';
-    this.loadPage(0);
+    this.filterConsentStatuses = [];
+    this.filterTemplateId = null;
+    this.applyFilters();
   }
 
   activeFilterCount(): number {
-    return [!!this.filterMobile.trim(), !!this.filterCustomerId.trim(), this.filterConsentStatus !== 'ALL'].filter(Boolean)
-      .length;
+    const a = this.applied;
+    return [!!a.mobile, !!a.customerId, a.customerStatus !== 'ALL', a.consentStatuses.length > 0, a.templateId != null]
+      .filter(Boolean).length;
   }
 
   loadPage(page: number): void {
@@ -151,9 +183,11 @@ export class AdminDashboardComponent implements OnInit {
       .getCustomers({
         page,
         size: this.pageSize(),
-        mobileNumber: this.filterMobile,
-        customerId: this.filterCustomerId,
-        consentStatus: this.filterConsentStatus,
+        mobileNumber: this.applied.mobile,
+        customerId: this.applied.customerId,
+        consentStatus: this.applied.customerStatus,
+        consentStatuses: this.applied.consentStatuses,
+        consentDbId: this.applied.templateId,
         sortBy: 'updatedAt',
         sortDir: 'DESC',
       })
@@ -187,30 +221,55 @@ export class AdminDashboardComponent implements OnInit {
     this.exporting.set(true);
     this.adminApi
       .exportCustomersCsv({
-        mobileNumber: this.filterMobile,
-        customerId: this.filterCustomerId,
-        consentStatus: this.filterConsentStatus,
+        mobileNumber: this.applied.mobile,
+        customerId: this.applied.customerId,
+        consentStatus: this.applied.customerStatus,
+        consentStatuses: this.applied.consentStatuses,
+        consentDbId: this.applied.templateId,
       })
       .subscribe({
         next: (blob) => {
           this.exporting.set(false);
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'customers-export.csv';
-          a.click();
-          URL.revokeObjectURL(url);
-          this.notify.success('Export', 'Download started.');
+          saveBlob(blob, 'customers', 'csv');
+          this.notify.success('Export', `CSV with ${this.totalElements()} customer(s) downloaded.`);
         },
-        error: (err) => {
+        error: async (err) => {
           this.exporting.set(false);
           this.logger.error('AdminDashboard', 'export failed', err);
-          this.notify.error('Export', err?.error?.message || 'Export failed.');
+          this.notify.error('Export', await blobErrorMessage(err, 'Export failed.'));
         },
       });
   }
 
   // ── Presentation helpers ────────────────────────────────────────────────
+
+  customerStatus(row: AdminCustomerRow): StatusMeta {
+    return customerStatusMeta(row.currentStatus);
+  }
+
+  consentStatus(c: CustomerConsentSummary): StatusMeta {
+    return consentStatusMeta(c.status);
+  }
+
+  summaryChip(row: AdminCustomerRow): ConsentSummaryChip {
+    return consentSummaryChip(row.consents);
+  }
+
+  otherBreakdown(): string {
+    const k = this.mis()?.kpi;
+    if (!k) return '';
+    return [
+      `Withdrawn: ${k.withdrawn ?? 0}`,
+      `Expired: ${k.expired ?? 0}`,
+      `Unresponsive: ${k.unresponsive ?? 0}`,
+      `No consent: ${k.noConsent ?? 0}`,
+    ].join(' · ');
+  }
+
+  share(part: number | null | undefined): number {
+    const total = this.mis()?.kpi.totalCustomers ?? 0;
+    return total ? Math.max(0, Math.min(100, (100 * (part ?? 0)) / total)) : 0;
+  }
 
   consentStatusDisplay(status: string | null | undefined): string {
     return status ? customerConsentStatusLabel(status) : 'No consent';

@@ -36,6 +36,20 @@
     </div>
   }
 
+  @if (loadedStatus() === 'REJECTED') {
+    <div class="banner banner--red">
+      <div class="banner-title"><i class="pi pi-ban" aria-hidden="true"></i> Rejected by Checker</div>
+      @if (rejectionReason()) {
+        <blockquote class="rev-q rev-q--red">"{{ rejectionReason() }}"</blockquote>
+      }
+      <div class="banner-row">
+        <p class="banner-text">This consent can't be edited. Start a new draft from it to address the feedback.</p>
+        <p-button label="Duplicate as New" icon="pi pi-copy" [rounded]="true" [outlined]="true" severity="danger"
+          styleClass="banner-action" (onClick)="duplicateAsNew()" />
+      </div>
+    </div>
+  }
+
   <div class="grid-top">
     <app-consent-details-card
       class="col-left"

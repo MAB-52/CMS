@@ -22,6 +22,16 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long>, JpaSp
 
     List<AuditLog> findByEntityTypeAndEntityIdOrderByPerformedAtDesc(String entityType, Long entityId);
 
+    @Query("SELECT a FROM AuditLog a JOIN FETCH a.user WHERE (a.entityType = 'CONSENT' AND a.entityId = :cid) "
+            + "OR (a.entityType = 'CONSENT_RULE' AND a.entityId = "
+            + "(SELECT c.linkedRule.id FROM Consent c WHERE c.id = :cid)) "
+            + "ORDER BY a.performedAt DESC, a.id DESC")
+    List<AuditLog> findConsentHistory(@Param("cid") Long consentDbId);
+
+    @Query("SELECT MAX(a.performedAt) FROM AuditLog a WHERE a.entityType = 'CONSENT' AND a.entityId = :cid "
+            + "AND a.action IN ('CONSENT_REVISION_REQUESTED', 'CONSENT_REJECTED', 'CONSENT_APPROVED')")
+    Instant findLastConsentDecisionAt(@Param("cid") Long consentDbId);
+
     @Query("SELECT DISTINCT a.action FROM AuditLog a ORDER BY a.action")
     List<String> findDistinctActions();
     
@@ -65,6 +75,8 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long>, JpaSp
     @Query("""
             SELECT a.action, COUNT(a) FROM AuditLog a
             WHERE a.user.id = :userId AND a.action IN :actions AND a.performedAt >= :since
+              AND NOT (a.entityType = 'CONSENT_RULE' AND a.entityId IN (
+                    SELECT r.id FROM ConsentRule r WHERE r.isLinkedToConsentWorkflow = true))
             GROUP BY a.action
             """)
     List<Object[]> countMyActionsSince(
@@ -108,12 +120,31 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long>, JpaSp
                     (a.entityType = 'CONSENT' AND a.entityId IN (
                         SELECT c.id FROM Consent c WHERE c.createdBy.id = :userId))
                  OR (a.entityType = 'CONSENT_RULE' AND a.entityId IN (
-                        SELECT r.id FROM ConsentRule r WHERE r.createdBy.id = :userId)))
+                        SELECT r.id FROM ConsentRule r WHERE r.createdBy.id = :userId
+                          AND r.isLinkedToConsentWorkflow = false)))
             GROUP BY a.action
             """)
     List<Object[]> countDecisionsOnMakerEntities(
             @Param("userId") Long userId,
             @Param("decisionActions") Collection<String> decisionActions);
+
+    @Query("""
+            SELECT a.user.id, a.action, COUNT(a) FROM AuditLog a
+            WHERE a.action IN :actions AND a.performedAt >= :from AND a.performedAt <= :to
+              AND NOT (a.entityType = 'CONSENT_RULE' AND a.entityId IN (
+                    SELECT r.id FROM ConsentRule r WHERE r.isLinkedToConsentWorkflow = true))
+            GROUP BY a.user.id, a.action
+            """)
+    List<Object[]> countCheckerDecisions(
+            @Param("actions") Collection<String> actions,
+            @Param("from") Instant from,
+            @Param("to") Instant to);
+
+    @Query("SELECT c.id FROM Consent c WHERE c.id IN :ids AND c.linkedRuleIntent = true")
+    List<Long> findLinkedConsentIds(@Param("ids") Collection<Long> ids);
+
+    @Query("SELECT r.id FROM ConsentRule r WHERE r.id IN :ids AND r.isLinkedToConsentWorkflow = true")
+    List<Long> findLinkedRuleIds(@Param("ids") Collection<Long> ids);
 
     @Query("""
             SELECT a FROM AuditLog a JOIN FETCH a.user

@@ -199,6 +199,10 @@
                     <i [class]="d.icon"></i>{{ d.label }}</span>
                   <span class="rh-entity" [style.--e]="en.color" [pTooltip]="en.label + ' #' + e.entityId" tooltipPosition="top">
                     <i [class]="en.icon"></i>{{ en.label }}</span>
+                  @if (e.linked) {
+                  <span class="rh-linked" pTooltip="Decided together as a linked consent + rule pair" tooltipPosition="top">
+                    <i class="pi pi-link"></i>Linked consent + rule</span>
+                  }
                   <span class="rh-time" [pTooltip]="(e.performedAt | date: 'EEEE, dd MMMM yyyy, hh:mm:ss a (zzzz)') ?? ''"
                     tooltipPosition="top">
                     <i class="pi pi-clock"></i>{{ e.performedAt | date: 'hh:mm:ss a' }}

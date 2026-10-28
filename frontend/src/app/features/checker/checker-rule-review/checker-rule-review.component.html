@@ -1,4 +1,27 @@
-@if (rule(); as r) {
+@if (loading() && !rule()) {
+<div class="crr-page">
+  <div class="crr-state" aria-busy="true">
+    <mat-icon class="crr-state__spin" aria-hidden="true">autorenew</mat-icon>
+    <div class="crr-state__title">Loading rule…</div>
+  </div>
+</div>
+} @else if (loadState() !== 'ok' && !rule()) {
+<div class="crr-page">
+  <div class="crr-state" role="alert">
+    <mat-icon class="crr-state__ico" aria-hidden="true">{{ loadState() === 'notFound' ? 'search_off' : 'cloud_off' }}</mat-icon>
+    <div class="crr-state__title">{{ loadState() === 'notFound' ? 'Rule not found' : "Couldn't load this rule" }}</div>
+    <p class="crr-state__desc">
+      {{ loadState() === 'notFound' ? 'It may have been removed, or the link is incorrect.' : 'Check your connection and try again.' }}
+    </p>
+    <div class="crr-state__actions">
+      @if (loadState() === 'error') {
+      <button mat-flat-button color="primary" type="button" (click)="retry()"><mat-icon>refresh</mat-icon>Retry</button>
+      }
+      <a mat-stroked-button routerLink="/checker/rules/pending"><mat-icon>arrow_back</mat-icon>Pending Rules</a>
+    </div>
+  </div>
+</div>
+} @else if (rule(); as r) {
 <div class="crr-page">
 
   <!-- Top Nav -->
@@ -48,20 +71,15 @@
   </section>
 
   <!-- Info Banner -->
-  <section class="crr-banner">
+  @let b = statusBanner(r);
+  <section class="crr-banner" [class]="'crr-banner crr-banner--' + b.tone">
     <div class="crr-banner__icon" aria-hidden="true">
-      <mat-icon>settings_suggest</mat-icon>
+      <mat-icon>{{ b.icon }}</mat-icon>
     </div>
 
     <div class="crr-banner__content">
-      <div class="crr-banner__title">
-        Review Pending Approval
-      </div>
-
-      <div class="crr-banner__desc">
-        Validate the rule configuration carefully before approving,
-        rejecting, or requesting changes.
-      </div>
+      <div class="crr-banner__title">{{ b.title }}</div>
+      <div class="crr-banner__desc">{{ b.desc }}</div>
     </div>
   </section>
 
@@ -148,6 +166,27 @@
           {{ r.scheduleType }}
         </div>
       </div>
+
+      @if (r.scheduleType === 'SCHEDULED') {
+      <div class="crr-card">
+        <div class="crr-card__label">Scheduled For</div>
+        <div class="crr-card__value">{{ r.scheduledAt ? (r.scheduledAt | date:'dd MMM yyyy · hh:mm a') : '—' }}</div>
+      </div>
+      }
+
+      @if (r.scheduleType === 'RECURRING') {
+      <div class="crr-card">
+        <div class="crr-card__label">Recurring Schedule</div>
+        <div class="crr-card__value crr-card__value--mono">{{ r.recurringCron || '—' }}</div>
+      </div>
+      }
+
+      @if (r.ruleType === 'CUSTOM') {
+      <div class="crr-card">
+        <div class="crr-card__label">Trigger / Event</div>
+        <div class="crr-card__value crr-card__value--mono">{{ r.triggerEvent || '—' }}</div>
+      </div>
+      }
 
       <div class="crr-card crr-card--full">
         <div class="crr-card__label">
@@ -255,7 +294,7 @@
 
 </div>
 
-<!-- Decision bar -->
+@if (canDecide()) {
 <app-decision-bar
   [title]="'Decision required: ' + r.ruleName"
   [disabled]="!canDecide()"
@@ -265,4 +304,5 @@
   (reject)="reject()">
   Your decision will be recorded in the workflow audit trail.
 </app-decision-bar>
+}
 }

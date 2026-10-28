@@ -11,12 +11,12 @@
       </p>
       <div class="hero__stats">
         <div class="stat-card">
-          <span class="stat-card__value">{{ filteredList().length }}</span>
-          <span class="stat-card__label">Linked pair(s) pending</span>
+          <span class="stat-card__value">{{ pendingCount() }}</span>
+          <span class="stat-card__label">Awaiting your review</span>
         </div>
         <div class="stat-card">
-          <span class="stat-card__value">{{ list().length }}</span>
-          <span class="stat-card__label">Total in queue</span>
+          <span class="stat-card__value">{{ list().length - pendingCount() }}</span>
+          <span class="stat-card__label">With maker for revision</span>
         </div>
       </div>
     </div>
@@ -97,10 +97,6 @@
         </button>
       </div>
     </div>
-
-    <button mat-flat-button class="apply-btn" (click)="applySort()">
-      Apply
-    </button>
   </div>
 
   <!-- ─── STATES ─────────────────────────────────────────────────────────── -->

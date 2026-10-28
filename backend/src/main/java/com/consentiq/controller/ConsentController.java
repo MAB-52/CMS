@@ -380,7 +380,7 @@ public class ConsentController {
         String action = request.getAction().trim().toUpperCase(Locale.ROOT);
         String message =
                 switch (action) {
-                    case "APPROVE" -> "Consent approved successfully";
+                    case "APPROVE" -> "Consent approved and published";
                     case "REJECT" -> "Consent rejected";
                     case "REQUEST_REVISION" -> "Revision request sent to maker";
                     case "PUBLISH" -> "Consent is now live and published";

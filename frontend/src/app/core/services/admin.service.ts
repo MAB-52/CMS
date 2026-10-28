@@ -12,6 +12,7 @@ import {
   CaptureConsentSearchResult,
   CreateUserPayload,
   MisAgentPerformanceRow,
+  MisCheckerPerformanceRow,
   MisChannelPerformanceRow,
   MisComplianceOverview,
   MisConsentInventoryBundle,
@@ -76,9 +77,13 @@ export class AdminService {
     fromDate?: string;
     toDate?: string;
     search?: string;
+    consentStatus?: string;
+    consentDbId?: number | null;
   }): Observable<ApiResponse<PagedResponse<MisCustomerConsentReportRow>>> {
     let hp = new HttpParams().set('page', String(params.page)).set('size', String(params.size));
     if (params.status?.trim()) hp = hp.set('status', params.status.trim());
+    if (params.consentStatus?.trim()) hp = hp.set('consentStatus', params.consentStatus.trim());
+    if (params.consentDbId != null) hp = hp.set('consentDbId', String(params.consentDbId));
     if (params.vip === true || params.vip === false) hp = hp.set('vip', String(params.vip));
     if (params.fromDate) hp = hp.set('fromDate', params.fromDate);
     if (params.toDate) hp = hp.set('toDate', params.toDate);
@@ -95,9 +100,13 @@ export class AdminService {
     fromDate?: string;
     toDate?: string;
     search?: string;
+    consentStatus?: string;
+    consentDbId?: number | null;
   }): Observable<Blob> {
     let hp = new HttpParams();
     if (filters.status?.trim()) hp = hp.set('status', filters.status.trim());
+    if (filters.consentStatus?.trim()) hp = hp.set('consentStatus', filters.consentStatus.trim());
+    if (filters.consentDbId != null) hp = hp.set('consentDbId', String(filters.consentDbId));
     if (filters.vip === true || filters.vip === false) hp = hp.set('vip', String(filters.vip));
     if (filters.fromDate) hp = hp.set('fromDate', filters.fromDate);
     if (filters.toDate) hp = hp.set('toDate', filters.toDate);
@@ -111,9 +120,13 @@ export class AdminService {
     fromDate?: string;
     toDate?: string;
     search?: string;
+    consentStatus?: string;
+    consentDbId?: number | null;
   }): Observable<Blob> {
     let hp = new HttpParams();
     if (filters.status?.trim()) hp = hp.set('status', filters.status.trim());
+    if (filters.consentStatus?.trim()) hp = hp.set('consentStatus', filters.consentStatus.trim());
+    if (filters.consentDbId != null) hp = hp.set('consentDbId', String(filters.consentDbId));
     if (filters.vip === true || filters.vip === false) hp = hp.set('vip', String(filters.vip));
     if (filters.fromDate) hp = hp.set('fromDate', filters.fromDate);
     if (filters.toDate) hp = hp.set('toDate', filters.toDate);
@@ -264,6 +277,24 @@ export class AdminService {
     return this.http.get<ApiResponse<MisChannelPerformanceRow[]>>(`${this.misBase}/channel-performance`);
   }
 
+  getMisCheckerPerformance(params: { fromDate?: string; toDate?: string }): Observable<ApiResponse<MisCheckerPerformanceRow[]>> {
+    let hp = new HttpParams();
+    if (params.fromDate) hp = hp.set('fromDate', params.fromDate);
+    if (params.toDate) hp = hp.set('toDate', params.toDate);
+    return this.http.get<ApiResponse<MisCheckerPerformanceRow[]>>(`${this.misBase}/checker-performance`, { params: hp });
+  }
+
+  exportMisSection(
+    section: 'checker-performance' | 'agent-performance' | 'channel-performance',
+    format: 'csv' | 'excel',
+    params: { fromDate?: string; toDate?: string } = {},
+  ): Observable<Blob> {
+    let hp = new HttpParams();
+    if (params.fromDate) hp = hp.set('fromDate', params.fromDate);
+    if (params.toDate) hp = hp.set('toDate', params.toDate);
+    return this.http.get(`${this.misBase}/${section}/export/${format}`, { params: hp, responseType: 'blob' });
+  }
+
   getMisAgentPerformance(params: { page: number; size: number }): Observable<ApiResponse<PagedResponse<MisAgentPerformanceRow>>> {
     const hp = new HttpParams().set('page', String(params.page)).set('size', String(params.size));
     return this.http.get<ApiResponse<PagedResponse<MisAgentPerformanceRow>>>(`${this.misBase}/agent-performance`, {
@@ -333,16 +364,32 @@ export class AdminService {
     return this.http.get<ApiResponse<MisConsentInventoryBundle>>(`${this.misBase}/consent-inventory`, { params: hp });
   }
 
-  exportMisConsentInventoryCsv(filters: { category?: string; status?: string; search?: string }): Observable<Blob> {
+  exportMisConsentInventoryCsv(filters: {
+    category?: string;
+    status?: string;
+    search?: string;
+    sortBy?: string;
+    sortDirection?: string;
+  }): Observable<Blob> {
     let hp = new HttpParams();
+    if (filters.sortBy?.trim()) hp = hp.set('sortBy', filters.sortBy.trim());
+    if (filters.sortDirection?.trim()) hp = hp.set('sortDirection', filters.sortDirection.trim());
     if (filters.category?.trim()) hp = hp.set('category', filters.category.trim());
     if (filters.status?.trim()) hp = hp.set('status', filters.status.trim());
     if (filters.search?.trim()) hp = hp.set('search', filters.search.trim());
     return this.http.get(`${this.misBase}/consent-inventory/export/csv`, { params: hp, responseType: 'blob' });
   }
 
-  exportMisConsentInventoryExcel(filters: { category?: string; status?: string; search?: string }): Observable<Blob> {
+  exportMisConsentInventoryExcel(filters: {
+    category?: string;
+    status?: string;
+    search?: string;
+    sortBy?: string;
+    sortDirection?: string;
+  }): Observable<Blob> {
     let hp = new HttpParams();
+    if (filters.sortBy?.trim()) hp = hp.set('sortBy', filters.sortBy.trim());
+    if (filters.sortDirection?.trim()) hp = hp.set('sortDirection', filters.sortDirection.trim());
     if (filters.category?.trim()) hp = hp.set('category', filters.category.trim());
     if (filters.status?.trim()) hp = hp.set('status', filters.status.trim());
     if (filters.search?.trim()) hp = hp.set('search', filters.search.trim());
@@ -445,6 +492,8 @@ export class AdminService {
     mobileNumber?: string;
     customerId?: string;
     consentStatus?: string;
+    consentStatuses?: string[];
+    consentDbId?: number | null;
     sortBy?: string;
     sortDir?: string;
   }): Observable<ApiResponse<PagedResponse<AdminCustomerRow>>> {
@@ -460,6 +509,12 @@ export class AdminService {
     if (params.consentStatus && params.consentStatus !== 'ALL') {
       hp = hp.set('consentStatus', params.consentStatus);
     }
+    if (params.consentStatuses?.length) {
+      hp = hp.set('consentStatuses', params.consentStatuses.join(','));
+    }
+    if (params.consentDbId != null) {
+      hp = hp.set('consentDbId', String(params.consentDbId));
+    }
     if (params.sortBy) {
       hp = hp.set('sortBy', params.sortBy);
     }
@@ -469,7 +524,13 @@ export class AdminService {
     return this.http.get<ApiResponse<PagedResponse<AdminCustomerRow>>>(`${this.base}/customers`, { params: hp });
   }
 
-  exportCustomersCsv(filters: { mobileNumber?: string; customerId?: string; consentStatus?: string }): Observable<Blob> {
+  exportCustomersCsv(filters: {
+    mobileNumber?: string;
+    customerId?: string;
+    consentStatus?: string;
+    consentStatuses?: string[];
+    consentDbId?: number | null;
+  }): Observable<Blob> {
     let hp = new HttpParams();
     if (filters.mobileNumber?.trim()) {
       hp = hp.set('mobileNumber', filters.mobileNumber.trim());
@@ -479,6 +540,12 @@ export class AdminService {
     }
     if (filters.consentStatus && filters.consentStatus !== 'ALL') {
       hp = hp.set('consentStatus', filters.consentStatus);
+    }
+    if (filters.consentStatuses?.length) {
+      hp = hp.set('consentStatuses', filters.consentStatuses.join(','));
+    }
+    if (filters.consentDbId != null) {
+      hp = hp.set('consentDbId', String(filters.consentDbId));
     }
     return this.http.get(`${this.base}/customers/export`, { params: hp, responseType: 'blob' });
   }

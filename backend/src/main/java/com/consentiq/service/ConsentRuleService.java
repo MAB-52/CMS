@@ -476,6 +476,11 @@ public class ConsentRuleService {
             throw new InvalidWorkflowStateException(rule.getStatus().name(), request.getAction());
         }
 
+        if (rule.isLinkedToConsentWorkflow()) {
+            throw new IllegalArgumentException(
+                    "This rule is part of a linked consent + rule pair. Review it from Linked consent + rule.");
+        }
+
         if (rule.getCreatedBy().getId().equals(checkerId)) {
             log.warn("[RULE] Self-review attempt — ruleId={} checkerId={}", id, checkerId);
             throw new UnauthorizedActionException("You cannot review a rule that you created.");
@@ -583,6 +588,17 @@ public class ConsentRuleService {
 
     /** Returns paginated APPROVED + LIVE rules for the admin rule engine. */
     @Transactional(readOnly = true)
+    public PagedResponse<ConsentRuleResponse> listApprovedForAdminRuleEngine(
+            int page, int size, String search, WorkflowScheduleType scheduleType) {
+        String q = StringUtils.hasText(search) ? search.trim() : null;
+        if (q == null && scheduleType == null) {
+            return listApprovedForAdminRuleEngine(page, size);
+        }
+        Page<ConsentRule> result = consentRuleRepository.searchAdminEngine(
+                ADMIN_ENGINE_STATUSES, q, scheduleType, PageRequest.of(page, clampSize(size)));
+        return mapPage(result);
+    }
+
     public PagedResponse<ConsentRuleResponse> listApprovedForAdminRuleEngine(int page, int size) {
         String cu = currentUser();
         log.debug("Entering listApprovedForAdminRuleEngine | params: page={},size={}", page, size);
@@ -680,7 +696,8 @@ public class ConsentRuleService {
                 rule.getId(), rule.getScheduleType(), checkerId);
         auditService.log(checkerId, "RULE_APPROVED", "CONSENT_RULE", rule.getId(),
                 rule.getRuleName(),
-                StringUtils.hasText(req.getRemarks()) ? req.getRemarks() : "Approved and live",
+                (rule.isLinkedToConsentWorkflow() ? "Linked consent + rule · " : "") + "Approved and live: " + approveReason
+                        + (StringUtils.hasText(req.getRemarks()) ? " (" + req.getRemarks().trim() + ")" : ""),
                 http);
     }
 
@@ -698,7 +715,7 @@ public class ConsentRuleService {
         log.info("[RULE] REJECTED ruleId={} by checkerId={} reason='{}'",
                 rule.getId(), checkerId, reason);
         auditService.log(checkerId, "RULE_REJECTED", "CONSENT_RULE", rule.getId(),
-                rule.getRuleName(), reason, http);
+                rule.getRuleName(), "Rejected: " + reason, http);
     }
 
     private void handleRequestRevision(
@@ -715,7 +732,7 @@ public class ConsentRuleService {
 
         log.info("[RULE] REVISION_REQUESTED ruleId={} by checkerId={}", rule.getId(), checkerId);
         auditService.log(checkerId, "RULE_REVISION_REQUESTED", "CONSENT_RULE", rule.getId(),
-                rule.getRuleName(), message, http);
+                rule.getRuleName(), "Revision requested: " + message, http);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -1089,11 +1106,15 @@ public class ConsentRuleService {
         }
 
         validateDraftWithoutTemplate(req);
+        ConsentRuleResponse before = toResponse(rule);
         applyNonTemplateFields(rule, req, rule.getCreatedBy());
+        boolean changed = !before.equals(toResponse(rule));
 
         ConsentRule saved = consentRuleRepository.save(rule);
-        auditService.log(userId, "RULE_DRAFT_SAVED", "CONSENT_RULE", saved.getId(),
-                saved.getRuleName(), "Linked draft saved", http);
+        if (changed) {
+            auditService.log(userId, "RULE_DRAFT_SAVED", "CONSENT_RULE", saved.getId(),
+                    saved.getRuleName(), "Linked rule edited", http);
+        }
         return toResponse(saved);
     }
     

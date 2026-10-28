@@ -65,6 +65,24 @@ export interface AdminDashboardStats {
   declined: number;
 }
 
+export type CustomerCurrentStatus =
+  | 'ACTIVE'
+  | 'PENDING'
+  | 'DECLINED'
+  | 'WITHDRAWN'
+  | 'EXPIRED'
+  | 'UNRESPONSIVE'
+  | 'NO_CONSENT';
+
+export interface CustomerConsentSummary {
+  consentDbId: number;
+  consentName: string;
+  status: string;
+  respondedAt?: string | null;
+  lastInviteSentAt?: string | null;
+  consentValidUntil?: string | null;
+}
+
 export interface AdminCustomerRow {
   customerId: string;
   customerName: string;
@@ -72,6 +90,9 @@ export interface AdminCustomerRow {
   email: string | null;
   consentStatus: AdminCustomerConsentStatus | string;
   lastUpdated: string;
+  currentStatus?: CustomerCurrentStatus | null;
+  consents?: CustomerConsentSummary[];
+  nextExpiry?: string | null;
 }
 
 export interface AdminConsentTemplate {
@@ -142,6 +163,15 @@ export interface AdminMisKpi {
   pendingResponse: number;
   declined: number;
   pendingMcApprovals: number;
+  withdrawn?: number;
+  expired?: number;
+  unresponsive?: number;
+  noConsent?: number;
+  other?: number;
+  pendingMcConsents?: number;
+  pendingMcLinked?: number;
+  pendingMcRules?: number;
+  pendingMcBroadcasts?: number;
 }
 
 export interface AdminMisChannelRow {
@@ -266,6 +296,9 @@ export interface MisCustomerConsentReportRow {
   lastConsentResponseAt: string | null;
   reEngagementEligibleAfter: string | null;
   vipFlag: boolean;
+  currentStatus?: CustomerCurrentStatus | null;
+  consents?: CustomerConsentSummary[];
+  nextExpiry?: string | null;
 }
 
 // ── MIS — Expiry report ───────────────────────────────────────────────────────
@@ -281,6 +314,9 @@ export interface MisExpiryReportRow {
   lastConsentInviteSentAt: string | null;
   daysUntilExpiry: number | null;
   vipFlag: boolean;
+  consentDbId?: number | null;
+  consentName?: string | null;
+  rowKey?: string;
 }
 
 // ── MIS — Revocation report ───────────────────────────────────────────────────
@@ -344,8 +380,21 @@ export interface MisAgentPerformanceRow {
   pendingApprovals: number;
   approvedOrPublished: number;
   rejectedConsents: number;
+  draftConsents?: number;
+  revisionRequested?: number;
   averageProcessingHours: number;
   sla24hSubmitCompliancePercent: number;
+}
+
+export interface MisCheckerPerformanceRow {
+  userId: number;
+  fullName: string;
+  email: string;
+  approved: number;
+  rejected: number;
+  revisionRequested: number;
+  totalDecisions: number;
+  averageTatHours: number | null;
 }
 
 // ── MIS — TAT report ──────────────────────────────────────────────────────────
@@ -422,6 +471,7 @@ export interface MisConsentLeaderboardRow {
   consentName: string;
   totalBroadcastExecutions: number;
   totalRecipientsInvited: number;
+  distinctCustomersReached?: number;
   totalAccepted: number;
   acceptanceRatePercent: number;
   reEngagementRatePercent: number;

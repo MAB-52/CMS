@@ -82,6 +82,11 @@
       </div>
     }
 
+    <div class="history-card">
+      <app-consent-history-timeline [consentDbId]="c.id" [showRevisionNote]="true" title="Review history"
+        subtitle="Submissions, revisions and decisions on this consent" />
+    </div>
+
     <app-consent-channel-language-preview
       [channelEmail]="c.channelEmail"
       [channelSms]="c.channelSms"

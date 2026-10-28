@@ -59,6 +59,8 @@ public class AdminRuleEngineController {
     public ResponseEntity<ApiResponse<PagedResponse<ConsentRuleResponse>>> approvedRules(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "5") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String scheduleType,
             HttpServletRequest httpRequest) {
         String cu = currentUser();
         log.info(
@@ -68,7 +70,16 @@ public class AdminRuleEngineController {
                 cu);
         log.debug("Entering approvedRules | params: page={} | size={}", page, size);
         log.info("User={} | action=approvedRules | entity=ConsentRule | id=n/a", cu);
-        PagedResponse<ConsentRuleResponse> data = consentRuleService.listApprovedForAdminRuleEngine(page, size);
+        com.consentiq.enums.WorkflowScheduleType schedule = null;
+        if (scheduleType != null && !scheduleType.isBlank()) {
+            try {
+                schedule = com.consentiq.enums.WorkflowScheduleType.valueOf(scheduleType.trim().toUpperCase());
+            } catch (IllegalArgumentException ex) {
+                schedule = null;
+            }
+        }
+        PagedResponse<ConsentRuleResponse> data =
+                consentRuleService.listApprovedForAdminRuleEngine(page, size, search, schedule);
         ResponseEntity<ApiResponse<PagedResponse<ConsentRuleResponse>>> result =
                 ResponseEntity.ok(ApiResponse.success("Approved rules retrieved", data));
         log.debug("Exiting approvedRules | result={}", result.getStatusCode());

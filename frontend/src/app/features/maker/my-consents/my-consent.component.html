@@ -82,6 +82,9 @@
       @if (c.status === 'REVISION_REQUESTED' && c.revisionMessage) {
       <div class="rev-note"><mat-icon>chat</mat-icon><span>{{ c.revisionMessage }}</span></div>
       }
+      @if (c.status === 'REJECTED' && c.rejectionReason) {
+      <div class="rev-note rev-note--rejected"><mat-icon>block</mat-icon><span><strong>Rejected:</strong> {{ c.rejectionReason }}</span></div>
+      }
       <div class="actions">
         @switch (c.status) {
         @case ('DRAFT') {

@@ -80,7 +80,9 @@ public class MisReportService {
                     "RULE_APPROVED", "RULE_REJECTED", "RULE_REVISION_REQUESTED", "RULE_LIVE",
                     "RULE_EXECUTION_ACTIVATED", "RULE_EXECUTION_DEACTIVATED",
                     "RULE_MANUAL_RUN_REQUESTED", "RULE_AUTO_RUN_REQUESTED",
-                    "RULE_EXECUTION_COMPLETED", "RULE_EXECUTION_PARTIAL", "RULE_EXECUTION_FAILED");
+                    "RULE_EXECUTION_COMPLETED", "RULE_EXECUTION_PARTIAL", "RULE_EXECUTION_FAILED",
+                    "CONSENT_INVITE_SENT", "CONSENT_RECORDED_ON_BEHALF", "RULE_TEMPLATE_LINKED",
+                    "USER_CREATED", "USER_UPDATED", "USER_DELETED");
 
     private final CustomerRepository customerRepository;
     private final CustomerConsentRecordRepository recordRepository;
@@ -89,6 +91,70 @@ public class MisReportService {
     private final ConsentInviteTokenRepository inviteTokenRepository;
     private final AuditLogRepository auditLogRepository;
     private final UserRepository userRepository;
+    private final CustomerCurrentStatusService customerCurrentStatusService;
+
+    public record CustomerReportFilter(
+            List<com.consentiq.enums.CustomerCurrentStatus> customerStatuses,
+            List<CustomerConsentRecordStatus> consentStatuses,
+            Long consentDbId,
+            Boolean vip,
+            LocalDate validFrom,
+            LocalDate validTo,
+            String search) {
+    }
+
+    public static List<com.consentiq.enums.CustomerCurrentStatus> parseCurrentStatusList(String raw) {
+        List<com.consentiq.enums.CustomerCurrentStatus> out = new ArrayList<>();
+        if (!StringUtils.hasText(raw)) {
+            return out;
+        }
+        for (String part : raw.split(",")) {
+            String v = part.trim().toUpperCase(Locale.ROOT);
+            if (v.isEmpty()) {
+                continue;
+            }
+            out.add(switch (v) {
+                case "ACCEPTED", "EXPIRING_SOON" -> com.consentiq.enums.CustomerCurrentStatus.ACTIVE;
+                case "REJECTED" -> com.consentiq.enums.CustomerCurrentStatus.DECLINED;
+                case "INVITED", "PENDING_RESPONSE" -> com.consentiq.enums.CustomerCurrentStatus.PENDING;
+                default -> {
+                    try {
+                        yield com.consentiq.enums.CustomerCurrentStatus.valueOf(v);
+                    } catch (IllegalArgumentException ex) {
+                        throw new IllegalArgumentException("Unknown customer status: " + part.trim());
+                    }
+                }
+            });
+        }
+        return out;
+    }
+
+    public static List<CustomerConsentRecordStatus> parseConsentLevelStatusList(String raw) {
+        List<CustomerConsentRecordStatus> out = new ArrayList<>();
+        if (!StringUtils.hasText(raw)) {
+            return out;
+        }
+        for (String part : raw.split(",")) {
+            String v = part.trim().toUpperCase(Locale.ROOT);
+            switch (v) {
+                case "" -> { }
+                case "ACCEPTED", "ACTIVE" -> {
+                    out.add(CustomerConsentRecordStatus.ACCEPTED);
+                    out.add(CustomerConsentRecordStatus.EXPIRING_SOON);
+                }
+                case "DECLINED", "REJECTED" -> out.add(CustomerConsentRecordStatus.REJECTED);
+                case "PENDING", "INVITED" -> out.add(CustomerConsentRecordStatus.PENDING);
+                default -> {
+                    try {
+                        out.add(CustomerConsentRecordStatus.valueOf(v));
+                    } catch (IllegalArgumentException ex) {
+                        throw new IllegalArgumentException("Unknown consent status: " + part.trim());
+                    }
+                }
+            }
+        }
+        return out;
+    }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -162,7 +228,7 @@ public class MisReportService {
         if (bucket == null) return "";
         if (bucket instanceof Date d) return d.toLocalDate().toString();
         if (bucket instanceof java.sql.Timestamp ts)
-            return ts.toInstant().atZone(ZoneOffset.UTC).toLocalDate().toString();
+            return ts.toInstant().atZone(CustomerCurrentStatusService.ZONE).toLocalDate().toString();
         if ("WEEKLY".equals(group) && (bucket instanceof Number n)) {
             int yw = n.intValue();
             return (yw / 100) + "-W" + String.format(Locale.ROOT, "%02d", yw % 100);
@@ -245,11 +311,11 @@ public class MisReportService {
         log.info("Executing DB query | method=countByAction | param=CONSENT_APPROVED");
         long consentMc   = auditLogRepository.countByAction("CONSENT_APPROVED");
         log.info("DB query completed | method=countByAction | size={}", consentMc);
-        log.info("Executing DB query | method=countByAction | param=CONSENT_REVISION_REQUESTED");
-        long ruleMc      = auditLogRepository.countByAction("CONSENT_REVISION_REQUESTED");
+        log.info("Executing DB query | method=countByAction | param=RULE_APPROVED");
+        long ruleMc      = auditLogRepository.countByAction("RULE_APPROVED");
         log.info("DB query completed | method=countByAction | size={}", ruleMc);
-        log.info("Executing DB query | method=countByAction | param=CONSENT_PUBLISHED");
-        long broadcastMc = auditLogRepository.countByAction("CONSENT_PUBLISHED");
+        log.info("Executing DB query | method=countByAction | param=BROADCAST_APPROVED");
+        long broadcastMc = auditLogRepository.countByAction("BROADCAST_APPROVED");
         log.info("DB query completed | method=countByAction | size={}", broadcastMc);
         log.info("Executing DB query | method=countByAction | param=CONSENT_REJECTED");
         long rejections  = auditLogRepository.countByAction("CONSENT_REJECTED");
@@ -262,7 +328,7 @@ public class MisReportService {
         log.info("DB query completed | method=findByReviewedAtIsNotNullAndSubmittedAtIsNotNull | size={}", reviewed.size());
         OptionalDouble avgH = reviewed.stream()
                 .filter(c -> c.getReviewedAt() != null && c.getSubmittedAt() != null)
-                .mapToDouble(c -> ChronoUnit.HOURS.between(c.getSubmittedAt(), c.getReviewedAt()))
+                .mapToDouble(c -> java.time.Duration.between(c.getSubmittedAt(), c.getReviewedAt()).getSeconds() / 3600.0)
                 .filter(h -> h >= 0 && h < 10_000)
                 .average();
         double averageApprovalHours = avgH.isPresent() ? Math.round(avgH.getAsDouble() * 10.0) / 10.0 : 0.0;
@@ -270,7 +336,7 @@ public class MisReportService {
         long slaNumerator = reviewed.stream()
                 .filter(c -> c.getStatus() == ConsentStatus.APPROVED || c.getStatus() == ConsentStatus.PUBLISHED)
                 .filter(c -> c.getSubmittedAt() != null && c.getReviewedAt() != null)
-                .filter(c -> ChronoUnit.HOURS.between(c.getSubmittedAt(), c.getReviewedAt()) <= 48)
+                .filter(c -> java.time.Duration.between(c.getSubmittedAt(), c.getReviewedAt()).getSeconds() <= 48 * 3600L)
                 .count();
         long slaDenom = reviewed.stream()
                 .filter(c -> c.getStatus() == ConsentStatus.APPROVED || c.getStatus() == ConsentStatus.PUBLISHED)
@@ -354,21 +420,19 @@ public class MisReportService {
 
     @Transactional(readOnly = true)
     public PagedResponse<MisCustomerConsentRowResponse> getCustomerConsentReport(
-            List<CustomerConsentRecordStatus> statuses, Boolean vip,
-            LocalDate validFrom, LocalDate validTo, String search,
-            int page, int size) {
+            CustomerReportFilter f, int page, int size) {
+        String search = f.search();
         String cu = currentUser();
         log.debug("Entering getCustomerConsentReport | params: page={}, size={}, search={}", page, size, search);
         log.info("User={} | action=getCustomerConsentReport | entity=Customer | id=n/a", cu);
         log.debug("Transaction started | method=getCustomerConsentReport | id=n/a");
-        Specification<Customer> spec = customerMisSpec(statuses, vip, validFrom, validTo, search);
+        Specification<Customer> spec = customerMisSpec(f);
         Pageable pageable = PageRequest.of(Math.max(0, page), Math.min(100, Math.max(1, size)),
-                Sort.by(Sort.Direction.DESC, "updatedAt"));
+                Sort.by(Sort.Direction.DESC, "updatedAt").and(Sort.by(Sort.Direction.ASC, "id")));
         log.info("Executing DB query | method=findAll | param=Customer spec");
         Page<Customer> pg = customerRepository.findAll(spec, pageable);
         log.info("DB query completed | method=findAll | size={}", pg.getContent().size());
-        List<MisCustomerConsentRowResponse> rows = pg.getContent().stream()
-                .map(this::toMisCustomerRow).toList();
+        List<MisCustomerConsentRowResponse> rows = toMisCustomerRows(pg.getContent());
         PagedResponse<MisCustomerConsentRowResponse> out = PagedResponse.<MisCustomerConsentRowResponse>builder()
                 .content(rows)
                 .totalElements(pg.getTotalElements()).totalPages(pg.getTotalPages())
@@ -381,34 +445,22 @@ public class MisReportService {
     }
 
     @Transactional(readOnly = true)
-    public void exportCustomerConsentCsv(java.io.OutputStream outputStream,
-            List<CustomerConsentRecordStatus> statuses, Boolean vip,
-            LocalDate validFrom, LocalDate validTo, String search)
+    public void exportCustomerConsentCsv(java.io.OutputStream outputStream, CustomerReportFilter f)
             throws java.io.IOException {
+        String search = f.search();
         String cu = currentUser();
         log.debug("Entering exportCustomerConsentCsv | params: search={}", search);
         log.info("User={} | action=exportCustomerConsentCsv | entity=Customer | id=n/a", cu);
         log.debug("Transaction started | method=exportCustomerConsentCsv | id=n/a");
-        Specification<Customer> spec = customerMisSpec(statuses, vip, validFrom, validTo, search);
         log.info("Executing DB query | method=findAll | param=Customer spec export");
-        List<Customer> all = customerRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "updatedAt"));
+        List<Customer> all = customerRepository.findAll(customerMisSpec(f),
+                Sort.by(Sort.Direction.DESC, "updatedAt").and(Sort.by(Sort.Direction.ASC, "id")));
         log.info("DB query completed | method=findAll | size={}", all.size());
-        Map<String, String> statusById = deriveStatuses(all);
         List<String[]> rows = new ArrayList<>(all.size());
-        for (Customer c : all) {
-            String status = statusById.get(c.getCustomerId());
-            rows.add(new String[]{
-                    c.getCustomerId(), c.getFullName(), c.getMobileNumber(),
-                    c.getEmail() == null ? "" : c.getEmail(),
-                    status == null ? "" : status,
-                    c.getConsentValidUntil() == null ? "" : c.getConsentValidUntil().toString(),
-                    c.getLastConsentInviteSentAt() == null ? "" : c.getLastConsentInviteSentAt().toString(),
-                    c.getLastConsentResponseAt() == null ? "" : c.getLastConsentResponseAt().toString(),
-                    c.getReEngagementEligibleAfter() == null ? "" : c.getReEngagementEligibleAfter().toString(),
-                    c.isVipFlag() ? "Y" : "N"});
+        for (List<String> r : customerExportRows(all)) {
+            rows.add(r.toArray(new String[0]));
         }
-        byte[] csv = MisReportExportUtil.writeCsv("Customer ID,Customer Name,Mobile Number,Email,Consent Status,"
-                + "Consent Valid Until,Last Invite Sent,Last Response,Re-engagement Eligible After,VIP", rows);
+        byte[] csv = MisReportExportUtil.writeCsv(String.join(",", CUSTOMER_EXPORT_HEADERS), rows);
         outputStream.write(csv);
         outputStream.flush();
         log.debug("Transaction completing | method=exportCustomerConsentCsv | id=n/a");
@@ -416,36 +468,79 @@ public class MisReportService {
     }
 
     @Transactional(readOnly = true)
-    public byte[] exportCustomerConsentExcel(List<CustomerConsentRecordStatus> statuses, Boolean vip,
-            LocalDate validFrom, LocalDate validTo, String search) throws java.io.IOException {
+    public byte[] exportCustomerConsentExcel(CustomerReportFilter f) throws java.io.IOException {
+        String search = f.search();
         String cu = currentUser();
         log.debug("Entering exportCustomerConsentExcel | params: search={}", search);
         log.info("User={} | action=exportCustomerConsentExcel | entity=Customer | id=n/a", cu);
         log.debug("Transaction started | method=exportCustomerConsentExcel | id=n/a");
-        Specification<Customer> spec = customerMisSpec(statuses, vip, validFrom, validTo, search);
         log.info("Executing DB query | method=findAll | param=Customer spec export excel");
-        List<Customer> all = customerRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "updatedAt"));
+        List<Customer> all = customerRepository.findAll(customerMisSpec(f),
+                Sort.by(Sort.Direction.DESC, "updatedAt").and(Sort.by(Sort.Direction.ASC, "id")));
         log.info("DB query completed | method=findAll | size={}", all.size());
-        List<String> headers = List.of("Customer ID","Customer Name","Mobile Number","Email",
-                "Consent Status","Consent Valid Until","Last Invite Sent","Last Response",
-                "Re-engagement Eligible After","VIP");
-        Map<String, String> statusById = deriveStatuses(all);
-        List<List<String>> rows = new ArrayList<>();
-        for (Customer c : all) {
-            String status = statusById.get(c.getCustomerId());
-            rows.add(List.of(
-                    c.getCustomerId(), c.getFullName(), c.getMobileNumber(),
-                    c.getEmail() == null ? "" : c.getEmail(),
-                    status == null ? "" : status,
-                    c.getConsentValidUntil() == null ? "" : c.getConsentValidUntil().toString(),
-                    c.getLastConsentInviteSentAt() == null ? "" : c.getLastConsentInviteSentAt().toString(),
-                    c.getLastConsentResponseAt() == null ? "" : c.getLastConsentResponseAt().toString(),
-                    c.getReEngagementEligibleAfter() == null ? "" : c.getReEngagementEligibleAfter().toString(),
-                    c.isVipFlag() ? "Y" : "N"));
-        }
-        byte[] out = MisReportExportUtil.writeXlsx("Customer consent", headers, rows);
+        byte[] out = MisReportExportUtil.writeXlsx("Customer consent", CUSTOMER_EXPORT_HEADERS, customerExportRows(all));
         log.debug("Transaction completing | method=exportCustomerConsentExcel | id=n/a");
         log.debug("Exiting exportCustomerConsentExcel | bytes={}", out.length);
+        return out;
+    }
+
+    private static final List<String> CUSTOMER_EXPORT_HEADERS = List.of("Customer ID", "Customer Name",
+            "Mobile Number", "Email", "Customer Status", "Consents", "Next Expiry", "Last Invite Sent",
+            "Last Response", "Re-engagement Eligible After", "VIP");
+
+    private static final java.time.format.DateTimeFormatter IST_DATE_TIME = java.time.format.DateTimeFormatter
+            .ofPattern("yyyy-MM-dd HH:mm").withZone(CustomerCurrentStatusService.ZONE);
+
+    static String istTime(Instant i) {
+        return i == null ? "" : IST_DATE_TIME.format(i);
+    }
+
+    private List<List<String>> customerExportRows(List<Customer> customers) {
+        List<List<String>> out = new ArrayList<>(customers.size());
+        for (MisCustomerConsentRowResponse r : toMisCustomerRows(customers)) {
+            out.add(java.util.Arrays.asList(
+                    nz(r.getCustomerId()), nz(r.getCustomerName()), nz(r.getMobileNumber()), nz(r.getEmail()),
+                    r.getCurrentStatus() == null ? "" : r.getCurrentStatus().name(),
+                    CustomerCurrentStatusService.summaryText(r.getConsents()),
+                    r.getNextExpiry() == null ? "" : r.getNextExpiry().toString(),
+                    istTime(r.getLastConsentInviteSentAt()),
+                    istTime(r.getLastConsentResponseAt()),
+                    istTime(r.getReEngagementEligibleAfter()),
+                    r.isVipFlag() ? "Y" : "N"));
+        }
+        return out;
+    }
+
+    static String nz(Object v) {
+        return v == null ? "" : v.toString();
+    }
+
+    private List<MisCustomerConsentRowResponse> toMisCustomerRows(List<Customer> customers) {
+        Map<String, List<CustomerConsentRecord>> byCustomer = customerCurrentStatusService.recordsByCustomer(
+                customers.stream().map(Customer::getCustomerId).toList());
+        Map<String, List<com.consentiq.model.dto.response.CustomerConsentSummary>> summaries =
+                customerCurrentStatusService.summaries(byCustomer);
+        LocalDate today = CustomerCurrentStatusService.today();
+        List<MisCustomerConsentRowResponse> out = new ArrayList<>(customers.size());
+        for (Customer c : customers) {
+            String key = c.getCustomerId().toLowerCase(Locale.ROOT);
+            List<CustomerConsentRecord> recs = byCustomer.getOrDefault(key, List.of());
+            LocalDate next = CustomerCurrentStatusService.nextExpiry(recs, today);
+            out.add(MisCustomerConsentRowResponse.builder()
+                    .customerId(c.getCustomerId())
+                    .customerName(c.getFullName())
+                    .mobileNumber(c.getMobileNumber())
+                    .email(c.getEmail())
+                    .currentStatus(CustomerCurrentStatusService.derive(recs, today))
+                    .consents(summaries.getOrDefault(key, List.of()))
+                    .nextExpiry(next)
+                    .consentValidUntil(next)
+                    .lastConsentInviteSentAt(c.getLastConsentInviteSentAt())
+                    .lastConsentResponseAt(c.getLastConsentResponseAt())
+                    .reEngagementEligibleAfter(c.getReEngagementEligibleAfter())
+                    .vipFlag(c.isVipFlag())
+                    .build());
+        }
         return out;
     }
 
@@ -473,22 +568,42 @@ public class MisReportService {
                 .build();
     }
 
-    private Specification<Customer> customerMisSpec(
-            List<CustomerConsentRecordStatus> statuses, Boolean vip,
-            LocalDate validFrom, LocalDate validTo, String search) {
+    private Specification<Customer> customerMisSpec(CustomerReportFilter f) {
+        Boolean vip = f.vip();
+        LocalDate validFrom = f.validFrom();
+        LocalDate validTo = f.validTo();
+        String search = f.search();
         return (root, query, cb) -> {
             List<Predicate> p = new ArrayList<>();
-            if (statuses != null && !statuses.isEmpty()) {
-                // Subquery: customer must have a record with one of the given statuses
+            List<com.consentiq.enums.CustomerCurrentStatus> cs = f.customerStatuses();
+            if (cs != null && !cs.isEmpty()) {
+                Predicate in = root.get("currentConsentStatus").in(cs);
+                p.add(cs.contains(com.consentiq.enums.CustomerCurrentStatus.NO_CONSENT)
+                        ? cb.or(in, cb.isNull(root.get("currentConsentStatus"))) : in);
+            }
+            boolean hasConsentStatuses = f.consentStatuses() != null && !f.consentStatuses().isEmpty();
+            if (hasConsentStatuses || f.consentDbId() != null) {
                 var sub = query.subquery(String.class);
                 var recRoot = sub.from(CustomerConsentRecord.class);
-                sub.select(recRoot.get("customerId"))
-                   .where(recRoot.get("status").in(statuses));
+                List<Predicate> sp = new ArrayList<>();
+                if (hasConsentStatuses) sp.add(recRoot.get("status").in(f.consentStatuses()));
+                if (f.consentDbId() != null) sp.add(cb.equal(recRoot.get("consentDbId"), f.consentDbId()));
+                sub.select(recRoot.get("customerId")).where(sp.toArray(new Predicate[0]));
                 p.add(root.get("customerId").in(sub));
             }
             if (vip != null) p.add(cb.equal(root.get("vipFlag"), vip));
-            if (validFrom != null) p.add(cb.greaterThanOrEqualTo(root.get("consentValidUntil"), validFrom));
-            if (validTo   != null) p.add(cb.lessThanOrEqualTo(root.get("consentValidUntil"), validTo));
+            if (validFrom != null || validTo != null) {
+                var sub = query.subquery(String.class);
+                var recRoot = sub.from(CustomerConsentRecord.class);
+                List<Predicate> sp = new ArrayList<>();
+                sp.add(recRoot.get("status").in(List.of(CustomerConsentRecordStatus.ACCEPTED,
+                        CustomerConsentRecordStatus.EXPIRING_SOON)));
+                sp.add(cb.greaterThanOrEqualTo(recRoot.get("consentValidUntil"), CustomerCurrentStatusService.today()));
+                if (validFrom != null) sp.add(cb.greaterThanOrEqualTo(recRoot.get("consentValidUntil"), validFrom));
+                if (validTo != null) sp.add(cb.lessThanOrEqualTo(recRoot.get("consentValidUntil"), validTo));
+                sub.select(recRoot.get("customerId")).where(sp.toArray(new Predicate[0]));
+                p.add(root.get("customerId").in(sub));
+            }
             if (StringUtils.hasText(search)) {
                 String q = "%" + search.trim().toLowerCase(Locale.ROOT) + "%";
                 p.add(cb.or(cb.like(cb.lower(root.get("customerId")), q),
@@ -531,8 +646,8 @@ public class MisReportService {
     private AuditLogResponse toAuditRow(AuditLog a) {
         return AuditLogResponse.builder()
                 .id(a.getId())
-                .userId(a.getUser().getId())
-                .userName(a.getUser().getFullName())
+                .userId(a.getUser() != null ? a.getUser().getId() : null)
+                .userName(a.getUser() != null ? a.getUser().getFullName() : "System")
                 .action(a.getAction())
                 .entityType(a.getEntityType())
                 .entityId(a.getEntityId())
@@ -549,7 +664,7 @@ public class MisReportService {
             Boolean workflowActionsOnly, Boolean adminActorOnly) {
         return (root, query, cb) -> {
             List<Predicate> p = new ArrayList<>();
-            Join<AuditLog, User> userJoin = root.join("user", JoinType.INNER);
+            Join<AuditLog, User> userJoin = root.join("user", JoinType.LEFT);
             if (StringUtils.hasText(entityType))
                 p.add(cb.equal(cb.upper(root.get("entityType")), entityType.trim().toUpperCase(Locale.ROOT)));
             if (StringUtils.hasText(action))
@@ -584,11 +699,11 @@ public class MisReportService {
         List<AuditLog> all = auditLogRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "performedAt"));
         log.info("DB query completed | method=findAll | size={}", all.size());
         List<String[]> rows = all.stream().map(a -> new String[]{
-                a.getPerformedAt() == null ? "" : a.getPerformedAt().toString(),
-                a.getEntityType() == null ? "" : a.getEntityType(),
-                a.getEntityName() == null ? "" : a.getEntityName(),
-                a.getAction(), a.getUser().getFullName(),
-                a.getDescription() == null ? "" : a.getDescription()
+                istTime(a.getPerformedAt()),
+                nz(a.getEntityType()),
+                nz(a.getEntityName()),
+                nz(a.getAction()), a.getUser() != null ? nz(a.getUser().getFullName()) : "System",
+                nz(a.getDescription())
         }).toList();
         byte[] out = MisReportExportUtil.writeCsv(
                 "Timestamp,Entity Type,Entity Name,Action,Performed By,Description", rows);
@@ -610,12 +725,12 @@ public class MisReportService {
         List<AuditLog> all = auditLogRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "performedAt"));
         log.info("DB query completed | method=findAll | size={}", all.size());
         List<String> headers = List.of("Timestamp","Entity Type","Entity Name","Action","Performed By","Description");
-        List<List<String>> rows = all.stream().map(a -> List.of(
-                a.getPerformedAt() == null ? "" : a.getPerformedAt().toString(),
-                a.getEntityType() == null ? "" : a.getEntityType(),
-                a.getEntityName() == null ? "" : a.getEntityName(),
-                a.getAction(), a.getUser().getFullName(),
-                a.getDescription() == null ? "" : a.getDescription())).toList();
+        List<List<String>> rows = all.stream().map(a -> java.util.Arrays.asList(
+                istTime(a.getPerformedAt()),
+                nz(a.getEntityType()),
+                nz(a.getEntityName()),
+                nz(a.getAction()), a.getUser() != null ? nz(a.getUser().getFullName()) : "System",
+                nz(a.getDescription()))).toList();
         byte[] out = MisReportExportUtil.writeXlsx("Audit trail", headers, rows);
         log.debug("Transaction completing | method=exportAuditExcel | id=n/a");
         log.debug("Exiting exportAuditExcel | bytes={}", out.length);
@@ -630,15 +745,12 @@ public class MisReportService {
         log.debug("Entering getExpiryReport | params: type={}, withinDays={}, page={}, size={}", type, withinDays, page, size);
         log.info("User={} | action=getExpiryReport | entity=Customer | id=n/a", cu);
         log.debug("Transaction started | method=getExpiryReport | id=n/a");
-        LocalDate today = LocalDate.now(ZoneOffset.UTC);
-        Specification<Customer> spec = expirySpec(type, withinDays, today);
-        Pageable pageable = PageRequest.of(Math.max(0, page), Math.min(100, Math.max(1, size)),
-                Sort.by(Sort.Direction.ASC, "consentValidUntil"));
-        log.info("Executing DB query | method=findAll | param=Customer expiry spec");
-        Page<Customer> pg = customerRepository.findAll(spec, pageable);
-        log.info("DB query completed | method=findAll | size={}", pg.getContent().size());
-        List<MisExpiryRowResponse> rows = pg.getContent().stream()
-                .map(c -> toExpiryRow(c, today)).toList();
+        LocalDate today = CustomerCurrentStatusService.today();
+        Pageable pageable = PageRequest.of(Math.max(0, page), Math.min(100, Math.max(1, size)), expirySort(type));
+        log.info("Executing DB query | method=findForExpiryReport | param=type={}", type);
+        Page<CustomerConsentRecord> pg = expiryPage(type, withinDays, today, pageable);
+        log.info("DB query completed | method=findForExpiryReport | size={}", pg.getContent().size());
+        List<MisExpiryRowResponse> rows = toExpiryRows(pg.getContent(), today);
         PagedResponse<MisExpiryRowResponse> out = PagedResponse.<MisExpiryRowResponse>builder()
                 .content(rows)
                 .totalElements(pg.getTotalElements()).totalPages(pg.getTotalPages())
@@ -647,6 +759,67 @@ public class MisReportService {
                 .build();
         log.debug("Transaction completing | method=getExpiryReport | id=n/a");
         log.debug("Exiting getExpiryReport | totalElements={}", out.getTotalElements());
+        return out;
+    }
+
+    private static boolean isExpiredMode(String type) {
+        return "EXPIRED".equalsIgnoreCase(type == null ? "" : type.trim());
+    }
+
+    private static Sort expirySort(String type) {
+        Sort.Direction dir = isExpiredMode(type) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        return Sort.by(dir, "consentValidUntil").and(Sort.by(Sort.Direction.ASC, "id"));
+    }
+
+    private Page<CustomerConsentRecord> expiryPage(String type, int withinDays, LocalDate today, Pageable pageable) {
+        if (isExpiredMode(type)) {
+            return recordRepository.findForExpiryReport(
+                    List.of(CustomerConsentRecordStatus.ACCEPTED, CustomerConsentRecordStatus.EXPIRING_SOON,
+                            CustomerConsentRecordStatus.EXPIRED),
+                    LocalDate.of(1900, 1, 1), today.minusDays(1), pageable);
+        }
+        return recordRepository.findForExpiryReport(
+                List.of(CustomerConsentRecordStatus.ACCEPTED, CustomerConsentRecordStatus.EXPIRING_SOON),
+                today, today.plusDays(Math.max(1, withinDays)), pageable);
+    }
+
+    private List<MisExpiryRowResponse> toExpiryRows(List<CustomerConsentRecord> records, LocalDate today) {
+        java.util.Set<String> ids = records.stream().map(CustomerConsentRecord::getCustomerId)
+                .filter(java.util.Objects::nonNull).collect(java.util.stream.Collectors.toSet());
+        Map<String, Customer> customers = new HashMap<>();
+        if (!ids.isEmpty()) {
+            for (Customer c : customerRepository.findByCustomerIdIn(ids)) {
+                customers.put(c.getCustomerId().toLowerCase(Locale.ROOT), c);
+            }
+        }
+        java.util.Set<Long> consentIds = records.stream().map(CustomerConsentRecord::getConsentDbId)
+                .filter(java.util.Objects::nonNull).collect(java.util.stream.Collectors.toSet());
+        Map<Long, String> names = new HashMap<>();
+        for (Consent c : consentRepository.findAllById(consentIds)) {
+            names.put(c.getId(), c.getConsentName());
+        }
+        List<MisExpiryRowResponse> out = new ArrayList<>(records.size());
+        for (CustomerConsentRecord r : records) {
+            Customer c = r.getCustomerId() == null ? null : customers.get(r.getCustomerId().toLowerCase(Locale.ROOT));
+            CustomerConsentRecordStatus st = r.getStatus();
+            if (r.getConsentValidUntil() != null && r.getConsentValidUntil().isBefore(today)) {
+                st = CustomerConsentRecordStatus.EXPIRED;
+            }
+            out.add(MisExpiryRowResponse.builder()
+                    .customerId(r.getCustomerId())
+                    .customerName(c != null ? c.getFullName() : null)
+                    .mobileNumber(c != null ? c.getMobileNumber() : null)
+                    .email(c != null ? c.getEmail() : null)
+                    .consentDbId(r.getConsentDbId())
+                    .consentName(names.getOrDefault(r.getConsentDbId(), "Consent #" + r.getConsentDbId()))
+                    .consentStatus(st)
+                    .consentValidUntil(r.getConsentValidUntil())
+                    .lastConsentInviteSentAt(r.getLastInviteSentAt())
+                    .daysUntilExpiry(r.getConsentValidUntil() != null
+                            ? ChronoUnit.DAYS.between(today, r.getConsentValidUntil()) : null)
+                    .vipFlag(c != null && c.isVipFlag())
+                    .build());
+        }
         return out;
     }
 
@@ -719,16 +892,8 @@ public class MisReportService {
         log.info("User={} | action=exportExpiryCsv | entity=Customer | id=n/a", cu);
         log.debug("Transaction started | method=exportExpiryCsv | id=n/a");
         List<MisExpiryRowResponse> allRows = listAllExpiryRows(type, withinDays);
-        List<String[]> rows = allRows.stream().map(r -> new String[]{
-                r.getCustomerId(), r.getCustomerName(), r.getMobileNumber(),
-                r.getEmail() == null ? "" : r.getEmail(),
-                r.getConsentStatus() == null ? "" : r.getConsentStatus().name(),
-                r.getConsentValidUntil() == null ? "" : r.getConsentValidUntil().toString(),
-                r.getLastConsentInviteSentAt() == null ? "" : r.getLastConsentInviteSentAt().toString(),
-                r.getDaysUntilExpiry() == null ? "" : String.valueOf(r.getDaysUntilExpiry()),
-                r.isVipFlag() ? "Y" : "N"}).toList();
-        out.write(MisReportExportUtil.writeCsv(
-                "Customer ID,Name,Mobile,Email,Consent Status,Valid Until,Last Invite Sent,Days Until Expiry,VIP", rows));
+        List<String[]> rows = expiryExportRows(allRows).stream().map(r -> r.toArray(new String[0])).toList();
+        out.write(MisReportExportUtil.writeCsv(String.join(",", EXPIRY_EXPORT_HEADERS), rows));
         out.flush();
         log.debug("Transaction completing | method=exportExpiryCsv | id=n/a");
         log.debug("Exiting exportExpiryCsv | completed successfully");
@@ -741,29 +906,33 @@ public class MisReportService {
         log.info("User={} | action=exportExpiryExcel | entity=Customer | id=n/a", cu);
         log.debug("Transaction started | method=exportExpiryExcel | id=n/a");
         List<MisExpiryRowResponse> allRows = listAllExpiryRows(type, withinDays);
-        List<String> headers = List.of("Customer ID","Name","Mobile","Email","Consent Status",
-                "Valid Until","Last Invite Sent","Days Until Expiry","VIP");
-        List<List<String>> rows = allRows.stream().map(r -> List.of(
-                r.getCustomerId(), r.getCustomerName(), r.getMobileNumber(),
-                r.getEmail() == null ? "" : r.getEmail(),
-                r.getConsentStatus() == null ? "" : r.getConsentStatus().name(),
-                r.getConsentValidUntil() == null ? "" : r.getConsentValidUntil().toString(),
-                r.getLastConsentInviteSentAt() == null ? "" : r.getLastConsentInviteSentAt().toString(),
-                r.getDaysUntilExpiry() == null ? "" : String.valueOf(r.getDaysUntilExpiry()),
-                r.isVipFlag() ? "Y" : "N")).toList();
-        byte[] out = MisReportExportUtil.writeXlsx("Expiry report", headers, rows);
+        byte[] out = MisReportExportUtil.writeXlsx("Expiry report", EXPIRY_EXPORT_HEADERS, expiryExportRows(allRows));
         log.debug("Transaction completing | method=exportExpiryExcel | id=n/a");
         log.debug("Exiting exportExpiryExcel | bytes={}", out.length);
         return out;
     }
 
+    private static final List<String> EXPIRY_EXPORT_HEADERS = List.of("Customer ID", "Name", "Mobile", "Email",
+            "Consent", "Consent Status", "Valid Until", "Days Until Expiry", "Last Invite Sent", "VIP");
+
+    private static List<List<String>> expiryExportRows(List<MisExpiryRowResponse> rows) {
+        return rows.stream().map(r -> java.util.Arrays.asList(
+                nz(r.getCustomerId()), nz(r.getCustomerName()), nz(r.getMobileNumber()), nz(r.getEmail()),
+                nz(r.getConsentName()),
+                r.getConsentStatus() == null ? "" : r.getConsentStatus().name(),
+                nz(r.getConsentValidUntil()),
+                nz(r.getDaysUntilExpiry()),
+                istTime(r.getLastConsentInviteSentAt()),
+                r.isVipFlag() ? "Y" : "N")).toList();
+    }
+
     private List<MisExpiryRowResponse> listAllExpiryRows(String type, int withinDays) {
-        LocalDate today = LocalDate.now(ZoneOffset.UTC);
-        log.info("Executing DB query | method=findAll | param=Customer expiry listAll");
-        List<Customer> list = customerRepository.findAll(expirySpec(type, withinDays, today),
-                Sort.by(Sort.Direction.ASC, "consentValidUntil"));
-        log.info("DB query completed | method=findAll | size={}", list.size());
-        return list.stream().map(c -> toExpiryRow(c, today)).toList();
+        LocalDate today = CustomerCurrentStatusService.today();
+        log.info("Executing DB query | method=findForExpiryReport | param=listAll");
+        Page<CustomerConsentRecord> all = expiryPage(type, withinDays, today,
+                PageRequest.of(0, Integer.MAX_VALUE, expirySort(type)));
+        log.info("DB query completed | method=findForExpiryReport | size={}", all.getContent().size());
+        return toExpiryRows(all.getContent(), today);
     }
 
     // ── Revocation report ─────────────────────────────────────────────────────
@@ -854,7 +1023,7 @@ public class MisReportService {
         Map<String, Long> byMonth = revokedCustomers.stream()
                 .filter(c -> c.getLastConsentResponseAt() != null)
                 .collect(Collectors.groupingBy(c -> {
-                    var ym = c.getLastConsentResponseAt().atZone(ZoneOffset.UTC);
+                    var ym = c.getLastConsentResponseAt().atZone(CustomerCurrentStatusService.ZONE);
                     return String.format("%04d-%02d", ym.getYear(), ym.getMonthValue());
                 }, Collectors.counting()));
 
@@ -1027,7 +1196,7 @@ public class MisReportService {
         log.debug("Entering getAgentPerformance | params: page={}, size={}", page, size);
         log.info("User={} | action=getAgentPerformance | entity=User | id=n/a", cu);
         log.debug("Transaction started | method=getAgentPerformance | id=n/a");
-        Pageable pageable = PageRequest.of(Math.max(0, page), Math.min(100, Math.max(1, size)),
+        Pageable pageable = PageRequest.of(Math.max(0, page), Math.min(500, Math.max(1, size)),
                 Sort.by("fullName"));
         log.info("Executing DB query | method=findByRoleOrderByFullNameAsc | param=MAKER");
         org.springframework.data.domain.Page<User> makers =
@@ -1064,6 +1233,8 @@ public class MisReportService {
         log.info("Executing DB query | method=countByCreatedByIdAndStatus | param=REJECTED uid={}", uid);
         long rejected = consentRepository.countByCreatedByIdAndStatus(uid, ConsentStatus.REJECTED);
         log.info("DB query completed | method=countByCreatedByIdAndStatus | size={}", rejected);
+        long drafts = consentRepository.countByCreatedByIdAndStatus(uid, ConsentStatus.DRAFT);
+        long revisions = consentRepository.countByCreatedByIdAndStatus(uid, ConsentStatus.REVISION_REQUESTED);
         log.info("Executing DB query | method=findByCreatedBy_IdOrderByCreatedAtDesc | param=uid={}", uid);
         List<Consent> mine = consentRepository.findByCreatedBy_IdOrderByCreatedAtDesc(uid)
                 .stream().limit(2000).toList();
@@ -1080,9 +1251,117 @@ public class MisReportService {
                 .userId(uid).fullName(u.getFullName()).email(u.getEmail()).role(u.getRole())
                 .totalConsentsCreated(total).pendingApprovals(pending)
                 .approvedOrPublished(approved).rejectedConsents(rejected)
+                .draftConsents(drafts).revisionRequested(revisions)
                 .averageProcessingHours(avgProc.isPresent() ? Math.round(avgProc.getAsDouble() * 10.0) / 10.0 : 0.0)
                 .sla24hSubmitCompliancePercent(slaPct)
                 .build();
+    }
+
+    private static final List<String> CHECKER_DECISION_ACTIONS = List.of("CONSENT_APPROVED", "CONSENT_REJECTED",
+            "CONSENT_REVISION_REQUESTED", "RULE_APPROVED", "RULE_REJECTED", "RULE_REVISION_REQUESTED",
+            "BROADCAST_APPROVED", "BROADCAST_REJECTED", "BROADCAST_REVISION_REQUESTED");
+
+    @Transactional(readOnly = true)
+    public List<com.consentiq.model.dto.response.mis.MisCheckerPerformanceRowResponse> getCheckerPerformance(
+            Instant from, Instant to) {
+        Instant f = from != null ? from : Instant.EPOCH;
+        Instant t = to != null ? to : Instant.now().plus(1, ChronoUnit.DAYS);
+        Map<Long, long[]> counts = new HashMap<>();
+        for (Object[] row : auditLogRepository.countCheckerDecisions(CHECKER_DECISION_ACTIONS, f, t)) {
+            Long uid = (Long) row[0];
+            String action = (String) row[1];
+            long n = ((Number) row[2]).longValue();
+            long[] c = counts.computeIfAbsent(uid, k -> new long[3]);
+            if (action.endsWith("_APPROVED")) c[0] += n;
+            else if (action.endsWith("_REJECTED")) c[1] += n;
+            else c[2] += n;
+        }
+        Map<Long, List<Double>> tat = new HashMap<>();
+        for (Consent c : consentRepository.findByReviewedAtIsNotNullAndSubmittedAtIsNotNull()) {
+            if (c.getReviewedBy() == null || c.getReviewedAt().isBefore(f) || c.getReviewedAt().isAfter(t)) continue;
+            double h = java.time.Duration.between(c.getSubmittedAt(), c.getReviewedAt()).getSeconds() / 3600.0;
+            if (h >= 0 && h < 1_000_000) tat.computeIfAbsent(c.getReviewedBy().getId(), k -> new ArrayList<>()).add(h);
+        }
+        List<com.consentiq.model.dto.response.mis.MisCheckerPerformanceRowResponse> out = new ArrayList<>();
+        for (User u : userRepository.findAll()) {
+            if (u.getRole() != UserRole.CHECKER && !counts.containsKey(u.getId())) continue;
+            long[] c = counts.getOrDefault(u.getId(), new long[3]);
+            OptionalDouble avg = tat.getOrDefault(u.getId(), List.of()).stream().mapToDouble(Double::doubleValue).average();
+            out.add(com.consentiq.model.dto.response.mis.MisCheckerPerformanceRowResponse.builder()
+                    .userId(u.getId()).fullName(u.getFullName()).email(u.getEmail())
+                    .approved(c[0]).rejected(c[1]).revisionRequested(c[2]).totalDecisions(c[0] + c[1] + c[2])
+                    .averageTatHours(avg.isPresent() ? round1(avg.getAsDouble()) : null)
+                    .build());
+        }
+        out.sort(Comparator.comparingLong(com.consentiq.model.dto.response.mis.MisCheckerPerformanceRowResponse::getTotalDecisions)
+                .reversed().thenComparing(r -> nz(r.getFullName())));
+        return out;
+    }
+
+    private static final List<String> CHECKER_EXPORT_HEADERS = List.of("Checker", "Email", "Approved", "Rejected",
+            "Revision Requested", "Total Decisions", "Avg TAT (hours)");
+
+    private List<List<String>> checkerExportRows(Instant from, Instant to) {
+        return getCheckerPerformance(from, to).stream().map(r -> java.util.Arrays.asList(
+                nz(r.getFullName()), nz(r.getEmail()), String.valueOf(r.getApproved()), String.valueOf(r.getRejected()),
+                String.valueOf(r.getRevisionRequested()), String.valueOf(r.getTotalDecisions()),
+                nz(r.getAverageTatHours()))).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] exportCheckerPerformanceCsv(Instant from, Instant to) throws java.io.IOException {
+        return MisReportExportUtil.writeCsv(String.join(",", CHECKER_EXPORT_HEADERS),
+                checkerExportRows(from, to).stream().map(r -> r.toArray(new String[0])).toList());
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] exportCheckerPerformanceExcel(Instant from, Instant to) throws java.io.IOException {
+        return MisReportExportUtil.writeXlsx("Checker performance", CHECKER_EXPORT_HEADERS, checkerExportRows(from, to));
+    }
+
+    private static final List<String> MAKER_EXPORT_HEADERS = List.of("Maker", "Email", "Created", "Draft",
+            "Pending", "Approved / Published", "Rejected", "Revision Requested", "Avg hours to submit",
+            "Submitted within 24h %");
+
+    private List<List<String>> makerExportRows() {
+        return getAgentPerformance(0, 500).getContent().stream().map(r -> java.util.Arrays.asList(
+                nz(r.getFullName()), nz(r.getEmail()), String.valueOf(r.getTotalConsentsCreated()),
+                String.valueOf(r.getDraftConsents()), String.valueOf(r.getPendingApprovals()),
+                String.valueOf(r.getApprovedOrPublished()), String.valueOf(r.getRejectedConsents()),
+                String.valueOf(r.getRevisionRequested()), String.valueOf(r.getAverageProcessingHours()),
+                String.valueOf(r.getSla24hSubmitCompliancePercent()))).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] exportMakerPerformanceCsv() throws java.io.IOException {
+        return MisReportExportUtil.writeCsv(String.join(",", MAKER_EXPORT_HEADERS),
+                makerExportRows().stream().map(r -> r.toArray(new String[0])).toList());
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] exportMakerPerformanceExcel() throws java.io.IOException {
+        return MisReportExportUtil.writeXlsx("Maker performance", MAKER_EXPORT_HEADERS, makerExportRows());
+    }
+
+    private static final List<String> CHANNEL_EXPORT_HEADERS = List.of("Channel", "Invites Sent", "Accepted",
+            "Declined / No response", "Success %", "Drop-off %");
+
+    private List<List<String>> channelExportRows() {
+        return getChannelPerformance().stream().map(r -> java.util.Arrays.asList(
+                nz(r.getChannel()), String.valueOf(r.getTotalInvitesSent()), String.valueOf(r.getAcceptedCount()),
+                String.valueOf(r.getDeclinedOrNoResponseCount()), String.valueOf(r.getSuccessRatePercent()),
+                String.valueOf(r.getDropOffPercent()))).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] exportChannelPerformanceCsv() throws java.io.IOException {
+        return MisReportExportUtil.writeCsv(String.join(",", CHANNEL_EXPORT_HEADERS),
+                channelExportRows().stream().map(r -> r.toArray(new String[0])).toList());
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] exportChannelPerformanceExcel() throws java.io.IOException {
+        return MisReportExportUtil.writeXlsx("Channel performance", CHANNEL_EXPORT_HEADERS, channelExportRows());
     }
 
     // ── TAT report ────────────────────────────────────────────────────────────
@@ -1147,9 +1426,22 @@ public class MisReportService {
     private static double round1(double v) { return Math.round(v * 10.0) / 10.0; }
 
     private Double tatHours(Consent c) {
-        if (c.getReviewedAt() == null || c.getCreatedAt() == null) return null;
-        double h = ChronoUnit.HOURS.between(c.getCreatedAt(), c.getReviewedAt());
-        return (h < 0 || h > 1_000_000) ? null : h;
+        if (c.getReviewedAt() == null || c.getSubmittedAt() == null) return null;
+        if (c.getStatus() == ConsentStatus.PENDING_APPROVAL || c.getStatus() == ConsentStatus.DRAFT) return null;
+        double h = java.time.Duration.between(c.getSubmittedAt(), c.getReviewedAt()).getSeconds() / 3600.0;
+        return (h < 0 || h > 1_000_000) ? null : round1(h);
+    }
+
+    private static final List<String> TAT_EXPORT_HEADERS = List.of("Consent ID", "Name", "Creator", "Status",
+            "Created At", "Submitted At", "Decided At", "TAT (hours)");
+
+    private List<List<String>> tatExportRows(List<Consent> consents) {
+        return consents.stream().map(c -> java.util.Arrays.asList(
+                nz(c.getConsentId()), nz(c.getConsentName()),
+                c.getCreatedBy() != null ? nz(c.getCreatedBy().getFullName()) : "",
+                c.getStatus() == null ? "" : c.getStatus().name(),
+                istTime(c.getCreatedAt()), istTime(c.getSubmittedAt()), istTime(c.getReviewedAt()),
+                nz(tatHours(c)))).toList();
     }
 
     private MisTatConsentRowResponse toTatRow(Consent c) {
@@ -1166,8 +1458,9 @@ public class MisReportService {
     private Specification<Consent> tatSpec(Instant from, Instant to, ConsentStatus status, Long creatorId) {
         return (root, query, cb) -> {
             List<Predicate> p = new ArrayList<>();
-            if (from != null) p.add(cb.greaterThanOrEqualTo(root.get("createdAt"), from));
-            if (to   != null) p.add(cb.lessThanOrEqualTo(root.get("createdAt"), to));
+            if (from != null) p.add(cb.greaterThanOrEqualTo(root.get("submittedAt"), from));
+            if (to   != null) p.add(cb.lessThanOrEqualTo(root.get("submittedAt"), to));
+            if (from != null || to != null) p.add(cb.isNotNull(root.get("submittedAt")));
             if (status != null) p.add(cb.equal(root.get("status"), status));
             if (creatorId != null) p.add(cb.equal(root.get("createdBy").get("id"), creatorId));
             return p.isEmpty() ? cb.conjunction() : cb.and(p.toArray(new Predicate[0]));
@@ -1185,14 +1478,8 @@ public class MisReportService {
         List<Consent> all = consentRepository.findAll(tatSpec(from, to, status, creatorId),
                 Sort.by(Sort.Direction.DESC, "updatedAt"));
         log.info("DB query completed | method=findAll | size={}", all.size());
-        List<String[]> rows = all.stream().map(c -> new String[]{
-                String.valueOf(c.getId()), c.getConsentId(), c.getConsentName(), c.getStatus().name(),
-                c.getCreatedAt()  == null ? "" : c.getCreatedAt().toString(),
-                c.getSubmittedAt() == null ? "" : c.getSubmittedAt().toString(),
-                c.getReviewedAt()  == null ? "" : c.getReviewedAt().toString(),
-                tatHours(c) == null ? "" : String.valueOf(tatHours(c))}).toList();
-        byte[] out = MisReportExportUtil.writeCsv(
-                "Consent DB ID,Consent ID,Name,Status,Created At,Submitted At,Reviewed At,Total TAT (hours)", rows);
+        List<String[]> rows = tatExportRows(all).stream().map(r -> r.toArray(new String[0])).toList();
+        byte[] out = MisReportExportUtil.writeCsv(String.join(",", TAT_EXPORT_HEADERS), rows);
         log.debug("Transaction completing | method=exportTatCsv | id={}", creatorId != null ? creatorId : "n/a");
         log.debug("Exiting exportTatCsv | bytes={}", out.length);
         return out;
@@ -1209,15 +1496,7 @@ public class MisReportService {
         List<Consent> all = consentRepository.findAll(tatSpec(from, to, status, creatorId),
                 Sort.by(Sort.Direction.DESC, "updatedAt"));
         log.info("DB query completed | method=findAll | size={}", all.size());
-        List<String> headers = List.of("Consent DB ID","Consent ID","Name","Status",
-                "Created At","Submitted At","Reviewed At","Total TAT (hours)");
-        List<List<String>> rows = all.stream().map(c -> List.of(
-                String.valueOf(c.getId()), c.getConsentId(), c.getConsentName(), c.getStatus().name(),
-                c.getCreatedAt()  == null ? "" : c.getCreatedAt().toString(),
-                c.getSubmittedAt() == null ? "" : c.getSubmittedAt().toString(),
-                c.getReviewedAt()  == null ? "" : c.getReviewedAt().toString(),
-                tatHours(c) == null ? "" : String.valueOf(tatHours(c)))).toList();
-        byte[] out = MisReportExportUtil.writeXlsx("TAT report", headers, rows);
+        byte[] out = MisReportExportUtil.writeXlsx("TAT report", TAT_EXPORT_HEADERS, tatExportRows(all));
         log.debug("Transaction completing | method=exportTatExcel | id={}", creatorId != null ? creatorId : "n/a");
         log.debug("Exiting exportTatExcel | bytes={}", out.length);
         return out;
@@ -1291,18 +1570,8 @@ public class MisReportService {
         log.info("DB query completed | method=countConsentsGroupedByCategory | size={}", byCategory.size());
 
         Specification<Consent> spec = consentInventorySpec(category, status, search);
-        String sb = sortBy == null ? "consentName" : sortBy.trim();
-        Sort.Direction dir = "DESC".equalsIgnoreCase(sortDirection == null ? "" : sortDirection.trim())
-                ? Sort.Direction.DESC : Sort.Direction.ASC;
-        String prop = switch (sb.toLowerCase(Locale.ROOT)) {
-            case "createdat", "created_at"   -> "createdAt";
-            case "status"                    -> "status";
-            case "category"                  -> "category";
-            case "publishedat", "published_at" -> "publishedAt";
-            default                          -> "consentName";
-        };
         Pageable pageable = PageRequest.of(Math.max(0, page), Math.min(100, Math.max(1, size)),
-                Sort.by(dir, prop));
+                inventorySort(sortBy, sortDirection));
         log.info("Executing DB query | method=findAll | param=Consent inventory spec");
         org.springframework.data.domain.Page<Consent> pg = consentRepository.findAll(spec, pageable);
         log.info("DB query completed | method=findAll | size={}", pg.getContent().size());
@@ -1323,9 +1592,47 @@ public class MisReportService {
         return out;
     }
 
+    private static Sort inventorySort(String sortBy, String sortDirection) {
+        String sb = sortBy == null ? "consentName" : sortBy.trim();
+        Sort.Direction dir = "DESC".equalsIgnoreCase(sortDirection == null ? "" : sortDirection.trim())
+                ? Sort.Direction.DESC : Sort.Direction.ASC;
+        String prop = switch (sb.toLowerCase(Locale.ROOT)) {
+            case "createdat", "created_at"   -> "createdAt";
+            case "status"                    -> "status";
+            case "category"                  -> "category";
+            case "publishedat", "published_at" -> "publishedAt";
+            case "consentid", "consent_id"   -> "consentId";
+            default                          -> "consentName";
+        };
+        return Sort.by(dir, prop).and(Sort.by(Sort.Direction.ASC, "id"));
+    }
+
+    private static final List<String> INVENTORY_EXPORT_HEADERS = List.of("Consent ID", "Name", "Category", "Status",
+            "Created At", "Delivery Channels", "Rule Executions", "Published At");
+
+    private List<List<String>> inventoryExportRows(List<Consent> consents, Map<Long, Long> execByConsent) {
+        return consents.stream().map(c -> {
+            MisConsentInventoryRowResponse r = toInventoryRow(c, execByConsent);
+            return java.util.Arrays.asList(nz(r.getConsentId()), nz(r.getConsentName()),
+                    r.getCategory() == null ? "" : r.getCategory().name(),
+                    r.getStatus() == null ? "" : r.getStatus().name(),
+                    istTime(r.getCreatedAt()),
+                    r.getDeliveryChannels() == null ? "" : String.join("; ", r.getDeliveryChannels()),
+                    String.valueOf(r.getTotalBroadcastExecutions()),
+                    istTime(r.getPublishedAt()));
+        }).toList();
+    }
+
     @Transactional(readOnly = true)
     public void exportConsentInventoryCsv(java.io.OutputStream outputStream,
             ConsentCategory category, ConsentStatus status, String search)
+            throws java.io.IOException {
+        exportConsentInventoryCsv(outputStream, category, status, search, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public void exportConsentInventoryCsv(java.io.OutputStream outputStream,
+            ConsentCategory category, ConsentStatus status, String search, String sortBy, String sortDirection)
             throws java.io.IOException {
         String cu = currentUser();
         log.debug("Entering exportConsentInventoryCsv | params: category={}, status={}", category, status);
@@ -1334,27 +1641,12 @@ public class MisReportService {
         Map<Long, Long> execByConsent = buildExecByConsent();
         log.info("Executing DB query | method=findAll | param=Consent inventory export csv");
         List<Consent> all = consentRepository.findAll(consentInventorySpec(category, status, search),
-                Sort.by(Sort.Direction.ASC, "consentName"));
+                inventorySort(sortBy, sortDirection));
         log.info("DB query completed | method=findAll | size={}", all.size());
-        try (java.io.OutputStreamWriter w = new java.io.OutputStreamWriter(
-                outputStream, java.nio.charset.StandardCharsets.UTF_8)) {
-            w.write("Consent DB ID,Consent ID,Name,Category,Status,Created At," +
-                    "Delivery Channels,Rule Executions,Published At\n");
-            for (Consent c : all) {
-                MisConsentInventoryRowResponse r = toInventoryRow(c, execByConsent);
-                w.write(MisReportExportUtil.csvEscape(String.valueOf(r.getConsentDbId()))); w.write(',');
-                w.write(MisReportExportUtil.csvEscape(r.getConsentId())); w.write(',');
-                w.write(MisReportExportUtil.csvEscape(r.getConsentName())); w.write(',');
-                w.write(MisReportExportUtil.csvEscape(r.getCategory().name())); w.write(',');
-                w.write(MisReportExportUtil.csvEscape(r.getStatus().name())); w.write(',');
-                w.write(MisReportExportUtil.csvEscape(r.getCreatedAt() == null ? "" : r.getCreatedAt().toString())); w.write(',');
-                w.write(MisReportExportUtil.csvEscape(String.join(";", r.getDeliveryChannels()))); w.write(',');
-                w.write(String.valueOf(r.getTotalBroadcastExecutions())); w.write(',');
-                w.write(MisReportExportUtil.csvEscape(r.getPublishedAt() == null ? "" : r.getPublishedAt().toString()));
-                w.write('\n');
-            }
-            w.flush();
-        }
+        List<String[]> rows = inventoryExportRows(all, execByConsent).stream()
+                .map(r -> r.toArray(new String[0])).toList();
+        outputStream.write(MisReportExportUtil.writeCsv(String.join(",", INVENTORY_EXPORT_HEADERS), rows));
+        outputStream.flush();
         log.debug("Transaction completing | method=exportConsentInventoryCsv | id=n/a");
         log.debug("Exiting exportConsentInventoryCsv | completed successfully");
     }
@@ -1362,6 +1654,12 @@ public class MisReportService {
     @Transactional(readOnly = true)
     public byte[] exportConsentInventoryExcel(ConsentCategory category, ConsentStatus status, String search)
             throws java.io.IOException {
+        return exportConsentInventoryExcel(category, status, search, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] exportConsentInventoryExcel(ConsentCategory category, ConsentStatus status, String search,
+            String sortBy, String sortDirection) throws java.io.IOException {
         String cu = currentUser();
         log.debug("Entering exportConsentInventoryExcel | params: category={}, status={}", category, status);
         log.info("User={} | action=exportConsentInventoryExcel | entity=Consent | id=n/a", cu);
@@ -1369,20 +1667,10 @@ public class MisReportService {
         Map<Long, Long> execByConsent = buildExecByConsent();
         log.info("Executing DB query | method=findAll | param=Consent inventory export excel");
         List<Consent> all = consentRepository.findAll(consentInventorySpec(category, status, search),
-                Sort.by(Sort.Direction.ASC, "consentName"));
+                inventorySort(sortBy, sortDirection));
         log.info("DB query completed | method=findAll | size={}", all.size());
-        List<String> headers = List.of("Consent DB ID","Consent ID","Name","Category","Status",
-                "Created At","Delivery Channels","Rule Executions","Published At");
-        List<List<String>> rows = all.stream().map(c -> {
-            MisConsentInventoryRowResponse r = toInventoryRow(c, execByConsent);
-            return List.of(String.valueOf(r.getConsentDbId()), r.getConsentId(), r.getConsentName(),
-                    r.getCategory().name(), r.getStatus().name(),
-                    r.getCreatedAt() == null ? "" : r.getCreatedAt().toString(),
-                    String.join("; ", r.getDeliveryChannels()),
-                    String.valueOf(r.getTotalBroadcastExecutions()),
-                    r.getPublishedAt() == null ? "" : r.getPublishedAt().toString());
-        }).toList();
-        byte[] out = MisReportExportUtil.writeXlsx("Consent inventory", headers, rows);
+        byte[] out = MisReportExportUtil.writeXlsx("Consent inventory", INVENTORY_EXPORT_HEADERS,
+                inventoryExportRows(all, execByConsent));
         log.debug("Transaction completing | method=exportConsentInventoryExcel | id=n/a");
         log.debug("Exiting exportConsentInventoryExcel | bytes={}", out.length);
         return out;
@@ -1520,9 +1808,9 @@ public class MisReportService {
         log.debug("Transaction started | method=exportChannelTemplatePerformanceCsv | id=n/a");
         List<MisChannelTemplatePerformanceRowResponse> rows = getChannelTemplatePerformance(channelFilter);
         byte[] out = MisReportExportUtil.writeCsv(
-                "Channel,Consent DB ID,Consent ID,Name,Invites,Accepted,Declined/Pending,Success %",
-                rows.stream().map(r -> new String[]{r.getChannel(),
-                        String.valueOf(r.getConsentDbId()), r.getConsentId(), r.getConsentName(),
+                "Channel,Consent ID,Name,Invites,Accepted,Declined/Pending,Success %",
+                rows.stream().map(r -> new String[]{nz(r.getChannel()),
+                        nz(r.getConsentId()), nz(r.getConsentName()),
                         String.valueOf(r.getInvitesSent()), String.valueOf(r.getAcceptedCount()),
                         String.valueOf(r.getDeclinedOrPendingCount()), String.valueOf(r.getSuccessRatePercent())
                 }).toList());
@@ -1538,10 +1826,10 @@ public class MisReportService {
         log.info("User={} | action=exportChannelTemplatePerformanceExcel | entity=Consent | id=n/a", cu);
         log.debug("Transaction started | method=exportChannelTemplatePerformanceExcel | id=n/a");
         List<MisChannelTemplatePerformanceRowResponse> rows = getChannelTemplatePerformance(channelFilter);
-        List<String> headers = List.of("Channel","Consent DB ID","Consent ID","Name",
+        List<String> headers = List.of("Channel","Consent ID","Name",
                 "Invites","Accepted","Declined/Pending","Success %");
-        List<List<String>> lines = rows.stream().map(r -> List.of(r.getChannel(),
-                String.valueOf(r.getConsentDbId()), r.getConsentId(), r.getConsentName(),
+        List<List<String>> lines = rows.stream().map(r -> java.util.Arrays.asList(nz(r.getChannel()),
+                nz(r.getConsentId()), nz(r.getConsentName()),
                 String.valueOf(r.getInvitesSent()), String.valueOf(r.getAcceptedCount()),
                 String.valueOf(r.getDeclinedOrPendingCount()), String.valueOf(r.getSuccessRatePercent()))).toList();
         byte[] out = MisReportExportUtil.writeXlsx("Channel template performance", headers, lines);
@@ -1580,6 +1868,25 @@ public class MisReportService {
         log.debug("Transaction completing | method=getConsentPerformanceLeaderboard | id=n/a");
         log.debug("Exiting getConsentPerformanceLeaderboard | totalElements={}", out.getTotalElements());
         return out;
+    }
+
+    private static final int MIN_INVITES_FOR_ACCEPTANCE_RANK = 5;
+
+    private static final List<String> LEADERBOARD_EXPORT_HEADERS = List.of("Rank", "Consent ID", "Name",
+            "Distinct Reach", "Invites Sent", "Accepted", "Acceptance %", "Re-engagement %", "Rule Runs",
+            "Avg hours to accept");
+
+    private static List<List<String>> leaderboardExportRows(List<MisConsentPerformanceLeaderboardRowResponse> all) {
+        List<List<String>> rows = new ArrayList<>();
+        int rank = 1;
+        for (MisConsentPerformanceLeaderboardRowResponse r : all) {
+            rows.add(java.util.Arrays.asList(String.valueOf(rank++), nz(r.getConsentId()), nz(r.getConsentName()),
+                    String.valueOf(r.getDistinctCustomersReached()), String.valueOf(r.getTotalRecipientsInvited()),
+                    String.valueOf(r.getTotalAccepted()), String.valueOf(r.getAcceptanceRatePercent()),
+                    String.valueOf(r.getReEngagementRatePercent()), String.valueOf(r.getTotalBroadcastExecutions()),
+                    nz(r.getAverageHoursToAccept())));
+        }
+        return rows;
     }
 
     private List<MisConsentPerformanceLeaderboardRowResponse> buildSortedLeaderboardRows(String sort) {
@@ -1638,7 +1945,8 @@ public class MisReportService {
                     .collect(Collectors.toList());
             rows.add(MisConsentPerformanceLeaderboardRowResponse.builder()
                     .consentDbId(c.getId()).consentId(c.getConsentId()).consentName(c.getConsentName())
-                    .totalBroadcastExecutions(execs).totalRecipientsInvited(a.invites).totalAccepted(a.accepted)
+                    .totalBroadcastExecutions(execs).totalRecipientsInvited(a.invites)
+                    .distinctCustomersReached(distinctCustomers).totalAccepted(a.accepted)
                     .acceptanceRatePercent(acceptRate).reEngagementRatePercent(reRate)
                     .averageHoursToAccept(avgH.isPresent() ? Math.round(avgH.getAsDouble() * 10.0) / 10.0 : null)
                     .channelSplits(splits).build());
@@ -1646,12 +1954,14 @@ public class MisReportService {
         String s = sort == null ? "REACH" : sort.trim().toUpperCase(Locale.ROOT);
         Comparator<MisConsentPerformanceLeaderboardRowResponse> cmp = switch (s) {
             case "ACCEPTANCE" ->
-                    Comparator.comparingDouble(MisConsentPerformanceLeaderboardRowResponse::getAcceptanceRatePercent).reversed();
+                    Comparator.comparing((MisConsentPerformanceLeaderboardRowResponse r) -> r.getTotalRecipientsInvited() < MIN_INVITES_FOR_ACCEPTANCE_RANK)
+                            .thenComparing(Comparator.comparingDouble(MisConsentPerformanceLeaderboardRowResponse::getAcceptanceRatePercent).reversed())
+                            .thenComparing(Comparator.comparingLong(MisConsentPerformanceLeaderboardRowResponse::getTotalRecipientsInvited).reversed());
             case "REENGAGEMENT", "RE_ENGAGEMENT" ->
                     Comparator.comparingDouble(MisConsentPerformanceLeaderboardRowResponse::getReEngagementRatePercent).reversed();
             default ->
-                    Comparator.comparingLong((MisConsentPerformanceLeaderboardRowResponse r) ->
-                            r.getTotalBroadcastExecutions() + r.getTotalRecipientsInvited()).reversed();
+                    Comparator.comparingLong(MisConsentPerformanceLeaderboardRowResponse::getDistinctCustomersReached).reversed()
+                            .thenComparing(Comparator.comparingLong(MisConsentPerformanceLeaderboardRowResponse::getTotalRecipientsInvited).reversed());
         };
         rows.sort(cmp.thenComparing(MisConsentPerformanceLeaderboardRowResponse::getConsentName));
         return rows;
@@ -1664,18 +1974,8 @@ public class MisReportService {
         log.info("User={} | action=exportConsentPerformanceLeaderboardExcel | entity=Consent | id=n/a", cu);
         log.debug("Transaction started | method=exportConsentPerformanceLeaderboardExcel | id=n/a");
         List<MisConsentPerformanceLeaderboardRowResponse> all = buildSortedLeaderboardRows(sort);
-        List<String> headers = List.of("Rank","Consent ID","Name","Rule Executions",
-                "Recipients","Accepted","Acceptance %","Re-engagement %","Avg hours to accept");
-        List<List<String>> rows = new ArrayList<>();
-        int rank = 1;
-        for (MisConsentPerformanceLeaderboardRowResponse r : all) {
-            rows.add(List.of(String.valueOf(rank++), r.getConsentId(), r.getConsentName(),
-                    String.valueOf(r.getTotalBroadcastExecutions()),
-                    String.valueOf(r.getTotalRecipientsInvited()), String.valueOf(r.getTotalAccepted()),
-                    String.valueOf(r.getAcceptanceRatePercent()), String.valueOf(r.getReEngagementRatePercent()),
-                    r.getAverageHoursToAccept() == null ? "" : String.valueOf(r.getAverageHoursToAccept())));
-        }
-        byte[] out = MisReportExportUtil.writeXlsx("Consent performance leaderboard", headers, rows);
+        byte[] out = MisReportExportUtil.writeXlsx("Consent performance leaderboard", LEADERBOARD_EXPORT_HEADERS,
+                leaderboardExportRows(all));
         log.debug("Transaction completing | method=exportConsentPerformanceLeaderboardExcel | id=n/a");
         log.debug("Exiting exportConsentPerformanceLeaderboardExcel | bytes={}", out.length);
         return out;
@@ -1688,18 +1988,8 @@ public class MisReportService {
         log.info("User={} | action=exportConsentPerformanceLeaderboardCsv | entity=Consent | id=n/a", cu);
         log.debug("Transaction started | method=exportConsentPerformanceLeaderboardCsv | id=n/a");
         List<MisConsentPerformanceLeaderboardRowResponse> all = buildSortedLeaderboardRows(sort);
-        List<String[]> rows = new ArrayList<>();
-        int rank = 1;
-        for (MisConsentPerformanceLeaderboardRowResponse r : all) {
-            rows.add(new String[]{String.valueOf(rank++), r.getConsentId(), r.getConsentName(),
-                    String.valueOf(r.getTotalBroadcastExecutions()),
-                    String.valueOf(r.getTotalRecipientsInvited()), String.valueOf(r.getTotalAccepted()),
-                    String.valueOf(r.getAcceptanceRatePercent()), String.valueOf(r.getReEngagementRatePercent()),
-                    r.getAverageHoursToAccept() == null ? "" : String.valueOf(r.getAverageHoursToAccept())});
-        }
-        byte[] out = MisReportExportUtil.writeCsv(
-                "Rank,Consent ID,Name,Rule Executions,Recipients,Accepted,Acceptance %,Re-engagement %,Avg hours to accept",
-                rows);
+        List<String[]> rows = leaderboardExportRows(all).stream().map(r -> r.toArray(new String[0])).toList();
+        byte[] out = MisReportExportUtil.writeCsv(String.join(",", LEADERBOARD_EXPORT_HEADERS), rows);
         log.debug("Transaction completing | method=exportConsentPerformanceLeaderboardCsv | id=n/a");
         log.debug("Exiting exportConsentPerformanceLeaderboardCsv | bytes={}", out.length);
         return out;

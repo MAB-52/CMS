@@ -134,6 +134,11 @@
 ::ng-deep .um-form .mr-field:nth-child(4) { animation-delay: 150ms; }
 ::ng-deep .um-label { font-size: var(--is-fs-title); line-height: var(--is-lh-title); font-weight: var(--is-fw-bold); color: var(--is-text); }
 ::ng-deep .um-req { color: var(--is-danger); }
+::ng-deep .um-note { display: block; margin-top: -4px; }
+::ng-deep .um-note .p-message-text { font-size: var(--is-fs-xs); line-height: 1.45; }
+::ng-deep .um-roles--locked .um-role-card:disabled { opacity: 0.45; cursor: not-allowed; filter: grayscale(0.6); }
+::ng-deep .um-roles--locked .um-role-card--on { cursor: default; }
+::ng-deep .um-hint .pi { font-size: 10px; margin-right: 2px; }
 ::ng-deep .um-hint { margin-left: 4px; font-size: var(--is-fs-xs); font-weight: var(--is-fw-regular); color: var(--is-text-2); }
 ::ng-deep .um-form .um-input,
 ::ng-deep .um-form .um-input input { width: 100%; font-family: var(--is-font); }

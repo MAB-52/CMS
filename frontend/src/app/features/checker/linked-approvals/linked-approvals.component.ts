@@ -48,6 +48,8 @@ export class LinkedApprovalsComponent implements OnInit {
   readonly sortAsc = signal(false); // false = descending (Date ↓ default)
 
   // ── Derived filtered + sorted list ──────────────────────────────────────
+  readonly pendingCount = computed(() => this.list().filter((c) => c.status === 'PENDING_APPROVAL').length);
+
   readonly filteredList = computed<Consent[]>(() => {
     const q = this.searchQuery().trim().toLowerCase();
     const sort = this.sortBy();

@@ -108,16 +108,17 @@
       [rows]="size()" [first]="page() * size()" [totalRecords]="totalElements()" [rowsPerPageOptions]="[15, 30, 50]"
       paginatorDropdownAppendTo="body" [showCurrentPageReport]="true"
       currentPageReportTemplate="Showing {first}–{last} of {totalRecords}" [expandedRowKeys]="expandedRows"
-      [rowHover]="true" styleClass="mr-table at-table" [tableStyle]="{ 'min-width': '68rem', 'table-layout': 'fixed' }">
+      [rowHover]="true" [scrollable]="true" styleClass="mr-table at-table"
+      [tableStyle]="{ 'min-width': '76rem', 'table-layout': 'fixed' }">
       <ng-template #colgroup>
         <colgroup>
-          <col style="width: 17%" />
-          <col style="width: 20%" />
-          <col style="width: 19%" />
-          <col style="width: 14%" />
-          <col style="width: 14%" />
-          <col style="width: 10%" />
-          <col style="width: 6%" />
+          <col style="width: 11rem" />
+          <col />
+          <col style="width: 14rem" />
+          <col style="width: 9.5rem" />
+          <col style="width: 12rem" />
+          <col style="width: 10rem" />
+          <col style="width: 4rem" />
         </colgroup>
       </ng-template>
 
@@ -154,6 +155,9 @@
               <div class="mr-stack">
                 <span class="mr-strong at-ellipsis">{{ e.entityName || '—' }}</span>
                 <span class="at-item__type">{{ en.label }}@if (e.entityId != null) { · #{{ e.entityId }} }</span>
+                @if (e.linked) {
+                <span class="at-linked" pTooltip="Part of a linked consent + rule pair" tooltipPosition="top"><i class="pi pi-link"></i>Linked consent + rule</span>
+                }
               </div>
             </div>
           </td>
@@ -165,14 +169,21 @@
             <div class="mr-person">
               <p-avatar [label]="initials(e.checkerName)" shape="circle" styleClass="mr-avatar at-avatar"
                 [style]="{ background: avatarColor(e.checkerName) }" />
-              <span class="mr-strong at-ellipsis">{{ e.checkerName }}</span>
+              <div class="mr-stack">
+                <span class="mr-strong at-ellipsis">{{ e.checkerName }}</span>
+                <span class="at-role">Checker</span>
+              </div>
             </div>
             } @else {
             <span class="at-none">—</span>
             }
           </td>
           <td [pTooltip]="(e.performedAt | date: 'EEEE, dd MMMM yyyy, hh:mm:ss a') ?? ''" tooltipPosition="top">
-            <span class="at-ago"><i class="pi pi-clock"></i>{{ relative(e.performedAt) }}</span>
+            <div class="at-when">
+              <p-tag [value]="relative(e.performedAt)" icon="pi pi-clock" severity="secondary" [rounded]="true"
+                styleClass="at-ago" />
+              <span class="mr-rel">{{ e.performedAt | date: 'dd MMM, hh:mm a' }}</span>
+            </div>
           </td>
           <td class="at-toggle-cell">
             <p-button type="button" [pRowToggler]="e" icon="pi pi-chevron-down" [text]="true" [rounded]="true"

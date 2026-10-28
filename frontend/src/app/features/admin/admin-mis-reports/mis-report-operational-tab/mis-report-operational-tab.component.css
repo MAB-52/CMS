@@ -63,6 +63,7 @@
 .op-count[data-t='warn'] { --t: var(--is-warning-text); --t-bg: var(--is-warning-bg); }
 .op-count[data-t='success'] { --t: var(--is-success-text); --t-bg: var(--is-success-bg); }
 .op-count[data-t='danger'] { --t: var(--is-danger-text); --t-bg: var(--is-danger-bg); }
+.op-count[data-t='neutral'] { --t: var(--is-text-2); --t-bg: var(--is-neutral-bg); }
 .op-unit { margin-left: 2px; font-size: var(--is-fs-xs); font-weight: var(--is-fw-bold); color: var(--is-text-2); }
 
 /* ── Turnaround ────────────────────────────────────────── */

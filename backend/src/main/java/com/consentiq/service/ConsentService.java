@@ -1139,6 +1139,7 @@ public class ConsentService {
     private final ConsentRuleService consentRuleService;
     private final ConsentContentPersistenceService consentContentPersistenceService;
     private final ConsentChannelRenderService consentChannelRenderService;
+    private final com.consentiq.repository.AuditLogRepository auditLogRepository;
 
     @Transactional
     public ConsentResponse createConsent(ConsentCreateRequest request, Long userId, HttpServletRequest http) {
@@ -1365,7 +1366,10 @@ public class ConsentService {
         }
         User user = loadUser(userId);
         Map<String, Map<String, String>> changed = computeDiff(consent, request);
-        saveVersionSnapshot(consent, user, changed);
+        changed.putAll(translationDiff(consent, request));
+        if (!changed.isEmpty()) {
+            saveVersionSnapshot(consent, user, changed);
+        }
         applyUpdates(consent, request);
         log.info("Executing DB query | method=save | param=Consent");
         Consent saved = consentRepository.save(consent);
@@ -1379,14 +1383,16 @@ public class ConsentService {
             }
         }
 
-        auditService.log(
-                userId,
-                "CONSENT_DRAFT_SAVED",
-                "CONSENT",
-                saved.getId(),
-                saved.getConsentName(),
-                "Draft saved",
-                http);
+        if (!changed.isEmpty()) {
+            auditService.log(
+                    userId,
+                    "CONSENT_DRAFT_SAVED",
+                    "CONSENT",
+                    saved.getId(),
+                    saved.getConsentName(),
+                    "Edited: " + changed.keySet().stream().map(this::labelForField).collect(Collectors.joining(", ")),
+                    http);
+        }
         log.debug("Transaction completing | method=saveDraft | id={}", saved.getConsentId());
         log.debug("Exiting saveDraft | consentId={}", saved.getConsentId());
         return ConsentMapper.toResponse(saved);
@@ -1401,6 +1407,9 @@ public class ConsentService {
         // Locked read: a double-click's second request waits here, then sees PENDING_APPROVAL and is rejected
         Consent consent = consentRepository.findByIdForUpdate(dbId).orElseThrow(() -> new ConsentNotFoundException(dbId));
         validateOwner(consent, userId);
+        if (consent.isLinkedRuleIntent() && consent.getLinkedRule() != null) {
+            return submitLinkedConsentAndRule(dbId, userId, http).getConsent();
+        }
         if (consent.getStatus() != ConsentStatus.DRAFT && consent.getStatus() != ConsentStatus.REVISION_REQUESTED) {
             throw new InvalidConsentStateException(consent.getStatus().name(), "SUBMIT");
         }
@@ -1416,8 +1425,10 @@ public class ConsentService {
         if (!anyChannel) {
             throw new IllegalArgumentException("At least one delivery channel must be selected");
         }
+        boolean resubmission = consent.getStatus() == ConsentStatus.REVISION_REQUESTED;
         consent.setStatus(ConsentStatus.PENDING_APPROVAL);
         consent.setSubmittedAt(Instant.now());
+        consent.setReviewedAt(null);
         log.info("Executing DB query | method=save | param=Consent");
         Consent saved = consentRepository.save(consent);
         log.info("DB query completed | method=save | completed=true");
@@ -1427,7 +1438,7 @@ public class ConsentService {
                 "CONSENT",
                 saved.getId(),
                 saved.getConsentName(),
-                "Submitted for approval",
+                resubmission ? "Resubmitted for approval after revision" : "Submitted for approval",
                 http);
         log.debug("Transaction completing | method=submitForApproval | id={}", saved.getConsentId());
         log.debug("Exiting submitForApproval | consentId={}", saved.getConsentId());
@@ -1462,8 +1473,10 @@ public class ConsentService {
         if (!anyChannel) {
             throw new IllegalArgumentException("At least one delivery channel must be selected");
         }
+        boolean resubmission = consent.getStatus() == ConsentStatus.REVISION_REQUESTED;
         consent.setStatus(ConsentStatus.PENDING_APPROVAL);
         consent.setSubmittedAt(Instant.now());
+        consent.setReviewedAt(null);
         log.info("Executing DB query | method=save | param=Consent");
         Consent savedConsent = consentRepository.save(consent);
         log.info("DB query completed | method=save | completed=true");
@@ -1473,7 +1486,7 @@ public class ConsentService {
                 "CONSENT",
                 savedConsent.getId(),
                 savedConsent.getConsentName(),
-                "Linked consent submitted for approval",
+                resubmission ? "Linked consent resubmitted for approval after revision" : "Linked consent submitted for approval",
                 http);
 
         ConsentRule linked = savedConsent.getLinkedRule();
@@ -1558,20 +1571,35 @@ public class ConsentService {
                 consent.setReviewedAt(approvedAt);
                 consent.setRejectionReason(null);
                 consent.setApproveReason(approveReason);
-                auditService.log(
+                consent.setRevisionMessage(null);
+                consent.setRevisionFlaggedCombinations(null);
+                auditService.logAt(
                         checkerId,
                         "CONSENT_APPROVED",
                         "CONSENT",
                         consent.getId(),
                         consent.getConsentName(),
-                        buildAuditDescription("Approved by checker", request.getReviewedCombinations(), null),
-                        http);
+                        buildAuditDescription(linkedPrefix(consent) + "Approved: " + approveReason, request.getReviewedCombinations(), null),
+                        http,
+                        approvedAt);
+                auditService.logAt(
+                        checkerId,
+                        "CONSENT_PUBLISHED",
+                        "CONSENT",
+                        consent.getId(),
+                        consent.getConsentName(),
+                        linkedPrefix(consent) + "Auto-published on approval; available for customer invites",
+                        http,
+                        approvedAt.plusMillis(1));
             }
             case "REJECT" -> {
+                assertAllCombinationsReviewed(consent, request.getReviewedCombinations());
                 String reason = ReviewReasonUtil.require(
                         request.getReason(), ReviewReasonUtil.REJECT_MIN, "Rejection reason");
                 consent.setStatus(ConsentStatus.REJECTED);
                 consent.setRejectionReason(reason);
+                consent.setRevisionMessage(null);
+                consent.setRevisionFlaggedCombinations(null);
                 consent.setReviewedBy(checker);
                 consent.setReviewedAt(Instant.now());
                 auditService.log(
@@ -1580,11 +1608,12 @@ public class ConsentService {
                         "CONSENT",
                         consent.getId(),
                         consent.getConsentName(),
-                        buildAuditDescription(request.getReason(), request.getReviewedCombinations(), null),
+                        buildAuditDescription(linkedPrefix(consent) + "Rejected: " + reason, request.getReviewedCombinations(), null),
                         http);
-                cascadeLinkedRuleOnConsentReject(consent, request.getReason().trim(), checker, checkerId, http);
+                cascadeLinkedRuleOnConsentReject(consent, reason, checker, checkerId, http);
             }
             case "REQUEST_REVISION" -> {
+                assertAllCombinationsReviewed(consent, request.getReviewedCombinations());
                 String revisionMessage = ReviewReasonUtil.require(
                         request.getRevisionMessage(), ReviewReasonUtil.REVISION_MIN, "Revision message");
                 consent.setStatus(ConsentStatus.REVISION_REQUESTED);
@@ -1612,12 +1641,12 @@ public class ConsentService {
                         consent.getId(),
                         consent.getConsentName(),
                         buildAuditDescription(
-                                request.getRevisionMessage(),
+                                linkedPrefix(consent) + "Revision requested: " + revisionMessage,
                                 request.getReviewedCombinations(),
                                 request.getFlaggedCombinations()),
                         http);
                 cascadeLinkedRuleOnConsentRevision(
-                        consent, request.getRevisionMessage().trim(), checker, checkerId, http);
+                        consent, revisionMessage, checker, checkerId, http);
             }
             default -> throw new IllegalArgumentException(
                     "Unknown action '"
@@ -1631,7 +1660,7 @@ public class ConsentService {
             Long linkedRuleId = saved.getLinkedRule().getId();
             consentRuleService.autoLinkTemplateOnConsentApproval(saved.getId());
             consentRuleService.approveLinkedRuleAfterConsentApproval(
-                    linkedRuleId, checker, checkerId, request.getApproveReason(), http
+                    linkedRuleId, checker, checkerId, saved.getApproveReason(), http
             );
         }
         log.debug("Transaction completing | method=reviewConsent | id={}", saved.getConsentId());
@@ -1682,6 +1711,10 @@ public class ConsentService {
 //        return s == null ? "" : s.replace("\\", "\\\\").replace("\"", "\\\"");
 //    }
     
+    private static String linkedPrefix(Consent consent) {
+        return consent.isLinkedRuleIntent() && consent.getLinkedRule() != null ? "Linked consent + rule · " : "";
+    }
+
     private String buildAuditDescription(
             String baseText,
             List<ChannelLanguageComboDto> reviewed,
@@ -1700,12 +1733,30 @@ public class ConsentService {
         log.info("User={} | action=getConsentDiff | entity=Consent | id={}", cu, dbId);
         log.debug("Transaction started | method=getConsentDiff | id={}", dbId);
         Consent consent = findConsent(dbId);
-        log.info("Executing DB query | method=findTopByConsent_IdOrderByChangedAtDesc | param=dbId={}", dbId);
-        ConsentVersion latest =
-                consentVersionRepository
-                        .findTopByConsent_IdOrderByChangedAtDesc(dbId)
-                        .orElse(null);
-        log.info("DB query completed | method=findTopByConsent_IdOrderByChangedAtDesc | present={}", latest != null);
+        log.info("Executing DB query | method=findByConsent_IdOrderByChangedAtDesc | param=dbId={}", dbId);
+        List<ConsentVersion> versions = consentVersionRepository.findByConsent_IdOrderByChangedAtDesc(dbId).stream()
+                .filter(v -> v.getChangedFields() != null && !v.getChangedFields().isEmpty())
+                .toList();
+        log.info("DB query completed | method=findByConsent_IdOrderByChangedAtDesc | size={}", versions.size());
+        Instant lastDecisionAt = auditLogRepository.findLastConsentDecisionAt(dbId);
+        Map<String, Map<String, String>> merged = new LinkedHashMap<>();
+        if (lastDecisionAt != null) {
+            List<ConsentVersion> sinceDecision = versions.stream()
+                    .filter(v -> v.getChangedAt() != null && v.getChangedAt().isAfter(lastDecisionAt))
+                    .toList();
+            for (int i = sinceDecision.size() - 1; i >= 0; i--) {
+                for (Map.Entry<String, Map<String, String>> e : sinceDecision.get(i).getChangedFields().entrySet()) {
+                    Map<String, String> prev = merged.get(e.getKey());
+                    String oldV = prev != null ? prev.getOrDefault("old", "") : e.getValue().getOrDefault("old", "");
+                    merged.put(e.getKey(), Map.of("old", oldV, "new", e.getValue().getOrDefault("new", "")));
+                }
+            }
+            merged.values().removeIf(pair -> Objects.equals(pair.get("old"), pair.get("new")));
+        } else if (!versions.isEmpty()) {
+            merged.putAll(versions.get(0).getChangedFields());
+        }
+        ConsentVersion latest = merged.isEmpty() ? null
+                : ConsentVersion.builder().changedFields(merged).build();
         if (latest == null || latest.getChangedFields() == null || latest.getChangedFields().isEmpty()) {
             log.debug("Transaction completing | method=getConsentDiff | id={}", dbId);
             log.debug("Exiting getConsentDiff | dbId={}, changes=0", dbId);
@@ -2088,7 +2139,7 @@ public class ConsentService {
             }
             for (String lang : langs) {
                 if (!seen.contains(channel + "::" + lang)) {
-                    throw new IllegalArgumentException("Review every channel and language preview before approving.");
+                    throw new IllegalArgumentException("Review every channel and language preview before making a decision.");
                 }
             }
         }
@@ -2153,7 +2204,7 @@ public class ConsentService {
                 "CONSENT_RULE",
                 rule.getId(),
                 rule.getRuleName(),
-                checkerReason,
+                "Linked consent + rule · Rejected: " + checkerReason,
                 http);
     }
 
@@ -2174,7 +2225,7 @@ public class ConsentService {
                 "CONSENT_RULE",
                 rule.getId(),
                 rule.getRuleName(),
-                checkerRevisionMessage,
+                "Linked consent + rule · Revision requested: " + checkerRevisionMessage,
                 http);
     }
 
@@ -2292,6 +2343,30 @@ public class ConsentService {
         return map;
     }
 
+    private Map<String, Map<String, String>> translationDiff(Consent consent, ConsentUpdateRequest r) {
+        Map<String, Map<String, String>> map = new LinkedHashMap<>();
+        if (r.getTranslations() == null || r.getTranslations().isEmpty()) {
+            return map;
+        }
+        Map<String, String> existing = new HashMap<>();
+        for (ConsentTranslation t : consentContentPersistenceService.loadTranslations(consent.getId())) {
+            if (t.getLanguageCode() != null) {
+                existing.put(t.getLanguageCode().trim().toLowerCase(Locale.ROOT), str(t.getContent()));
+            }
+        }
+        for (var in : r.getTranslations()) {
+            if (!StringUtils.hasText(in.getLanguageCode())) {
+                continue;
+            }
+            String lang = in.getLanguageCode().trim().toLowerCase(Locale.ROOT);
+            if ("en".equals(lang)) {
+                continue;
+            }
+            putIfChanged(map, "translation:" + lang, existing.get(lang), str(in.getContent()));
+        }
+        return map;
+    }
+
     private void putIfChanged(Map<String, Map<String, String>> map, String key, String oldV, String newV) {
         if (!Objects.equals(oldV, newV)) {
             map.put(key, Map.of("old", oldV == null ? "" : oldV, "new", newV == null ? "" : newV));
@@ -2314,7 +2389,14 @@ public class ConsentService {
             case "deliveryChannels" -> "Delivery Channels";
             case "tagsUsed" -> "Tags Used";
             case "searchTags" -> "Search Tags";
-            default -> field;
+            case "channelEmail" -> "Email Channel";
+            case "channelSms" -> "SMS Channel";
+            case "channelPush" -> "Push Channel";
+            case "channelWhatsapp" -> "WhatsApp Channel";
+            case "channelRcs" -> "RCS Channel";
+            default -> field.startsWith("translation:")
+                    ? "Translation (" + field.substring("translation:".length()).toUpperCase(Locale.ROOT) + ")"
+                    : field;
         };
     }
 

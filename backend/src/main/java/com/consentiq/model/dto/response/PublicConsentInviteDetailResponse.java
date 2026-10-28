@@ -46,4 +46,16 @@ public class PublicConsentInviteDetailResponse {
      */
     private List<String> availableChannels;
     private Integer validityPeriodDays;
+    private List<Translation> translations;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Translation {
+        private String languageCode;
+        private String label;
+        private boolean rtl;
+        private String html;
+    }
 }

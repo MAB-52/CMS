@@ -47,6 +47,18 @@ public class AuditService {
 	@Async("auditExecutor")
 	public void log(Long userId, String action, String entityType, Long entityId, String entityName, String description,
 			HttpServletRequest request) {
+		write(userId, action, entityType, entityId, entityName, description, request, Instant.now());
+	}
+
+	@Async("auditExecutor")
+	public void logAt(Long userId, String action, String entityType, Long entityId, String entityName,
+			String description, HttpServletRequest request, Instant performedAt) {
+		write(userId, action, entityType, entityId, entityName, description, request,
+				performedAt != null ? performedAt : Instant.now());
+	}
+
+	private void write(Long userId, String action, String entityType, Long entityId, String entityName,
+			String description, HttpServletRequest request, Instant performedAt) {
 		String cu = currentUser();
 		log.debug("Entering log | params: userId={} | action={} | entityType={} | entityId={}", userId, action,
 				entityType, entityId);
@@ -58,7 +70,7 @@ public class AuditService {
 			log.info("DB query completed | method=findById | present=true");
 			String ip = extractIp(request);
 			AuditLog entry = AuditLog.builder().user(user).action(action).entityType(entityType).entityId(entityId)
-					.entityName(entityName).description(description).ipAddress(ip).performedAt(Instant.now()).build();
+					.entityName(entityName).description(description).ipAddress(ip).performedAt(performedAt).build();
 			log.info("Executing DB query | method=save | param=action={}", action);
 			auditLogRepository.save(entry);
 			log.info("DB query completed | method=save | completed");
@@ -98,7 +110,7 @@ public class AuditService {
 //	}
 
 	private static final List<String> CHECKER_DECISION_ACTIONS = List.of("CONSENT_APPROVED", "CONSENT_REJECTED",
-			"CONSENT_REVISION_REQUESTED", "CONSENT_PUBLISHED", "BROADCAST_APPROVED", "BROADCAST_REJECTED",
+			"CONSENT_REVISION_REQUESTED", "BROADCAST_APPROVED", "BROADCAST_REJECTED",
 			"BROADCAST_REVISION_REQUESTED", "RULE_APPROVED", "RULE_REJECTED", "RULE_REVISION_REQUESTED");
 
 	@Transactional(readOnly = true)
@@ -185,7 +197,7 @@ public class AuditService {
 					searchParam,
 					PageRequest.of(Math.max(0, page), Math.min(100, Math.max(1, size))));
 			log.info("DB query completed | method=findMyReviews | size={}", p.getContent().size());
-			pageData = toPaged(p);
+			pageData = markLinked(toPaged(p));
 		}
 
 		ReviewHistoryResponse.Summary.SummaryBuilder sb = ReviewHistoryResponse.Summary.builder();
@@ -256,7 +268,7 @@ public class AuditService {
 		}
 
 		MakerTrailResponse result = MakerTrailResponse.builder()
-				.page(toPagedWithReview(p))
+				.page(markLinked(toPagedWithReview(p)))
 				.summary(MakerTrailResponse.Summary.builder().total(mine + decisions).myActions(mine)
 						.checkerDecisions(decisions).approved(approved).rejected(rejected).revisionRequested(revision)
 						.build())
@@ -274,8 +286,7 @@ public class AuditService {
 		log.debug("Transaction started | method=getConsentAuditTrail | id={}", consentDbId);
 		log.info("Executing DB query | method=findByEntityTypeAndEntityIdOrderByPerformedAtDesc | param=consentDbId={}",
 				consentDbId);
-		List<AuditLog> logs = auditLogRepository.findByEntityTypeAndEntityIdOrderByPerformedAtDesc("CONSENT",
-				consentDbId);
+		List<AuditLog> logs = auditLogRepository.findConsentHistory(consentDbId);
 		log.info("DB query completed | method=findByEntityTypeAndEntityIdOrderByPerformedAtDesc | size={}",
 				logs.size());
 		List<AuditLogResponse> result = logs.stream().map(this::toResponse).collect(Collectors.toList());
@@ -348,6 +359,31 @@ public class AuditService {
 	private static final List<String> SUBMIT_ACTIONS = List.of("CONSENT_SUBMITTED", "RULE_SUBMITTED",
 			"BROADCAST_SUBMITTED");
 
+	private PagedResponse<AuditLogResponse> markLinked(PagedResponse<AuditLogResponse> paged) {
+		Set<Long> consentIds = new HashSet<>();
+		Set<Long> ruleIds = new HashSet<>();
+		for (AuditLogResponse r : paged.getContent()) {
+			if (r.getEntityId() == null) {
+				continue;
+			}
+			if ("CONSENT".equals(r.getEntityType())) {
+				consentIds.add(r.getEntityId());
+			} else if ("CONSENT_RULE".equals(r.getEntityType())) {
+				ruleIds.add(r.getEntityId());
+			}
+		}
+		Set<Long> linkedConsents = consentIds.isEmpty() ? Set.of()
+				: new HashSet<>(auditLogRepository.findLinkedConsentIds(consentIds));
+		Set<Long> linkedRules = ruleIds.isEmpty() ? Set.of()
+				: new HashSet<>(auditLogRepository.findLinkedRuleIds(ruleIds));
+		for (AuditLogResponse r : paged.getContent()) {
+			boolean linked = ("CONSENT".equals(r.getEntityType()) && linkedConsents.contains(r.getEntityId()))
+					|| ("CONSENT_RULE".equals(r.getEntityType()) && linkedRules.contains(r.getEntityId()));
+			r.setLinked(linked);
+		}
+		return paged;
+	}
+
 	private PagedResponse<AuditLogResponse> toPagedWithReview(Page<AuditLog> p) {
 		Map<String, Set<Long>> idsByType = new HashMap<>();
 		for (AuditLog a : p.getContent()) {
@@ -392,6 +428,7 @@ public class AuditService {
 
 	private AuditLogResponse toResponse(AuditLog a) {
 		return AuditLogResponse.builder().id(a.getId()).userId(a.getUser().getId()).userName(a.getUser().getFullName())
+				.userRole(a.getUser().getRole() != null ? a.getUser().getRole().name() : null)
 				.action(a.getAction()).entityType(a.getEntityType()).entityId(a.getEntityId())
 				.entityName(a.getEntityName()).description(a.getDescription()).ipAddress(a.getIpAddress())
 				.performedAt(a.getPerformedAt()).build();

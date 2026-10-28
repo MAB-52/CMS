@@ -9,6 +9,7 @@ import { TagModule } from 'primeng/tag';
 import { AvatarModule } from 'primeng/avatar';
 import { SkeletonModule } from 'primeng/skeleton';
 import { MessageModule } from 'primeng/message';
+import { SelectButtonModule } from 'primeng/selectbutton';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Subscription, combineLatest, forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
@@ -32,6 +33,7 @@ import { sanitizeRichHtml } from '../../../core/utils/safe-html.util';
     AvatarModule,
     SkeletonModule,
     MessageModule,
+    SelectButtonModule,
   ],
   templateUrl: './public-consent-respond.component.html',
   styleUrl: './public-consent-respond.component.css',
@@ -62,17 +64,40 @@ export class PublicConsentRespondComponent implements OnInit, OnDestroy {
   readonly channelPrefError = signal<string | null>(null);
 
   /** `native` is shown under each label so customers recognise their language at a glance. */
-  readonly languages: ReadonlyArray<{ value: string; label: string; native: string }> = [
-    { value: 'english', label: 'English', native: 'English' },
-    { value: 'hindi', label: 'Hindi', native: 'हिन्दी' },
-    { value: 'marathi', label: 'Marathi', native: 'मराठी' },
-    { value: 'gujarati', label: 'Gujarati', native: 'ગુજરાતી' },
-    { value: 'bengali', label: 'Bengali', native: 'বাংলা' },
-    { value: 'tamil', label: 'Tamil', native: 'தமிழ்' },
-    { value: 'telugu', label: 'Telugu', native: 'తెలుగు' },
-    { value: 'malayalam', label: 'Malayalam', native: 'മലയാളം' },
-    { value: 'urdu', label: 'Urdu', native: 'اردو' },
-  ];
+  private static readonly LANGUAGE_META: Record<string, { value: string; label: string; native: string }> = {
+    en: { value: 'english', label: 'English', native: 'English' },
+    hi: { value: 'hindi', label: 'Hindi', native: 'हिन्दी' },
+    mr: { value: 'marathi', label: 'Marathi', native: 'मराठी' },
+    gu: { value: 'gujarati', label: 'Gujarati', native: 'ગુજરાતી' },
+    bn: { value: 'bengali', label: 'Bengali', native: 'বাংলা' },
+    ta: { value: 'tamil', label: 'Tamil', native: 'தமிழ்' },
+    te: { value: 'telugu', label: 'Telugu', native: 'తెలుగు' },
+    ml: { value: 'malayalam', label: 'Malayalam', native: 'മലയാളം' },
+    ur: { value: 'urdu', label: 'Urdu', native: 'اردو' },
+  };
+
+  readonly viewLang = signal('en');
+
+  readonly translations = computed(() => this.detail()?.translations ?? []);
+
+  readonly viewOptions = computed(() =>
+    this.translations().map((t) => ({
+      value: t.languageCode,
+      label: PublicConsentRespondComponent.LANGUAGE_META[t.languageCode]?.native ?? t.label,
+    })),
+  );
+
+  readonly currentTranslation = computed(
+    () => this.translations().find((t) => t.languageCode === this.viewLang()) ?? null,
+  );
+
+  readonly languages = computed<ReadonlyArray<{ value: string; label: string; native: string }>>(() => {
+    const codes = this.translations().map((t) => t.languageCode);
+    const list = (codes.length ? codes : ['en'])
+      .map((c) => PublicConsentRespondComponent.LANGUAGE_META[c])
+      .filter((m): m is { value: string; label: string; native: string } => !!m);
+    return list.length ? list : [PublicConsentRespondComponent.LANGUAGE_META['en']];
+  });
 
   selectedLangs = new Set<string>(['english']);
   selectedChannels = new Set<string>();
@@ -86,7 +111,7 @@ export class PublicConsentRespondComponent implements OnInit, OnDestroy {
 
   /** Labels for the "Your choices" summary shown above the decision buttons. */
   selectedLanguageLabels(): string[] {
-    return this.languages.filter((l) => this.selectedLangs.has(l.value)).map((l) => l.label);
+    return this.languages().filter((l) => this.selectedLangs.has(l.value)).map((l) => l.label);
   }
 
   selectedChannelList(): string[] {
@@ -124,6 +149,7 @@ export class PublicConsentRespondComponent implements OnInit, OnDestroy {
       }
 
       this.detail.set(resolved.detail);
+      this.viewLang.set('en');
       if (params.get('langSaved') === 'true') {
         this.langSaved.set(true);
       }

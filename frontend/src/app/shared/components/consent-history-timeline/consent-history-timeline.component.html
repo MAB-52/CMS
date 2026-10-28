@@ -1,0 +1,106 @@
+<section class="ht">
+  <header class="ht__head">
+    <span class="ht__ico" aria-hidden="true"><i class="pi pi-history"></i></span>
+    <div class="ht__titles">
+      <h3 class="ht__title">{{ title() }}</h3>
+      <p class="ht__sub">
+        {{ subtitle() }}
+        @if (hasRule()) { <span class="ht__sub-tag" pTooltip="Includes the linked broadcast rule's steps" tooltipPosition="top"><i class="pi pi-link"></i>with linked rule</span> }
+      </p>
+    </div>
+    <p-button icon="pi pi-refresh" [rounded]="true" [text]="true" severity="secondary" [loading]="loading()"
+      [disabled]="!consentDbId()" pTooltip="Refresh history" tooltipPosition="left" ariaLabel="Refresh history"
+      (onClick)="reload()" />
+  </header>
+
+  @if (showRevisionNote() && revisionNote(); as n) {
+  <p-message severity="warn" icon="pi pi-replay" styleClass="ht__note">
+    <div class="ht__note-body">
+      <span class="ht__note-title">Previous revision request</span>
+      <span class="ht__note-text">“{{ n.text }}”</span>
+      <span class="ht__note-meta" [pTooltip]="(n.at | date: 'dd MMM yyyy, hh:mm a' : '+0530') + ' IST'" tooltipPosition="top">
+        {{ n.by }} · {{ n.at | timeAgo }}
+      </span>
+    </div>
+  </p-message>
+  }
+
+  @if (consentDbId() && !error() && items().length) {
+  <div class="ht__filters">
+    <p-selectbutton [options]="filterOptions" [ngModel]="filter()" (ngModelChange)="setFilter($event)" optionLabel="label"
+      optionValue="value" [allowEmpty]="false" styleClass="ht__seg" ariaLabelledBy="ht-filter">
+      <ng-template #item let-o>
+        <i [class]="o.icon"></i><span>{{ o.label }}</span><span class="ht__seg-count">{{ countFor(o.value) }}</span>
+      </ng-template>
+    </p-selectbutton>
+  </div>
+  }
+
+  @if (!consentDbId()) {
+  <div class="ht__empty">
+    <span class="ht__empty-ico"><i class="pi pi-save"></i></span>
+    <p>Save a draft to start this consent's history.</p>
+  </div>
+  } @else if (loading() && !entries().length) {
+  <div class="ht__skel">
+    @for (s of skeletons; track s) {
+    <div class="ht__skel-row">
+      <p-skeleton shape="circle" size="2rem" />
+      <div class="ht__skel-body"><p-skeleton width="40%" height="0.9rem" /><p-skeleton width="75%" height="0.8rem" /></div>
+    </div>
+    }
+  </div>
+  } @else if (error()) {
+  <div class="ht__empty ht__empty--err" role="alert">
+    <span class="ht__empty-ico"><i class="pi pi-exclamation-triangle"></i></span>
+    <p>Couldn't load the history.</p>
+    <p-button label="Retry" icon="pi pi-refresh" size="small" [outlined]="true" [rounded]="true" (onClick)="reload()" />
+  </div>
+  } @else if (!filtered().length) {
+  <div class="ht__empty">
+    <span class="ht__empty-ico"><i class="pi pi-inbox"></i></span>
+    <p>{{ items().length ? 'Nothing matches this filter.' : emptyHint() }}</p>
+  </div>
+  } @else {
+  <p-timeline [value]="pageItems()" styleClass="ht__tl">
+    <ng-template #marker let-it>
+      <span class="ht__marker" [style.--c]="it.meta.color" [pTooltip]="it.meta.label" tooltipPosition="left">
+        <i [class]="it.meta.icon"></i>
+      </span>
+    </ng-template>
+    <ng-template #content let-it>
+      <article class="ht__item">
+        <div class="ht__row">
+          <span class="ht__label">{{ it.meta.label }}@if (it.count > 1) {<span class="ht__times"> · {{ it.count }} saves</span>}</span>
+          <p-tag [value]="it.entityType === 'CONSENT_RULE' ? 'Rule' : 'Consent'"
+            [icon]="it.entityType === 'CONSENT_RULE' ? 'pi pi-sitemap' : 'pi pi-file'"
+            [severity]="it.entityType === 'CONSENT_RULE' ? 'contrast' : 'secondary'" [rounded]="true" styleClass="ht__tag"
+            [pTooltip]="it.entityType === 'CONSENT_RULE' ? 'Step on the linked broadcast rule' : 'Step on the consent template'"
+            tooltipPosition="top" />
+          <span class="ht__time"
+            [pTooltip]="it.count > 1
+              ? (it.firstAt | date: 'dd MMM, hh:mm a' : '+0530') + ' – ' + (it.performedAt | date: 'dd MMM, hh:mm a' : '+0530') + ' IST'
+              : (it.performedAt | date: 'dd MMM yyyy, hh:mm:ss a' : '+0530') + ' IST'"
+            tooltipPosition="top"><i class="pi pi-clock"></i>{{ it.performedAt | timeAgo }}</span>
+        </div>
+        @if (it.description) {
+        <p class="ht__desc" [class.ht__desc--quote]="it.meta.group === 'decision'" [pTooltip]="it.description.length > 140 ? it.description : ''"
+          tooltipPosition="top">{{ it.description }}</p>
+        }
+        <div class="ht__actor" [pTooltip]="it.userRole ? it.userName + ' · ' + roleLabel(it.userRole) : it.userName" tooltipPosition="top">
+          <p-avatar [label]="initials(it.userName)" shape="circle" styleClass="ht__avatar"
+            [style]="{ background: avatarColor(it.userName) }" />
+          <span class="ht__actor-name">{{ it.userName }}</span>
+          @if (it.userRole) { <span class="ht__role">{{ roleLabel(it.userRole) }}</span> }
+        </div>
+      </article>
+    </ng-template>
+  </p-timeline>
+
+  @if (filtered().length > rows()) {
+  <p-paginator [first]="first()" [rows]="rows()" [totalRecords]="filtered().length" [rowsPerPageOptions]="[8, 15, 30]"
+    [showCurrentPageReport]="true" currentPageReportTemplate="{first}–{last} of {totalRecords}" styleClass="ht__pager"
+    (onPageChange)="onPage($event)" />
+  }
+  }
+</section>

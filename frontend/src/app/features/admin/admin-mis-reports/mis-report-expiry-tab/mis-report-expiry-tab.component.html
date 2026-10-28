@@ -60,7 +60,7 @@
     <p-progressbar mode="indeterminate" />
   </div>
 
-  <p-table [value]="rows()" dataKey="customerId" [lazy]="true" (onLazyLoad)="onLazyLoad($event)" [paginator]="true"
+  <p-table [value]="rows()" dataKey="rowKey" [lazy]="true" (onLazyLoad)="onLazyLoad($event)" [paginator]="true"
     [rows]="pageSize()" [first]="currentPage() * pageSize()" [totalRecords]="totalElements()"
     [rowsPerPageOptions]="[10, 25, 50]" paginatorDropdownAppendTo="body" [showCurrentPageReport]="true"
     currentPageReportTemplate="Showing {first}–{last} of {totalRecords}" [rowHover]="true" styleClass="mr-table"
@@ -70,7 +70,8 @@
       <tr>
         <th pTooltip="Customer name and customer ID" tooltipPosition="top">Customer</th>
         <th pTooltip="Registered mobile number and email" tooltipPosition="top">Contact</th>
-        <th pTooltip="Current consent status" tooltipPosition="top">Status</th>
+        <th pTooltip="The consent template that is expiring" tooltipPosition="top">Consent</th>
+        <th pTooltip="Status of this consent" tooltipPosition="top">Status</th>
         <th pTooltip="Date the consent stops being valid" tooltipPosition="top">Valid until</th>
         <th pTooltip="Days remaining before expiry (or since it expired)" tooltipPosition="top">Days until expiry</th>
         <th pTooltip="When the most recent consent invite was sent" tooltipPosition="top">Last invite</th>
@@ -98,6 +99,9 @@
             <span class="mr-line mr-sub" [pTooltip]="r.email ? 'Email: ' + r.email : 'No email on file'"
               tooltipPosition="top"><i class="pi pi-envelope"></i><span class="mr-ellipsis">{{ r.email || '—' }}</span></span>
           </div>
+        </td>
+        <td [pTooltip]="r.consentName || 'Consent'" tooltipPosition="top">
+          <span class="mr-line mr-strong"><i class="pi pi-file"></i><span class="mr-ellipsis">{{ r.consentName || '—' }}</span></span>
         </td>
         <td [pTooltip]="'Consent status: ' + label(r.consentStatus)" tooltipPosition="top">
           <p-tag [value]="label(r.consentStatus)" [severity]="statusMeta(r.consentStatus).severity"
@@ -154,6 +158,7 @@
           </div>
         </td>
         <td><div class="mr-skel-stack"><p-skeleton width="8rem" /><p-skeleton width="10rem" height=".7rem" /></div></td>
+        <td><p-skeleton width="8rem" /></td>
         <td><p-skeleton width="6rem" height="1.6rem" borderRadius="999px" /></td>
         <td><p-skeleton width="6rem" /></td>
         <td><p-skeleton width="7rem" height="1.6rem" borderRadius="999px" /></td>
@@ -163,7 +168,7 @@
       }
       } @else {
       <tr>
-        <td colspan="7">
+        <td colspan="8">
           <div class="mr-empty">
             <span class="mr-empty__ico"><i class="pi {{ mode === 'EXPIRING' ? 'pi-check-circle' : 'pi-shield' }}"></i></span>
             @if (mode === 'EXPIRING') {

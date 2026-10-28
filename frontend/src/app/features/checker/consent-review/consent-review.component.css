@@ -172,3 +172,11 @@
   text-decoration-color: rgba(220, 53, 69, 0.5);
 }
 .chip-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+
+.history-card {
+  padding: var(--is-card-pad, 20px);
+  border: 1px solid var(--is-border);
+  border-radius: var(--is-r-card);
+  background: var(--is-surface);
+  box-shadow: var(--is-shadow-1, 0 1px 3px rgba(16, 24, 40, 0.06));
+}

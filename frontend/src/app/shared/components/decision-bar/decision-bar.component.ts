@@ -1,6 +1,7 @@
 import { Component, computed, input, output } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
+import { TooltipModule } from 'primeng/tooltip';
 import { ShellDockComponent } from '../../layout/app-shell/shell-dock.component';
 
 /**
@@ -10,7 +11,7 @@ import { ShellDockComponent } from '../../layout/app-shell/shell-dock.component'
 @Component({
   selector: 'app-decision-bar',
   standalone: true,
-  imports: [ButtonModule, TagModule, ShellDockComponent],
+  imports: [ButtonModule, TagModule, TooltipModule, ShellDockComponent],
   templateUrl: './decision-bar.component.html',
   styleUrl: './decision-bar.component.css',
 })
@@ -34,5 +35,9 @@ export class DecisionBarComponent {
     return total === null || (this.viewed() ?? 0) >= total;
   });
 
-  readonly approveDisabled = computed(() => this.disabled() || this.busy() || !this.allViewed());
+  readonly actionDisabled = computed(() => this.disabled() || this.busy() || !this.allViewed());
+
+  readonly gateHint = computed(() =>
+    !this.disabled() && !this.allViewed() ? 'View every channel × language preview first' : '',
+  );
 }

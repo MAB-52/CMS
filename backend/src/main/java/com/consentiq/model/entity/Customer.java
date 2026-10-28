@@ -73,4 +73,8 @@ public class Customer {
     
     @Column(name = "account_type", length = 50)
     private String accountType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "current_consent_status", length = 32)
+    private com.consentiq.enums.CustomerCurrentStatus currentConsentStatus;
 }

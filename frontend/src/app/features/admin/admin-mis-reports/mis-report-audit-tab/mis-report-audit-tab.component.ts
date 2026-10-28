@@ -17,6 +17,8 @@ import { Subject, takeUntil } from 'rxjs';
 import { AuditLogEntry } from '../../../../core/models/audit.model';
 import { AdminService } from '../../../../core/services/admin.service';
 import { LoggerService } from '../../../../core/services/logger.service';
+import { blobErrorMessage, saveBlob } from '../../../../core/utils/download.util';
+import { auditActionMeta } from '../../../../core/utils/audit-action.util';
 import { NotificationService } from '../../../../core/services/notification.service';
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
@@ -30,20 +32,12 @@ interface EntityMeta {
 
 const ENTITY_META: Record<string, EntityMeta> = {
   CONSENT: { label: 'Consent', icon: 'pi pi-file-check', color: 'var(--is-primary)' },
-  BROADCAST_REQUEST: { label: 'Broadcast request', icon: 'pi pi-megaphone', color: 'var(--is-pink)' },
-  CONSENT_RULE: { label: 'Consent rule', icon: 'pi pi-sitemap', color: 'var(--is-secondary)' },
+  CONSENT_RULE: { label: 'Broadcast rule', icon: 'pi pi-sitemap', color: 'var(--is-secondary)' },
+  USER: { label: 'User', icon: 'pi pi-users', color: 'var(--is-blue)' },
+  SYSTEM: { label: 'System', icon: 'pi pi-cog', color: 'var(--is-text-2)' },
 };
 
 const FALLBACK_ENTITY: EntityMeta = { label: '', icon: 'pi pi-box', color: 'var(--is-text-2)' };
-
-/** Keyword → tag tone for action codes (first match wins). */
-const ACTION_TONES: [RegExp, TagSeverity, string][] = [
-  [/FAIL|ERROR|REJECT|DECLIN|DELETE|REVOK|CANCEL/, 'danger', 'pi pi-times-circle'],
-  [/COMPLET|SUCCESS|APPROV|ACCEPT|ACTIVAT|PUBLISH/, 'success', 'pi pi-check-circle'],
-  [/UPDAT|EDIT|CHANG|MODIF/, 'warn', 'pi pi-pencil'],
-  [/CREAT|ADD|SUBMIT/, 'info', 'pi pi-plus-circle'],
-  [/REQUEST|START|RUN|SEND|SENT|TRIGGER/, 'contrast', 'pi pi-play-circle'],
-];
 
 const AVATAR_COLORS = ['#45329E', '#0D6EFD', '#D63384', '#20C997', '#EA6B28', '#6F42C1', '#0DCAF0'];
 const DAY_MS = 86_400_000;
@@ -203,14 +197,12 @@ export class MisReportAuditTabComponent implements OnInit, OnDestroy {
   /** RULE_EXECUTION_COMPLETED → "Rule execution completed". */
   humanize(code: string | null | undefined): string {
     if (!code) return '—';
-    const s = code.toLowerCase().replace(/_/g, ' ');
-    return s.charAt(0).toUpperCase() + s.slice(1);
+    return auditActionMeta(code).label;
   }
 
   actionTone(code: string | null | undefined): { severity: TagSeverity; icon: string } {
-    const c = (code ?? '').toUpperCase();
-    const hit = ACTION_TONES.find(([re]) => re.test(c));
-    return hit ? { severity: hit[1], icon: hit[2] } : { severity: 'secondary', icon: 'pi pi-bolt' };
+    const m = auditActionMeta(code);
+    return { severity: m.severity, icon: m.icon };
   }
 
   initials(name: string | null | undefined): string {
@@ -254,13 +246,8 @@ export class MisReportAuditTabComponent implements OnInit, OnDestroy {
 
   // ── Export ──────────────────────────────────────────────────────────────
 
-  private download(blob: Blob, name: string): void {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = name;
-    a.click();
-    URL.revokeObjectURL(url);
+  private download(blob: Blob, base: string, ext: string): void {
+    saveBlob(blob, base, ext);
   }
 
   exportCsv(): void {
@@ -272,12 +259,12 @@ export class MisReportAuditTabComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (b) => {
           this.exporting.set(null);
-          this.download(b, 'audit-report.csv');
-          this.notify.success('Export', 'CSV started.');
+          this.download(b, 'audit-report', 'csv');
+          this.notify.success('Export', 'CSV downloaded.');
         },
-        error: (err) => {
+        error: async (err) => {
           this.exporting.set(null);
-          this.notify.error('Export', err?.error?.message || 'Failed.');
+          this.notify.error('Export', await blobErrorMessage(err, 'Export failed.'));
         },
       });
   }
@@ -291,12 +278,12 @@ export class MisReportAuditTabComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (b) => {
           this.exporting.set(null);
-          this.download(b, 'audit-report.xlsx');
-          this.notify.success('Export', 'Excel started.');
+          this.download(b, 'audit-report', 'xlsx');
+          this.notify.success('Export', 'Excel downloaded.');
         },
-        error: (err) => {
+        error: async (err) => {
           this.exporting.set(null);
-          this.notify.error('Export', err?.error?.message || 'Failed.');
+          this.notify.error('Export', await blobErrorMessage(err, 'Export failed.'));
         },
       });
   }

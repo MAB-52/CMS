@@ -23,6 +23,11 @@ public class CustomerConsentRecordResponse {
     private CustomerConsentRecordStatus status;
     private Instant respondedAt;
     private Long onBehalfRecordId;
+    private String captureMode;
+    private String sourceChannel;
+    private String evidenceReference;
+    private String recordedByName;
+    private Instant recordedAt;
     private LocalDate consentValidUntil;
     private Instant lastInviteSentAt;
     private Long sourceRuleId;

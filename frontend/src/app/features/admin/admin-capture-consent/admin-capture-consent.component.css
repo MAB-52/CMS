@@ -629,3 +629,30 @@
 @media (prefers-reduced-motion: reduce) {
   .cc-placeholder .pi, .cc-start__ico { animation: none; }
 }
+
+.cc-row__stack { display: inline-grid; gap: 3px; min-width: 0; }
+.cc-behalf {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  justify-self: start;
+  padding: 1px 8px;
+  border-radius: var(--is-r-pill);
+  background: var(--is-tint-purple);
+  color: var(--is-primary);
+  font-size: var(--is-fs-2xs);
+  font-weight: var(--is-fw-bold);
+  white-space: nowrap;
+}
+.cc-behalf .pi { font-size: 10px; }
+.cc-send-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0 auto 0 0;
+  color: var(--is-warning-text);
+  font-size: var(--is-fs-xs);
+  font-weight: var(--is-fw-semibold);
+}
+.cc-send-hint .pi { margin-top: 2px; }
+.cc-start__ico--warn { background: var(--is-warning-bg); color: var(--is-warning-text); }

@@ -1,6 +1,7 @@
 package com.consentiq.repository;
 
 import com.consentiq.enums.ConsentRuleStatus;
+import com.consentiq.enums.WorkflowScheduleType;
 import com.consentiq.model.entity.ConsentRule;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
@@ -46,6 +47,22 @@ public interface ConsentRuleRepository extends JpaRepository<ConsentRule, Long> 
     Page<ConsentRule> findByStatusInOrderByApprovedAtDesc(
             Collection<ConsentRuleStatus> statuses, Pageable pageable);
 
+    @Query("""
+            SELECT r FROM ConsentRule r LEFT JOIN r.consentTemplate t
+            WHERE r.status IN :statuses
+              AND (:search IS NULL
+                   OR LOWER(r.ruleName) LIKE LOWER(CONCAT('%', :search, '%'))
+                   OR LOWER(COALESCE(t.consentName, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                   OR CAST(r.id AS string) = :search)
+              AND (:scheduleType IS NULL OR r.scheduleType = :scheduleType)
+            ORDER BY r.approvedAt DESC
+            """)
+    Page<ConsentRule> searchAdminEngine(
+            @Param("statuses") Collection<ConsentRuleStatus> statuses,
+            @Param("search") String search,
+            @Param("scheduleType") WorkflowScheduleType scheduleType,
+            Pageable pageable);
+
     /**
      * Flat list — used by ConsentRuleExecutionService (dashboard stats,
      * scheduler scan, etc.) where pagination is not needed.
@@ -57,6 +74,8 @@ public interface ConsentRuleRepository extends JpaRepository<ConsentRule, Long> 
     // ── Counters ──────────────────────────────────────────────────────────────
 
     long countByStatus(ConsentRuleStatus status);
+
+    long countByStatusAndIsLinkedToConsentWorkflow(ConsentRuleStatus status, boolean isLinkedToConsentWorkflow);
 
     long countByCreatedByIdAndStatus(Long userId, ConsentRuleStatus status);
 

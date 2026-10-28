@@ -72,6 +72,9 @@ public class AdminService {
     private final CustomerConsentRecordService customerConsentRecordService;
     private final CustomerChannelPreferenceService customerChannelPreferenceService;
     private final CustomerLanguagePreferenceService customerLanguagePreferenceService;
+    private final AuditService auditService;
+    private final CustomerCurrentStatusService customerCurrentStatusService;
+    private final com.consentiq.repository.ConsentRuleRepository consentRuleRepository;
 
     @Value("${app.public-consent-base-url:http://localhost:4200}")
     private String publicConsentBaseUrl;
@@ -133,29 +136,32 @@ public class AdminService {
             long totalCustomers = customerRepository.count();
             log.info("DB query completed | method=count | result={}", totalCustomers);
 
-            log.info("Executing DB query | method=countDistinctCustomersByStatusIn | param=ACCEPTED,EXPIRING_SOON");
-            long active = recordRepository.countDistinctCustomersByStatusIn(
-                    List.of(CustomerConsentRecordStatus.ACCEPTED,
-                            CustomerConsentRecordStatus.EXPIRING_SOON));
-            log.info("DB query completed | method=countDistinctCustomersByStatusIn | result={}", active);
+            Map<com.consentiq.enums.CustomerCurrentStatus, Long> byStatus =
+                    new java.util.EnumMap<>(com.consentiq.enums.CustomerCurrentStatus.class);
+            for (Object[] row : customerRepository.countByCurrentConsentStatus()) {
+                com.consentiq.enums.CustomerCurrentStatus st = row[0] == null
+                        ? com.consentiq.enums.CustomerCurrentStatus.NO_CONSENT
+                        : (com.consentiq.enums.CustomerCurrentStatus) row[0];
+                byStatus.merge(st, ((Number) row[1]).longValue(), Long::sum);
+            }
+            long active = byStatus.getOrDefault(com.consentiq.enums.CustomerCurrentStatus.ACTIVE, 0L);
+            long pending = byStatus.getOrDefault(com.consentiq.enums.CustomerCurrentStatus.PENDING, 0L);
+            long declined = byStatus.getOrDefault(com.consentiq.enums.CustomerCurrentStatus.DECLINED, 0L);
+            long withdrawn = byStatus.getOrDefault(com.consentiq.enums.CustomerCurrentStatus.WITHDRAWN, 0L);
+            long expired = byStatus.getOrDefault(com.consentiq.enums.CustomerCurrentStatus.EXPIRED, 0L);
+            long unresponsive = byStatus.getOrDefault(com.consentiq.enums.CustomerCurrentStatus.UNRESPONSIVE, 0L);
+            long noConsent = byStatus.getOrDefault(com.consentiq.enums.CustomerCurrentStatus.NO_CONSENT, 0L);
+            long other = Math.max(0, totalCustomers - active - pending - declined);
 
-            log.info("Executing DB query | method=countDistinctCustomersByStatus | param=PENDING");
-            long pending = recordRepository.countDistinctCustomersByStatus(
-                    CustomerConsentRecordStatus.PENDING);
-            log.info("DB query completed | method=countDistinctCustomersByStatus | result={}", pending);
+            long withConsent = totalCustomers - noConsent;
+            double consentRate = withConsent <= 0 ? 0.0 : Math.round(1000.0 * active / withConsent) / 10.0;
 
-            log.info("Executing DB query | method=countDistinctCustomersByStatusIn | param=REJECTED,WITHDRAWN");
-            long declined = recordRepository.countDistinctCustomersByStatusIn(
-                    List.of(CustomerConsentRecordStatus.REJECTED,
-                            CustomerConsentRecordStatus.WITHDRAWN));
-            log.info("DB query completed | method=countDistinctCustomersByStatusIn | result={}", declined);
-
-            long denom = active + pending + declined;
-            double consentRate = denom == 0 ? 0.0 : Math.round(1000.0 * active / denom) / 10.0;
-
-            log.info("Executing DB query | method=countByStatus | param=PENDING_APPROVAL");
-            long pendingMc = consentRepository.countByStatus(ConsentStatus.PENDING_APPROVAL);
-            log.info("DB query completed | method=countByStatus | result={}", pendingMc);
+            long pendingMcConsents = consentRepository.countByStatusAndLinkedRuleIntent(ConsentStatus.PENDING_APPROVAL, false);
+            long pendingMcLinked = consentRepository.countByStatusAndLinkedRuleIntent(ConsentStatus.PENDING_APPROVAL, true);
+            long pendingMcRules = consentRuleRepository.countByStatusAndIsLinkedToConsentWorkflow(
+                    com.consentiq.enums.ConsentRuleStatus.PENDING_CHECKER_APPROVAL, false);
+            long pendingMcBroadcasts = 0L;
+            long pendingMc = pendingMcConsents + pendingMcLinked + pendingMcRules + pendingMcBroadcasts;
 
             List<String> channelOrder = List.of("Email", "WhatsApp", "SMS", "Push", "RCS");
             Map<String, Integer> raw = new HashMap<>();
@@ -175,10 +181,9 @@ public class AdminService {
             int totalCh = raw.values().stream().mapToInt(Integer::intValue).sum();
             List<AdminMisDashboardResponse.ChannelPerformanceRow> channelRows = new ArrayList<>();
             if (totalCh == 0) {
-                double[] demo = { 34, 26, 22, 12, 6 };
-                for (int i = 0; i < channelOrder.size(); i++) {
+                for (String label : channelOrder) {
                     channelRows.add(AdminMisDashboardResponse.ChannelPerformanceRow.builder()
-                            .channel(channelOrder.get(i)).percentage(demo[i]).build());
+                            .channel(label).percentage(0.0).build());
                 }
             } else {
                 for (String label : channelOrder) {
@@ -193,10 +198,10 @@ public class AdminService {
             long consentMc = auditLogRepository.countByAction("CONSENT_APPROVED");
             log.info("DB query completed | method=countByAction | result={}", consentMc);
             log.info("Executing DB query | method=countByAction | param=CONSENT_REVISION_REQUESTED");
-            long ruleMc = auditLogRepository.countByAction("CONSENT_REVISION_REQUESTED");
+            long ruleMc = auditLogRepository.countByAction("RULE_APPROVED");
             log.info("DB query completed | method=countByAction | result={}", ruleMc);
             log.info("Executing DB query | method=countByAction | param=CONSENT_PUBLISHED");
-            long broadcastMc = auditLogRepository.countByAction("CONSENT_PUBLISHED");
+            long broadcastMc = auditLogRepository.countByAction("BROADCAST_APPROVED");
             log.info("DB query completed | method=countByAction | result={}", broadcastMc);
             log.info("Executing DB query | method=countByAction | param=CONSENT_REJECTED");
             long rejections = auditLogRepository.countByAction("CONSENT_REJECTED");
@@ -212,7 +217,7 @@ public class AdminService {
                     reviewed.size());
             OptionalDouble avgH = reviewed.stream()
                     .filter(c -> c.getReviewedAt() != null && c.getSubmittedAt() != null)
-                    .mapToDouble(c -> ChronoUnit.HOURS.between(c.getSubmittedAt(), c.getReviewedAt()))
+                    .mapToDouble(c -> java.time.Duration.between(c.getSubmittedAt(), c.getReviewedAt()).getSeconds() / 3600.0)
                     .filter(h -> h >= 0 && h < 10_000)
                     .average();
             double averageApprovalHours = avgH.isPresent()
@@ -226,6 +231,15 @@ public class AdminService {
                             .pendingResponse(pending)
                             .declined(declined)
                             .pendingMcApprovals(pendingMc)
+                            .withdrawn(withdrawn)
+                            .expired(expired)
+                            .unresponsive(unresponsive)
+                            .noConsent(noConsent)
+                            .other(other)
+                            .pendingMcConsents(pendingMcConsents)
+                            .pendingMcLinked(pendingMcLinked)
+                            .pendingMcRules(pendingMcRules)
+                            .pendingMcBroadcasts(pendingMcBroadcasts)
                             .build();
             AdminMisDashboardResponse.MakerCheckerMis mc =
                     AdminMisDashboardResponse.MakerCheckerMis.builder()
@@ -255,20 +269,28 @@ public class AdminService {
     @Transactional(readOnly = true)
     public PagedResponse<AdminCustomerRowResponse> getCustomers(int page, int size, String mobileNumber,
             String customerId, String consentStatusFilter, String sortBy, String sortDir) {
+        return getCustomers(page, size, mobileNumber, customerId, consentStatusFilter, null, null, sortBy, sortDir);
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<AdminCustomerRowResponse> getCustomers(int page, int size, String mobileNumber,
+            String customerId, String consentStatusFilter, String consentStatuses, Long consentDbId,
+            String sortBy, String sortDir) {
         String cu = currentUser();
         log.debug("Entering getCustomers | params: page={},size={},mobileNumber={},customerId={},consentStatusFilter={},sortBy={},sortDir={}",
                 page, size, mobileNumber, customerId, consentStatusFilter, sortBy, sortDir);
         log.info("User={} | action=getCustomers | entity=Customer | id=n/a", cu);
         log.debug("Transaction started | method=getCustomers | id=n/a");
         try {
-            CustomerConsentRecordStatus statusEnum = parseStatusFilter(consentStatusFilter);
-            Specification<Customer> spec = customerSpec(mobileNumber, customerId, statusEnum);
+            com.consentiq.enums.CustomerCurrentStatus statusEnum = parseStatusFilter(consentStatusFilter);
+            Specification<Customer> spec = customerSpec(mobileNumber, customerId, statusEnum,
+                    parseConsentLevelStatuses(consentStatuses), consentDbId);
             Sort sort = resolveSort(sortBy, sortDir);
             Pageable pageable = PageRequest.of(Math.max(0, page), Math.min(100, Math.max(1, size)), sort);
             log.info("Executing DB query | method=findAll | param=spec,pageable");
             Page<Customer> pg = customerRepository.findAll(spec, pageable);
             log.info("DB query completed | method=findAll | size={}", pg.getContent().size());
-            List<AdminCustomerRowResponse> rows = pg.getContent().stream().map(this::toRow).toList();
+            List<AdminCustomerRowResponse> rows = toRows(pg.getContent());
             PagedResponse<AdminCustomerRowResponse> res = PagedResponse.<AdminCustomerRowResponse>builder()
                     .content(rows)
                     .totalElements(pg.getTotalElements())
@@ -290,32 +312,45 @@ public class AdminService {
     @Transactional(readOnly = true)
     public void exportCustomersCsv(OutputStream outputStream, String mobileNumber, String customerId,
             String consentStatusFilter) throws java.io.IOException {
+        exportCustomersCsv(outputStream, mobileNumber, customerId, consentStatusFilter, null, null, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public void exportCustomersCsv(OutputStream outputStream, String mobileNumber, String customerId,
+            String consentStatusFilter, String consentStatuses, Long consentDbId, String sortBy, String sortDir)
+            throws java.io.IOException {
         String cu = currentUser();
         log.debug("Entering exportCustomersCsv | params: mobileNumber={},customerId={},consentStatusFilter={}",
                 mobileNumber, customerId, consentStatusFilter);
         log.info("User={} | action=exportCustomersCsv | entity=Customer | id=n/a", cu);
         log.debug("Transaction started | method=exportCustomersCsv | id=n/a");
         try {
-            CustomerConsentRecordStatus statusEnum = parseStatusFilter(consentStatusFilter);
-            Specification<Customer> spec = customerSpec(mobileNumber, customerId, statusEnum);
+            com.consentiq.enums.CustomerCurrentStatus statusEnum = parseStatusFilter(consentStatusFilter);
+            Specification<Customer> spec = customerSpec(mobileNumber, customerId, statusEnum,
+                    parseConsentLevelStatuses(consentStatuses), consentDbId);
             log.info("Executing DB query | method=findAll | param=spec,sort");
-            List<Customer> all = customerRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "updatedAt"));
+            List<Customer> all = customerRepository.findAll(spec, resolveSort(sortBy, sortDir));
             log.info("DB query completed | method=findAll | size={}", all.size());
+            List<AdminCustomerRowResponse> rows = toRows(all);
+            java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter
+                    .ofPattern("yyyy-MM-dd HH:mm").withZone(CustomerCurrentStatusService.ZONE);
             try (OutputStreamWriter w = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8)) {
-                w.write("Customer ID,Customer Name,Mobile Number,Email,Consent Status,Last Updated\n");
-                for (Customer c : all) {
-                    String statusName = deriveConsentStatusForCustomer(c.getCustomerId());
-                    w.write(csvEscape(c.getCustomerId()));
+                w.write('\uFEFF');
+                w.write("Customer ID,Customer Name,Mobile Number,Email,Customer Status,Consents,Last Updated\n");
+                for (AdminCustomerRowResponse r : rows) {
+                    w.write(csvEscape(r.getCustomerId()));
                     w.write(',');
-                    w.write(csvEscape(c.getFullName()));
+                    w.write(csvEscape(r.getCustomerName()));
                     w.write(',');
-                    w.write(csvEscape(c.getMobileNumber()));
+                    w.write(csvEscape(r.getMobileNumber()));
                     w.write(',');
-                    w.write(csvEscape(c.getEmail() == null ? "" : c.getEmail()));
+                    w.write(csvEscape(r.getEmail() == null ? "" : r.getEmail()));
                     w.write(',');
-                    w.write(csvEscape(statusName != null ? statusName : ""));
+                    w.write(csvEscape(r.getCurrentStatus() != null ? r.getCurrentStatus().name() : ""));
                     w.write(',');
-                    w.write(csvEscape(c.getUpdatedAt().toString()));
+                    w.write(csvEscape(CustomerCurrentStatusService.summaryText(r.getConsents())));
+                    w.write(',');
+                    w.write(csvEscape(r.getLastUpdated() != null ? fmt.format(r.getLastUpdated()) : ""));
                     w.write('\n');
                 }
                 w.flush();
@@ -353,6 +388,13 @@ public class AdminService {
                         Optional<Customer> byMobile = customerRepository.findByMobileNumber(mobileKey);
                         log.info("DB query completed | method=findByMobileNumber | present={}", byMobile.isPresent());
                         return byMobile;
+                    })
+                    .or(() -> {
+                        String digits = q.replaceAll("[^0-9]", "");
+                        if (!q.matches("^[+0-9\\s()\\-]+$") || digits.length() < 10) {
+                            return Optional.empty();
+                        }
+                        return customerRepository.findFirstByMobileNumberEndingWith(digits.substring(digits.length() - 10));
                     })
                     .orElseThrow(() -> new IllegalArgumentException(
                             "No customer found for the given Customer ID or mobile number"));
@@ -406,8 +448,11 @@ public class AdminService {
         log.debug("Transaction started | method=listConsentTemplates | id=n/a");
         try {
             log.info("Executing DB query | method=findByStatusInOrderByConsentNameAsc | param=PUBLISHED,APPROVED");
+            LocalDate todayIst = LocalDate.now(java.time.ZoneId.of("Asia/Kolkata"));
             List<Consent> list = consentRepository
-                    .findByStatusInOrderByConsentNameAsc(List.of(ConsentStatus.PUBLISHED));
+                    .findByStatusInOrderByConsentNameAsc(List.of(ConsentStatus.PUBLISHED)).stream()
+                    .filter(c -> c.getValidityEndDate() == null || !c.getValidityEndDate().isBefore(todayIst))
+                    .toList();
             log.info("DB query completed | method=findByStatusInOrderByConsentNameAsc | size={}", list.size());
             List<AdminConsentTemplateResponse> res = list.stream()
                     .map(c -> AdminConsentTemplateResponse.builder()
@@ -449,6 +494,11 @@ public class AdminService {
                         + (validUntil != null ? " (valid until " + validUntil + ")" : "") + ".");
             }
         });
+    }
+
+    private static jakarta.servlet.http.HttpServletRequest currentRequest() {
+        var attrs = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+        return attrs instanceof org.springframework.web.context.request.ServletRequestAttributes s ? s.getRequest() : null;
     }
 
     private void expirePendingInvites(String customerId, Long consentDbId, Instant now) {
@@ -556,6 +606,9 @@ public class AdminService {
                     descriptionPlain, link, selectedNorm, consentMailProperties, publicConsentBaseUrl,
                     token, template.getId());
             emailDispatchService.sendHtml(customer.getEmail(), subject, html);
+            customerConsentRecordService.upsertOnInviteSent(customer.getCustomerId(), template.getId(), null, null);
+            auditService.log(adminUserId, "CONSENT_INVITE_SENT", "CONSENT", template.getId(), template.getConsentName(),
+                    "Consent link emailed to " + customer.getCustomerId() + " via " + summaryPlain, currentRequest());
             customer.setLastConsentInviteSentAt(now);
             log.info("Executing DB query | method=save | param=Customer");
             customerRepository.save(customer);
@@ -764,7 +817,7 @@ public class AdminService {
              log.info("Executing DB query | method=save | param=OnBehalfConsentRecord");
              OnBehalfConsentRecord savedRec = onBehalfConsentRecordRepository.save(
                      OnBehalfConsentRecord.builder()
-                             .customerId(req.getCustomerId().trim())
+                             .customerId(customer.getCustomerId())
                              .consentType(req.getConsentType())
                              .mode(req.getMode())
                              .sourceChannel(req.getSourceChannel())
@@ -778,9 +831,20 @@ public class AdminService {
 
              if (req.getConsentStatus() != null) {
                  CustomerConsentRecordStatus recordStatus = mapToRecordStatus(req.getConsentStatus());
-                 LocalDate validUntil = recordStatus == CustomerConsentRecordStatus.ACCEPTED
-                         ? LocalDate.now().plusYears(1)
-                         : null;
+                 LocalDate validUntil = null;
+                 if (recordStatus == CustomerConsentRecordStatus.ACCEPTED) {
+                     LocalDate today = LocalDate.now(java.time.ZoneId.systemDefault());
+                     if (template.getValidityPeriodDays() != null && template.getValidityPeriodDays() > 0) {
+                         validUntil = today.plusDays(template.getValidityPeriodDays());
+                     } else if (template.getValidityEndDate() != null) {
+                         validUntil = template.getValidityEndDate();
+                     } else {
+                         validUntil = today.plusYears(1);
+                     }
+                 }
+                 if (recordStatus != CustomerConsentRecordStatus.PENDING) {
+                     expirePendingInvites(customer.getCustomerId(), template.getId(), Instant.now());
+                 }
 
                  customerConsentRecordService.updateOnResponse(
                          customer.getCustomerId(),
@@ -819,6 +883,14 @@ public class AdminService {
                          customer.getCustomerId(), req.getSelectedLanguages());
              }
 
+             String evidence = StringUtils.hasText(req.getEvidenceReference()) ? req.getEvidenceReference().trim() : "—";
+             auditService.log(adminUserId, "CONSENT_RECORDED_ON_BEHALF", "CONSENT", template.getId(),
+                     template.getConsentName(),
+                     "Recorded " + (req.getConsentStatus() != null ? req.getConsentStatus() : "consent")
+                             + " on behalf of " + customer.getCustomerId()
+                             + " · mode " + req.getMode() + " · source " + req.getSourceChannel()
+                             + " · evidence " + evidence,
+                     currentRequest());
              log.info("on-behalf consent recorded | customerId={} | status={} | by={} | onBehalfRecordId={}",
                      req.getCustomerId(), req.getConsentStatus(), admin.getEmail(), savedRec.getId());
              log.debug("Transaction completing | method=recordOnBehalfConsent | id={}", savedRec.getId());
@@ -907,18 +979,48 @@ public class AdminService {
      * Parses the status filter string into a CustomerConsentRecordStatus.
      * Returns null for null / blank / "ALL".
      */
-    private CustomerConsentRecordStatus parseStatusFilter(String raw) {
+    private com.consentiq.enums.CustomerCurrentStatus parseStatusFilter(String raw) {
         if (!StringUtils.hasText(raw) || "ALL".equalsIgnoreCase(raw.trim())) {
             return null;
         }
-        try {
-            return CustomerConsentRecordStatus.valueOf(raw.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException ex) {
-            String cu = currentUser();
-            log.error("Exception in parseStatusFilter | user={} | message={}", cu, ex.getMessage(), ex);
-            throw new IllegalArgumentException(
-                    "Invalid consentStatus filter. Use a valid CustomerConsentRecordStatus name or ALL.");
+        String v = raw.trim().toUpperCase(Locale.ROOT);
+        return switch (v) {
+            case "ACTIVE", "ACCEPTED", "EXPIRING_SOON" -> com.consentiq.enums.CustomerCurrentStatus.ACTIVE;
+            case "PENDING", "INVITED", "PENDING_RESPONSE" -> com.consentiq.enums.CustomerCurrentStatus.PENDING;
+            case "DECLINED", "REJECTED" -> com.consentiq.enums.CustomerCurrentStatus.DECLINED;
+            case "WITHDRAWN" -> com.consentiq.enums.CustomerCurrentStatus.WITHDRAWN;
+            case "EXPIRED" -> com.consentiq.enums.CustomerCurrentStatus.EXPIRED;
+            case "UNRESPONSIVE" -> com.consentiq.enums.CustomerCurrentStatus.UNRESPONSIVE;
+            case "NO_CONSENT", "NONE" -> com.consentiq.enums.CustomerCurrentStatus.NO_CONSENT;
+            default -> throw new IllegalArgumentException("Unknown customer status filter: " + raw);
+        };
+    }
+
+    private List<CustomerConsentRecordStatus> parseConsentLevelStatuses(String raw) {
+        List<CustomerConsentRecordStatus> out = new ArrayList<>();
+        if (!StringUtils.hasText(raw)) {
+            return out;
         }
+        for (String part : raw.split(",")) {
+            String v = part.trim().toUpperCase(Locale.ROOT);
+            switch (v) {
+                case "" -> { }
+                case "ACCEPTED", "ACTIVE" -> {
+                    out.add(CustomerConsentRecordStatus.ACCEPTED);
+                    out.add(CustomerConsentRecordStatus.EXPIRING_SOON);
+                }
+                case "DECLINED", "REJECTED" -> out.add(CustomerConsentRecordStatus.REJECTED);
+                case "PENDING", "INVITED" -> out.add(CustomerConsentRecordStatus.PENDING);
+                default -> {
+                    try {
+                        out.add(CustomerConsentRecordStatus.valueOf(v));
+                    } catch (IllegalArgumentException ex) {
+                        throw new IllegalArgumentException("Unknown consent status filter: " + part.trim());
+                    }
+                }
+            }
+        }
+        return out;
     }
 
     /**
@@ -927,7 +1029,8 @@ public class AdminService {
      * because Customer no longer holds a consentStatus field.
      */
     private Specification<Customer> customerSpec(String mobileNumber, String customerId,
-            CustomerConsentRecordStatus status) {
+            com.consentiq.enums.CustomerCurrentStatus status, List<CustomerConsentRecordStatus> consentStatuses,
+            Long consentDbId) {
         return (root, query, cb) -> {
             List<Predicate> p = new ArrayList<>();
             if (StringUtils.hasText(mobileNumber)) {
@@ -939,11 +1042,25 @@ public class AdminService {
                         "%" + customerId.trim().toLowerCase(Locale.ROOT) + "%"));
             }
             if (status != null) {
-                // Subquery: customer must have at least one record with the given status
+                if (status == com.consentiq.enums.CustomerCurrentStatus.NO_CONSENT) {
+                    p.add(cb.or(cb.isNull(root.get("currentConsentStatus")),
+                            cb.equal(root.get("currentConsentStatus"), status)));
+                } else {
+                    p.add(cb.equal(root.get("currentConsentStatus"), status));
+                }
+            }
+            boolean hasConsentStatuses = consentStatuses != null && !consentStatuses.isEmpty();
+            if (hasConsentStatuses || consentDbId != null) {
                 Subquery<String> sub = query.subquery(String.class);
                 var recRoot = sub.from(CustomerConsentRecord.class);
-                sub.select(recRoot.get("customerId"))
-                   .where(cb.equal(recRoot.get("status"), status));
+                List<Predicate> sp = new ArrayList<>();
+                if (hasConsentStatuses) {
+                    sp.add(recRoot.get("status").in(consentStatuses));
+                }
+                if (consentDbId != null) {
+                    sp.add(cb.equal(recRoot.get("consentDbId"), consentDbId));
+                }
+                sub.select(recRoot.get("customerId")).where(sp.toArray(new Predicate[0]));
                 p.add(root.get("customerId").in(sub));
             }
             return p.isEmpty() ? cb.conjunction() : cb.and(p.toArray(new Predicate[0]));
@@ -960,7 +1077,31 @@ public class AdminService {
         };
         Sort.Direction dir = "ASC".equalsIgnoreCase(sortDir == null ? "" : sortDir.trim())
                 ? Sort.Direction.ASC : Sort.Direction.DESC;
-        return Sort.by(dir, prop);
+        return Sort.by(dir, prop).and(Sort.by(Sort.Direction.ASC, "id"));
+    }
+
+    private List<AdminCustomerRowResponse> toRows(List<Customer> customers) {
+        Map<String, List<CustomerConsentRecord>> byCustomer = customerCurrentStatusService.recordsByCustomer(
+                customers.stream().map(Customer::getCustomerId).toList());
+        Map<String, List<com.consentiq.model.dto.response.CustomerConsentSummary>> summaries =
+                customerCurrentStatusService.summaries(byCustomer);
+        LocalDate today = CustomerCurrentStatusService.today();
+        List<AdminCustomerRowResponse> out = new ArrayList<>();
+        for (Customer c : customers) {
+            String key = c.getCustomerId().toLowerCase(Locale.ROOT);
+            List<CustomerConsentRecord> recs = byCustomer.getOrDefault(key, List.of());
+            out.add(AdminCustomerRowResponse.builder()
+                    .customerId(c.getCustomerId())
+                    .customerName(c.getFullName())
+                    .mobileNumber(c.getMobileNumber())
+                    .email(c.getEmail())
+                    .currentStatus(CustomerCurrentStatusService.derive(recs, today))
+                    .consents(summaries.getOrDefault(key, List.of()))
+                    .nextExpiry(CustomerCurrentStatusService.nextExpiry(recs, today))
+                    .lastUpdated(c.getUpdatedAt())
+                    .build());
+        }
+        return out;
     }
 
     private AdminCustomerRowResponse toRow(Customer c) {

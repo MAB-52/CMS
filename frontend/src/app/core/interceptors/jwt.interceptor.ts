@@ -3,12 +3,10 @@ import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { LoggerService } from '../services/logger.service';
-import { NotificationService } from '../services/notification.service';
  
 export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   const logger = inject(LoggerService);
-  const notify = inject(NotificationService);
  
   if (req.url.includes('/auth/login')) {
     return next(req);
@@ -32,21 +30,15 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
  
         if (errorCode === 'ACCOUNT_INACTIVE') {
           logger.warn('JwtInterceptor', '401 received — account deactivated');
-          notify.warnOnce(
-            'account-inactive',
-            'Your account has been deactivated. Please contact your administrator.',
-          );
-          auth.logout({ sessionExpired: true });
+          auth.logout({ reason: 'account_inactive' });
+        } else if (errorCode === 'ACCOUNT_CHANGED') {
+          logger.warn('JwtInterceptor', '401 received — sign-in details changed');
+          auth.logout({ reason: 'account_changed' });
         } else if (errorCode === 'SESSION_INVALIDATED_ELSEWHERE') {
-          logger.warn('JwtInterceptor', '401 received — session invalidated by another login');
-          notify.warnOnce(
-            'session-invalidated',
-            'You were logged out because your account was accessed from another device or location.',
-          );
+          logger.warn('JwtInterceptor', '401 received — session invalidated');
           auth.logout({ reason: 'session_invalidated' });
         } else {
           logger.warn('JwtInterceptor', '401 received — logging out');
-          notify.warnOnce('session-expired', 'Session expired. Please sign in again.');
           auth.logout({ sessionExpired: true });
         }
       } else if (err.status === 403) {

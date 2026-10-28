@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -51,7 +52,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 String email = jwtTokenProvider.getEmailFromToken(jwt);
                 Integer tokenVersionInJwt = jwtTokenProvider.getTokenVersionFromToken(jwt);
                 log.info("Processing request | entity=User | id=****");
-                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+                UserDetails userDetails;
+                try {
+                    userDetails = userDetailsService.loadUserByUsername(email);
+                } catch (UsernameNotFoundException notFound) {
+                    log.warn("JWT rejected | reason=account_changed | user={}", email);
+                    request.setAttribute("accountChanged", Boolean.TRUE);
+                    filterChain.doFilter(request, response);
+                    return;
+                }
 
                 if (!userDetails.isEnabled()) {
                     log.warn("JWT rejected | reason=account_inactive | user={}", email);

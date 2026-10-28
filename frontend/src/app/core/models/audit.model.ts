@@ -4,6 +4,7 @@ export interface AuditLogEntry {
   id: number;
   userId: number;
   userName: string;
+  userRole?: string | null;
   action: string;
   entityType: string;
   entityId: number;
@@ -13,6 +14,7 @@ export interface AuditLogEntry {
   performedAt: string;
   checkerStatus?: string | null;
   checkerName?: string | null;
+  linked?: boolean;
 }
 
 /** GET /audit/my-reviews — a checker's own decisions (one page) plus all-time summary counts. */

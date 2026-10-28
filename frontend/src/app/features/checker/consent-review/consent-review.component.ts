@@ -18,12 +18,13 @@ import { ReviewActionDialogService } from '../../../shared/components/review-act
 import { ConsentChannelLanguagePreviewComponent } from '../../../shared/components/consent-channel-language-preview/consent-channel-language-preview.component';
 import { DecisionBarComponent } from '../../../shared/components/decision-bar/decision-bar.component';
 import { ChannelLanguageCombo, buildRenderMap, countReviewCombinations } from '../../../core/models/consent-translation.types';
+import { ConsentHistoryTimelineComponent } from '../../../shared/components/consent-history-timeline/consent-history-timeline.component';
 import { ChannelChipComponent } from '../../../shared/components/channel-chip/channel-chip.component';
 
 @Component({
   selector: 'app-consent-review',
   standalone: true,
-  imports: [RouterLink, MatButtonModule, MatIconModule, MatExpansionModule, DatePipe, ConsentChannelLanguagePreviewComponent, DecisionBarComponent, ChannelChipComponent],
+  imports: [RouterLink, MatButtonModule, MatIconModule, MatExpansionModule, DatePipe, ConsentChannelLanguagePreviewComponent, DecisionBarComponent, ChannelChipComponent, ConsentHistoryTimelineComponent],
   templateUrl: './consent-review.component.html',
   styleUrl: './consent-review.component.css',
 })
@@ -153,9 +154,11 @@ export class ConsentReviewComponent implements OnInit {
         .reviewConsent(c.id, 'APPROVE', undefined, undefined, result.message, this.reviewedCombinationsList())
         .subscribe({
           next: (res) => {
-            this.busy.set(false);
+            if (!res.success) {
+              this.busy.set(false);
+            }
             if (res.success) {
-              this.notify.success('✅ Consent approved successfully!', res.message);
+              this.notify.success('Consent approved and published', res.message);
               setTimeout(() => void this.router.navigateByUrl('/checker/pending'), 1500);
             }
           },
@@ -192,7 +195,9 @@ export class ConsentReviewComponent implements OnInit {
         .reviewConsent(c.id, 'REQUEST_REVISION', undefined, result.message, undefined, this.reviewedCombinationsList(), flagged)
         .subscribe({
           next: (res) => {
-            this.busy.set(false);
+            if (!res.success) {
+              this.busy.set(false);
+            }
             if (res.success) {
               this.notify.warning('↩ Revision request sent to maker.', res.message);
               setTimeout(() => void this.router.navigateByUrl('/checker/pending'), 1200);
@@ -227,7 +232,9 @@ export class ConsentReviewComponent implements OnInit {
         .reviewConsent(c.id, 'REJECT', result.message, undefined, undefined, this.reviewedCombinationsList())
         .subscribe({
           next: (res) => {
-            this.busy.set(false);
+            if (!res.success) {
+              this.busy.set(false);
+            }
             if (res.success) {
               this.notify.error('❌ Consent rejected.', res.message || '');
               setTimeout(() => void this.router.navigateByUrl('/checker/pending'), 1200);

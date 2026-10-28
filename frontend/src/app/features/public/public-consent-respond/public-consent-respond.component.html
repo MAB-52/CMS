@@ -116,8 +116,19 @@
               <span class="sec-icon sec-icon--purple" aria-hidden="true"><i class="pi pi-file-edit"></i></span>
               <h2 class="sec-title">What you're agreeing to</h2>
             </div>
+            @if (viewOptions().length > 1) {
+              <div class="read-in">
+                <span class="read-in__label"><i class="pi pi-language" aria-hidden="true"></i>Read in</span>
+                <p-selectbutton [options]="viewOptions()" [ngModel]="viewLang()" (ngModelChange)="viewLang.set($event || 'en')"
+                  optionLabel="label" optionValue="value" [allowEmpty]="false" styleClass="read-in__switch"
+                  aria-label="Choose the language to read this message in" />
+              </div>
+            }
             <div class="message-body" id="consent-message">
-              @if (d.resolvedMessageHtml) {
+              @if (currentTranslation(); as t) {
+                <div class="message-html" [attr.dir]="t.rtl ? 'rtl' : 'ltr'" [attr.lang]="t.languageCode"
+                  [innerHTML]="safeResolvedHtml(t.html)"></div>
+              } @else if (d.resolvedMessageHtml) {
                 <div class="message-html" [innerHTML]="safeResolvedHtml(d.resolvedMessageHtml)"></div>
               } @else {
                 <div class="message-text">{{ d.messagePreview }}</div>
@@ -180,7 +191,7 @@
             </div>
 
             <div class="pick-grid pick-grid--langs" role="group" aria-labelledby="lang-heading">
-              @for (lang of languages; track lang.value) {
+              @for (lang of languages(); track lang.value) {
                 @let locked = lang.value === 'english';
                 <label class="pick pick--lang" [class.pick--on]="selectedLangs.has(lang.value)" [class.pick--locked]="locked">
                   <p-checkbox [binary]="true" [ngModel]="selectedLangs.has(lang.value)" (ngModelChange)="toggleLang(lang.value)"

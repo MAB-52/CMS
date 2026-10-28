@@ -91,8 +91,15 @@
 /* ── Table ─────────────────────────────────────────────── */
 :host ::ng-deep .lb-table .p-datatable-thead > tr > th,
 :host ::ng-deep .lb-table .p-datatable-tbody > tr > td { padding: 12px 10px; text-align: center; }
-:host ::ng-deep .lb-table .p-datatable-thead > tr > th { font-size: var(--is-fs-2xs); letter-spacing: 0.06em; }
-:host ::ng-deep .lb-table .p-datatable-tbody > tr > td { overflow: hidden; font-size: var(--is-fs-sm); }
+:host ::ng-deep .lb-table .p-datatable-thead > tr > th { font-size: var(--is-fs-2xs); line-height: 16px; letter-spacing: 0.06em; white-space: normal; }
+:host ::ng-deep .lb-table .p-datatable-tbody > tr > td { overflow: visible; font-size: var(--is-fs-sm); }
+:host ::ng-deep .lb-table .p-datatable-table-container { container-type: inline-size; }
+
+:host ::ng-deep .lb-table .p-datatable-thead > tr > th.p-datatable-frozen-column { z-index: 2; background: var(--is-canvas); }
+:host ::ng-deep .lb-table .p-datatable-tbody > tr > td.p-datatable-frozen-column { z-index: 1; background: var(--is-surface); }
+:host ::ng-deep .lb-table .mr-row:hover > td.p-datatable-frozen-column,
+:host ::ng-deep .lb-table .lb-row--open > td.p-datatable-frozen-column { background: var(--is-tint-purple); }
+:host ::ng-deep .lb-table .lb-frozen-edge { box-shadow: 6px 0 10px -8px rgba(15, 23, 42, 0.28); clip-path: inset(0 -16px 0 0); }
 :host ::ng-deep .lb-table .p-datatable-thead > tr > th.lb-left,
 :host ::ng-deep .lb-table .p-datatable-tbody > tr > td.lb-left { text-align: left; }
 :host ::ng-deep .lb-center { margin-inline: auto; }
@@ -136,6 +143,9 @@
 .lb-name .mr-mono { font-size: var(--is-fs-2xs); }
 
 .lb-num { display: inline-flex; align-items: center; gap: 6px; font-weight: var(--is-fw-bold); font-variant-numeric: tabular-nums; }
+.lb-invites { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; white-space: nowrap; }
+::ng-deep .lb-repeat.p-tag { padding: 1px 8px; font-size: 10px; font-weight: var(--is-fw-bold); white-space: nowrap; }
+::ng-deep .lb-repeat .p-tag-icon { font-size: 9px; }
 .lb-num .pi { font-size: 10px; color: var(--is-text-3); }
 .lb-num--pos { color: var(--is-success-text); }
 .lb-num--pos .pi { color: var(--is-success); }
@@ -165,6 +175,10 @@
 /* ── Channel breakdown ─────────────────────────────────── */
 :host ::ng-deep .lb-table .p-datatable-tbody > tr.lb-expand-row > td { padding: 16px; text-align: left; background: var(--is-tint-purple); }
 .lb-detail {
+  position: sticky;
+  left: 16px;
+  box-sizing: border-box;
+  width: calc(100cqw - 32px);
   display: grid;
   gap: var(--is-s-4);
   padding: var(--is-s-4) var(--is-s-5);

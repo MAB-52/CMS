@@ -246,6 +246,14 @@ public interface CustomerConsentRecordRepository extends JpaRepository<CustomerC
 
 	List<CustomerConsentRecord> findByCustomerIdIn(Collection<String> customerIds);
 
+	@Query("SELECT r FROM CustomerConsentRecord r WHERE r.status IN :statuses AND r.consentValidUntil IS NOT NULL "
+			+ "AND r.consentValidUntil >= :fromDate AND r.consentValidUntil <= :toDate")
+	org.springframework.data.domain.Page<CustomerConsentRecord> findForExpiryReport(
+			@Param("statuses") Collection<CustomerConsentRecordStatus> statuses,
+			@Param("fromDate") LocalDate fromDate,
+			@Param("toDate") LocalDate toDate,
+			org.springframework.data.domain.Pageable pageable);
+
 	List<CustomerConsentRecord> findByConsentDbIdOrderByUpdatedAtDesc(Long consentDbId);
  
 	@Query("SELECT r.customerId FROM CustomerConsentRecord r WHERE r.consentDbId = :consentDbId AND r.status = :status")

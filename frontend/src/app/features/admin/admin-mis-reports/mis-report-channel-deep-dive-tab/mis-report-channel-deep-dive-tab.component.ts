@@ -14,6 +14,7 @@ import { Subject, forkJoin, takeUntil } from 'rxjs';
 import { MisChannelPerformanceRow, MisChannelTemplatePerformanceRow } from '../../../../core/models/admin.model';
 import { AdminService } from '../../../../core/services/admin.service';
 import { LoggerService } from '../../../../core/services/logger.service';
+import { blobErrorMessage, saveBlob } from '../../../../core/utils/download.util';
 import { NotificationService } from '../../../../core/services/notification.service';
 
 @Component({
@@ -61,9 +62,10 @@ export class MisReportChannelDeepDiveTabComponent implements OnInit, OnDestroy {
   );
 
   readonly avgSuccessRate = computed(() => {
-    const rows = this.channels();
-    if (!rows.length) return 0;
-    return Math.round(rows.reduce((s, c) => s + c.successRatePercent, 0) / rows.length);
+    const sent = this.totalInvites();
+    if (!sent) return 0;
+    const accepted = this.channels().reduce((s, c) => s + c.acceptedCount, 0);
+    return Math.round((accepted / sent) * 1000) / 10;
   });
 
   /** Options for the channel filter select (empty value = all channels). */
@@ -172,13 +174,8 @@ export class MisReportChannelDeepDiveTabComponent implements OnInit, OnDestroy {
 
   // ── Export helpers ──────────────────────────────────────────────────────────
 
-  private dl(blob: Blob, name: string): void {
-    const u = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = u;
-    a.download = name;
-    a.click();
-    URL.revokeObjectURL(u);
+  private dl(blob: Blob, base: string, ext: string): void {
+    saveBlob(blob, base, ext);
   }
 
   exportCsv(): void {
@@ -189,12 +186,12 @@ export class MisReportChannelDeepDiveTabComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (b) => {
           this.exporting.set(false);
-          this.dl(b, 'channel-template-performance.csv');
-          this.notify.success('Export', 'CSV started.');
+          this.dl(b, 'channel-template-performance', 'csv');
+          this.notify.success('Export', 'CSV downloaded.');
         },
-        error: () => {
+        error: async (err) => {
           this.exporting.set(false);
-          this.notify.error('Export', 'Failed.');
+          this.notify.error('Export', await blobErrorMessage(err, 'Export failed.'));
         },
       });
   }
@@ -207,12 +204,12 @@ export class MisReportChannelDeepDiveTabComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (b) => {
           this.exporting.set(false);
-          this.dl(b, 'channel-template-performance.xlsx');
-          this.notify.success('Export', 'Excel started.');
+          this.dl(b, 'channel-template-performance', 'xlsx');
+          this.notify.success('Export', 'Excel downloaded.');
         },
-        error: () => {
+        error: async (err) => {
           this.exporting.set(false);
-          this.notify.error('Export', 'Failed.');
+          this.notify.error('Export', await blobErrorMessage(err, 'Export failed.'));
         },
       });
   }

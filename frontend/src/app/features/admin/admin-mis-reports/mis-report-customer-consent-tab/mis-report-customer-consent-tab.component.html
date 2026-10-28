@@ -25,15 +25,36 @@
 <!-- ── Filters ─────────────────────────────────────────────────────────── -->
 <form class="cc-filters" (ngSubmit)="apply()">
   <div class="cc-field">
-    <label class="cc-field__label" for="cc-status"><i class="pi pi-filter"></i> Consent status</label>
+    <label class="cc-field__label" for="cc-status"><i class="pi pi-filter"></i> Customer status</label>
     <p-multiselect inputId="cc-status" name="status" [(ngModel)]="selectedStatuses" [options]="statusOptions"
-      optionLabel="label" optionValue="value" placeholder="All statuses" display="chip" [maxSelectedLabels]="2"
+      optionLabel="label" optionValue="value" placeholder="Any status" display="chip" [maxSelectedLabels]="2"
       selectedItemsLabel="{0} statuses" [showToggleAll]="true" [filter]="false" [showClear]="true" appendTo="body"
-      styleClass="cc-input">
+      styleClass="cc-input" pTooltip="Matches the current status shown on each row" tooltipPosition="top">
       <ng-template #item let-o>
         <span class="cc-opt"><i [class]="o.icon" [attr.data-sev]="o.severity"></i>{{ o.label }}</span>
       </ng-template>
     </p-multiselect>
+  </div>
+
+  <div class="cc-field">
+    <label class="cc-field__label" for="cc-consent-status"><i class="pi pi-list-check"></i> Has a consent that is</label>
+    <p-multiselect inputId="cc-consent-status" name="consentStatus" [(ngModel)]="selectedConsentStatuses"
+      [options]="consentStatusOptions" optionLabel="label" optionValue="value" placeholder="Any consent"
+      display="chip" [maxSelectedLabels]="2" selectedItemsLabel="{0} statuses" [showToggleAll]="false" [filter]="false"
+      [showClear]="true" appendTo="body" styleClass="cc-input"
+      pTooltip="Customers with at least one consent in these statuses, whatever their current status" tooltipPosition="top">
+      <ng-template #item let-o>
+        <span class="cc-opt"><i [class]="o.icon" [attr.data-sev]="o.severity"></i>{{ o.label }}</span>
+      </ng-template>
+    </p-multiselect>
+  </div>
+
+  <div class="cc-field">
+    <label class="cc-field__label" for="cc-template"><i class="pi pi-file"></i> Template</label>
+    <p-select inputId="cc-template" name="template" [(ngModel)]="selectedTemplateId" [options]="templates()"
+      optionLabel="consentName" optionValue="id" placeholder="Any template" [showClear]="true"
+      [filter]="templates().length > 6" filterBy="consentName" appendTo="body" styleClass="cc-input"
+      pTooltip="Narrows 'Has a consent that is' to one template" tooltipPosition="top" />
   </div>
 
   <div class="cc-field cc-field--sm">
@@ -93,10 +114,11 @@
       <tr>
         <th class="cc-col-toggle" pTooltip="Expand a row to see the customer's consent history" tooltipPosition="top"></th>
         <th pTooltip="Customer name and customer ID" tooltipPosition="top">Customer</th>
-        <th pTooltip="Registered mobile number and email" tooltipPosition="top">Contact</th>
-        <th pTooltip="Date the customer's consent stays valid until" tooltipPosition="top">Valid until</th>
-        <th pTooltip="When the most recent consent invite was sent" tooltipPosition="top">Last invite</th>
-        <th pTooltip="When the customer last responded to an invite" tooltipPosition="top">Last response</th>
+        <th class="cc-col-contact" pTooltip="Registered mobile number and email" tooltipPosition="top">Contact</th>
+        <th class="cc-col-status" pTooltip="Current status, plus a summary of all their consents" tooltipPosition="top">Status</th>
+        <th class="cc-col-date" pTooltip="Earliest valid-until date among the customer's active consents" tooltipPosition="top">Next expiry</th>
+        <th class="cc-col-date" pTooltip="When the most recent consent invite was sent" tooltipPosition="top">Last invite</th>
+        <th class="cc-col-date" pTooltip="When the customer last responded to an invite" tooltipPosition="top">Last response</th>
         <th class="cc-col-vip" pTooltip="Whether the customer is flagged as VIP" tooltipPosition="top">VIP</th>
       </tr>
     </ng-template>
@@ -119,17 +141,36 @@
             </div>
           </div>
         </td>
-        <td>
+        <td class="cc-col-contact">
           <div class="cc-stack">
             <span class="cc-line" [pTooltip]="r.mobileNumber ? 'Mobile: ' + r.mobileNumber : 'No mobile number'"
-              tooltipPosition="top"><i class="pi pi-phone"></i>{{ r.mobileNumber || '—' }}</span>
+              tooltipPosition="top"><i class="pi pi-phone"></i><span class="cc-ellipsis">{{ r.mobileNumber || '—' }}</span></span>
             <span class="cc-line cc-line--muted" [pTooltip]="r.email ? 'Email: ' + r.email : 'No email on file'"
               tooltipPosition="top">
               <i class="pi pi-envelope"></i><span class="cc-ellipsis">{{ r.email || '—' }}</span>
             </span>
           </div>
         </td>
-        <td>
+        <td class="cc-col-status">
+          @let st = customerStatus(r);
+          @let chip = summaryChip(r);
+          <div class="cc-status">
+            <p-tag [value]="st.label" [severity]="st.severity" [icon]="st.icon" [rounded]="true"
+              styleClass="cc-status__tag" />
+            @if (chip.total) {
+            <span class="cc-chip" [pTooltip]="chip.tooltip" tooltipPosition="top" tooltipStyleClass="cc-chip-tip">
+              <span>{{ chip.total }} consent{{ chip.total === 1 ? '' : 's' }}</span>
+              @if (chip.declined) {
+              <span class="cc-chip__sep"></span><span class="cc-chip__bad"><i class="pi pi-times"></i>{{ chip.declined }}</span>
+              }
+              @if (chip.pending) {
+              <span class="cc-chip__sep"></span><span class="cc-chip__wait"><i class="pi pi-clock"></i>{{ chip.pending }}</span>
+              }
+            </span>
+            }
+          </div>
+        </td>
+        <td class="cc-col-date">
           @let v = validity(r.consentValidUntil);
           @if (v === 'none') {
           <span class="cc-dash" pTooltip="No consent validity date" tooltipPosition="top">—</span>
@@ -144,7 +185,7 @@
           </div>
           }
         </td>
-        <td>
+        <td class="cc-col-date">
           @if (r.lastConsentInviteSentAt) {
           <div class="cc-stack" [pTooltip]="'Invite sent ' + (r.lastConsentInviteSentAt | date: 'medium')"
             tooltipPosition="top">
@@ -153,7 +194,7 @@
           </div>
           } @else { <span class="cc-dash" pTooltip="No invite sent yet" tooltipPosition="top">—</span> }
         </td>
-        <td>
+        <td class="cc-col-date">
           @if (r.lastConsentResponseAt) {
           <div class="cc-stack" [pTooltip]="'Responded ' + (r.lastConsentResponseAt | date: 'medium')"
             tooltipPosition="top">
@@ -177,7 +218,7 @@
 
     <ng-template #expandedrow let-r>
       <tr class="cc-expand-row">
-        <td colspan="7">
+        <td colspan="8">
           <div class="cc-history">
             <div class="cc-history__head">
               <span class="cc-history__ico" aria-hidden="true"><i class="pi pi-history"></i></span>
@@ -263,16 +304,17 @@
             <div class="cc-cust__text"><p-skeleton width="8rem" /><p-skeleton width="5rem" height=".7rem" /></div>
           </div>
         </td>
-        <td><p-skeleton width="9rem" /></td>
-        <td><p-skeleton width="6rem" /></td>
-        <td><p-skeleton width="6rem" /></td>
-        <td><p-skeleton width="6rem" /></td>
+        <td class="cc-col-contact"><p-skeleton width="9rem" /></td>
+        <td class="cc-col-status"><p-skeleton width="7rem" height="1.6rem" borderRadius="999px" /></td>
+        <td class="cc-col-date"><p-skeleton width="6rem" /></td>
+        <td class="cc-col-date"><p-skeleton width="6rem" /></td>
+        <td class="cc-col-date"><p-skeleton width="6rem" /></td>
         <td class="cc-col-vip"><p-skeleton width="3.5rem" height="1.6rem" borderRadius="999px" /></td>
       </tr>
       }
       } @else {
       <tr>
-        <td colspan="7">
+        <td colspan="8">
           <div class="cc-empty">
             <span class="cc-empty__ico"><i class="pi pi-search"></i></span>
             <p class="cc-empty__title">No customers match your filters</p>

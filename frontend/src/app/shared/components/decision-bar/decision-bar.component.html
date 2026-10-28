@@ -15,14 +15,14 @@
       </div>
     </div>
 
-    <div class="is-action-dock__actions">
+    <div class="is-action-dock__actions" [pTooltip]="gateHint()" tooltipPosition="top" [tooltipDisabled]="!gateHint()">
       <p-button
         label="Reject"
         icon="pi pi-times-circle"
         severity="danger"
         [outlined]="true"
         [rounded]="true"
-        [disabled]="disabled() || busy()"
+        [disabled]="actionDisabled()"
         (onClick)="reject.emit()"
       />
       <p-button
@@ -31,7 +31,7 @@
         severity="warn"
         [outlined]="true"
         [rounded]="true"
-        [disabled]="disabled() || busy()"
+        [disabled]="actionDisabled()"
         (onClick)="revise.emit()"
       />
       <p-button
@@ -40,7 +40,7 @@
         severity="success"
         [rounded]="true"
         [loading]="busy()"
-        [disabled]="approveDisabled()"
+        [disabled]="actionDisabled()"
         (onClick)="approve.emit()"
       />
     </div>

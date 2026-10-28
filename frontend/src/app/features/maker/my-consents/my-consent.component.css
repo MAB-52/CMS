@@ -199,3 +199,9 @@
   .sort, .search { width: 100%; }
   .tabs { border-radius: var(--is-r-md); }
 }
+
+.rev-note--rejected {
+  border-color: color-mix(in srgb, var(--is-danger) 40%, white);
+  background: var(--is-danger-bg);
+}
+.rev-note--rejected .mat-icon { color: var(--is-danger); }

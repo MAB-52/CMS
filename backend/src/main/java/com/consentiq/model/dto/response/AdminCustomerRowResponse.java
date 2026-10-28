@@ -20,4 +20,7 @@ public class AdminCustomerRowResponse {
     private String email;
     private CustomerConsentStatus consentStatus;
     private Instant lastUpdated;
+    private com.consentiq.enums.CustomerCurrentStatus currentStatus;
+    private java.util.List<CustomerConsentSummary> consents;
+    private java.time.LocalDate nextExpiry;
 }

@@ -19,6 +19,8 @@ public class MisAgentPerformanceRowResponse {
     private long pendingApprovals;
     private long approvedOrPublished;
     private long rejectedConsents;
+    private long draftConsents;
+    private long revisionRequested;
     private double averageProcessingHours;
     private double sla24hSubmitCompliancePercent;
 }

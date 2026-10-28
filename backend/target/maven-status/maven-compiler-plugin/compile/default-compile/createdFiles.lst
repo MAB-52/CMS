@@ -23,6 +23,7 @@ com\consentiq\service\ReminderEmailService.class
 com\consentiq\repository\AuditLogRepository.class
 com\consentiq\repository\CustomerLanguagePreferenceRepository.class
 com\consentiq\model\dto\response\CustomerChannelPreferenceResponse$CustomerChannelPreferenceResponseBuilder.class
+com\consentiq\service\CustomerCurrentStatusService$1.class
 com\consentiq\service\ConsentRuleEntityMapper.class
 com\consentiq\util\HtmlTextUtil.class
 com\consentiq\model\dto\request\ConsentBroadcastUpsertRequest$ConsentBroadcastUpsertRequestBuilder.class
@@ -202,7 +203,6 @@ com\consentiq\model\dto\request\PublicConsentExchangeRequest.class
 com\consentiq\model\entity\CustomerLanguagePreference.class
 com\consentiq\model\dto\response\mis\MisDemographicVipSplitResponse$MisDemographicVipSplitResponseBuilder.class
 com\consentiq\repository\CustomerChannelPreferenceRepository.class
-com\consentiq\service\MisReportService.class
 com\consentiq\scheduler\ConsentFollowUpSchedulerJob$1.class
 com\consentiq\model\dto\response\ConsentRuleResponse.class
 com\consentiq\service\CustomerConsentRecordService$1.class
@@ -220,7 +220,6 @@ com\consentiq\model\dto\response\AudienceSegmentCountPreview.class
 com\consentiq\model\dto\response\PagedResponse.class
 com\consentiq\model\dto\response\ConsentResponse$ConsentResponseBuilder.class
 com\consentiq\config\CorsConfig.class
-com\consentiq\controller\MisReportController.class
 com\consentiq\exception\InvalidConsentStateException.class
 com\consentiq\model\entity\ConsentRuleExecution$ConsentRuleExecutionBuilder.class
 com\consentiq\model\dto\request\RecordOnBehalfConsentRequest.class
@@ -311,7 +310,6 @@ com\consentiq\model\dto\response\mis\MisConsentTrendResponse.class
 com\consentiq\model\dto\response\mis\MisRevocationRowResponse$MisRevocationRowResponseBuilder.class
 com\consentiq\model\dto\response\mis\MisChannelPerformanceRowResponse.class
 com\consentiq\repository\ConsentTranslationRepository.class
-com\consentiq\service\MisReportService$LeaderAgg.class
 com\consentiq\controller\AuditController.class
 com\consentiq\model\dto\request\ConsentCreateRequest$ConsentCreateRequestBuilder.class
 com\consentiq\model\dto\response\mis\MisExecutiveKpisResponse$MisExecutiveKpisResponseBuilder.class

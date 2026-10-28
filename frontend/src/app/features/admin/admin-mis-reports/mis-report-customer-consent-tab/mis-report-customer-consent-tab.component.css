@@ -154,8 +154,12 @@
 :host ::ng-deep .cc-table .p-paginator-current { margin-right: auto; font-size: var(--is-fs-xs); color: var(--is-text-2); }
 :host ::ng-deep .cc-table .p-paginator-page.p-paginator-page-selected { background: var(--is-grad-banner); color: #fff; }
 
+/* ── Column sizing ─────────────────────────────────────── */
 .cc-col-toggle { width: 56px; padding-right: 0 !important; }
 .cc-col-vip { width: 90px; text-align: center !important; }
+.cc-col-contact { min-width: 12.5rem; max-width: 15rem; }
+.cc-col-status { min-width: 11.5rem; }
+.cc-col-date { min-width: 8.5rem; }
 
 :host ::ng-deep .cc-row { animation: cc-row-in var(--is-dur-slow) var(--is-ease) calc(var(--i, 0) * 35ms) both; }
 :host ::ng-deep .cc-row:hover > td { background: var(--is-tint-purple); }
@@ -185,12 +189,17 @@
 
 .cc-stack { display: grid; gap: 3px; min-width: 0; }
 .cc-line { display: inline-flex; align-items: center; gap: 7px; min-width: 0; white-space: nowrap; }
-.cc-line .pi { font-size: 11px; color: var(--is-text-3); }
+.cc-line .pi { flex: none; font-size: 11px; color: var(--is-text-3); }
 .cc-line--muted { color: var(--is-text-2); font-size: var(--is-fs-xs); }
 .cc-ellipsis { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
-.cc-rel { font-size: var(--is-fs-2xs); color: var(--is-text-3); }
+.cc-rel { font-size: var(--is-fs-2xs); color: var(--is-text-3); white-space: nowrap; }
 .cc-dash { color: var(--is-text-3); font-size: var(--is-fs-xs); }
 .cc-muted { color: var(--is-text-2); }
+
+/* Contact column: truncate inside the column instead of overflowing into Status. */
+.cc-col-contact .cc-stack { overflow: hidden; }
+.cc-col-contact .cc-line { max-width: 100%; }
+.cc-col-contact .cc-ellipsis { min-width: 0; max-width: none; overflow: hidden; text-overflow: ellipsis; }
 
 .cc-valid { --vc: var(--is-success); display: inline-flex; align-items: center; gap: 8px; font-weight: var(--is-fw-semibold); white-space: nowrap; }
 .cc-valid[data-v='soon'] { --vc: var(--is-warning); }
@@ -204,6 +213,53 @@
   background: var(--vc);
   animation: is-ping 1.6s ease-out infinite;
 }
+
+/* ── Status cell ───────────────────────────────────────── */
+.cc-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+:host ::ng-deep .cc-status__tag.p-tag {
+  gap: 6px;
+  padding: 5px 11px;
+  font-family: var(--is-font);
+  font-size: var(--is-fs-xs);
+  font-weight: var(--is-fw-bold);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+:host ::ng-deep .cc-status__tag .p-tag-icon { font-size: 12px; }
+
+.cc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border: 1px solid var(--is-border);
+  border-radius: var(--is-r-pill);
+  background: var(--is-surface-2);
+  color: var(--is-text-2);
+  font-size: var(--is-fs-2xs);
+  font-weight: var(--is-fw-bold);
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: default;
+  transition: border-color var(--is-dur-fast) ease, background var(--is-dur-fast) ease;
+}
+.cc-chip:hover {
+  border-color: color-mix(in srgb, var(--is-primary) 30%, var(--is-border));
+  background: var(--is-tint-purple);
+}
+.cc-chip__sep { width: 3px; height: 3px; border-radius: 50%; background: currentColor; opacity: 0.45; }
+.cc-chip__bad,
+.cc-chip__wait { display: inline-flex; align-items: center; gap: 3px; }
+.cc-chip .pi { font-size: 9px; }
+.cc-chip__bad { color: var(--is-danger); }
+.cc-chip__wait { color: var(--is-warning-text); }
+:host ::ng-deep .cc-chip-tip .p-tooltip-text { white-space: pre-line; }
 
 :host ::ng-deep .cc-vip.p-tag {
   background: linear-gradient(135deg, #f7b500, #fd7e14);
@@ -268,7 +324,7 @@
 }
 :host ::ng-deep .cc-subrow { animation: is-fade-up var(--is-dur) var(--is-ease) calc(var(--i, 0) * 40ms) both; }
 :host ::ng-deep .cc-subrow:hover > td { background: var(--is-surface-2) !important; }
-:host ::ng-deep .cc-subtable .p-tag { font-size: var(--is-fs-2xs); font-weight: var(--is-fw-bold); }
+:host ::ng-deep .cc-subtable .p-tag { font-size: var(--is-fs-2xs); font-weight: var(--is-fw-bold); white-space: nowrap; }
 :host ::ng-deep .cc-subtable .p-paginator { padding: 6px 10px; border-top: 1px solid var(--is-border); font-family: var(--is-font); }
 .cc-consent { display: inline-flex; align-items: center; gap: 8px; font-weight: var(--is-fw-semibold); }
 .cc-consent .pi { color: var(--is-primary); font-size: 13px; }
@@ -301,6 +357,12 @@
 .cc-empty__sub,
 .cc-empty--sm p { margin-bottom: 10px !important; font-size: var(--is-fs-sm); color: var(--is-text-2); }
 
+/* ── Paginator rows-per-page ───────────────────────────── */
+/* Compact pill sized to the pager (its menu is appended to <body>). */
+:host ::ng-deep .cc-table .p-paginator-rpp-dropdown { height: 34px; margin-left: 6px; border-radius: var(--is-r-pill); font-family: var(--is-font); }
+:host ::ng-deep .cc-table .p-paginator-rpp-dropdown .p-select-label { display: flex; align-items: center; padding: 0 4px 0 14px; font-size: var(--is-fs-sm); font-weight: var(--is-fw-bold); color: var(--is-text); }
+:host ::ng-deep .cc-table .p-paginator-rpp-dropdown .p-select-dropdown { width: 2rem; color: var(--is-text-2); }
+
 /* ── Motion ────────────────────────────────────────────── */
 @keyframes cc-row-in {
   from { opacity: 0; transform: translateY(6px); }
@@ -327,8 +389,3 @@
   .cc-actions { width: 100%; justify-content: flex-end; }
   .cc-exports { width: 100%; }
 }
-
-/* Rows-per-page select: compact pill sized to the pager (its menu is appended to <body>). */
-:host ::ng-deep .cc-table .p-paginator-rpp-dropdown { height: 34px; margin-left: 6px; border-radius: var(--is-r-pill); font-family: var(--is-font); }
-:host ::ng-deep .cc-table .p-paginator-rpp-dropdown .p-select-label { display: flex; align-items: center; padding: 0 4px 0 14px; font-size: var(--is-fs-sm); font-weight: var(--is-fw-bold); color: var(--is-text); }
-:host ::ng-deep .cc-table .p-paginator-rpp-dropdown .p-select-dropdown { width: 2rem; color: var(--is-text-2); }

@@ -18,6 +18,7 @@ import { ConsentChannelLanguagePreviewComponent } from '../../../shared/componen
 import { DecisionBarComponent } from '../../../shared/components/decision-bar/decision-bar.component';
 import { ReviewActionDialogData, ReviewActionDialogResult } from '../../../shared/components/review-action-dialog/review-action-dialog.component';
 import { ReviewActionDialogService } from '../../../shared/components/review-action-dialog/review-action-dialog.service';
+import { ConsentHistoryTimelineComponent } from '../../../shared/components/consent-history-timeline/consent-history-timeline.component';
 import { ChannelChipComponent } from '../../../shared/components/channel-chip/channel-chip.component';
 
 const CHANNEL_CHIP_LABEL: Record<ChannelId, string> = {
@@ -38,7 +39,7 @@ const CHANNEL_CHIP_LABEL: Record<ChannelId, string> = {
     ConsentTypeLabelPipe,
     ConsentChannelLanguagePreviewComponent,
     DecisionBarComponent,
-    ChannelChipComponent
+    ChannelChipComponent, ConsentHistoryTimelineComponent
   ],
   templateUrl: './linked-approval-review.component.html',
   styleUrls: ['../checker-shared.css', '../linked-approvals/linked-approvals.component.css', './linked-approval-review.component.css'],
@@ -102,6 +103,8 @@ export class LinkedApprovalReviewComponent implements OnInit {
     }
 
     this.loading.set(true);
+    this.notFound.set(false);
+    this.consent.set(null);
     this.consentApi.getLinkedPendingApprovals().subscribe({
       next: (res) => {
         this.loading.set(false);
@@ -122,7 +125,7 @@ export class LinkedApprovalReviewComponent implements OnInit {
   private onDecisionError(err: HttpErrorResponse): void {
     this.actingBusy.set(false);
     if (err.status === 409) {
-      this.load();
+      void this.router.navigateByUrl('/checker/linked-pending');
     }
   }
 

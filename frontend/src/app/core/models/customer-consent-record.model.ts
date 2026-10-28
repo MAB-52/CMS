@@ -17,6 +17,12 @@ export interface CustomerConsentRecordRow {
   respondedAt?: string | null;
   consentValidUntil?: string | null;
   lastInviteSentAt?: string | null;
+  onBehalfRecordId?: number | null;
+  captureMode?: string | null;
+  sourceChannel?: string | null;
+  evidenceReference?: string | null;
+  recordedByName?: string | null;
+  recordedAt?: string | null;
   sourceRuleId?: number | null;
   sourceBroadcastId?: number | null;
   createdAt?: string | null;

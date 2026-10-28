@@ -489,3 +489,30 @@
   *, *::before, *::after { animation: none !important; transition: none !important; }
   .check-circle, .check-path { stroke-dashoffset: 0; }
 }
+
+.read-in {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 4px 0 12px;
+}
+.read-in__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748B;
+}
+.read-in__label .pi { color: #45329E; }
+:host ::ng-deep .read-in__switch .p-togglebutton {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+:host ::ng-deep .read-in__switch .p-togglebutton-checked .p-togglebutton-content {
+  background: #45329E;
+  color: #fff;
+}
+.message-html[dir='rtl'] { text-align: right; }

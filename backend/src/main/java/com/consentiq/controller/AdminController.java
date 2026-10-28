@@ -87,6 +87,8 @@ public class AdminController {
             @RequestParam(required = false) String mobileNumber,
             @RequestParam(required = false) String customerId,
             @RequestParam(required = false) String consentStatus,
+            @RequestParam(required = false) String consentStatuses,
+            @RequestParam(required = false) Long consentDbId,
             @RequestParam(defaultValue = "updatedAt") String sortBy,
             @RequestParam(defaultValue = "DESC") String sortDir,
             HttpServletRequest httpRequest) {
@@ -107,7 +109,8 @@ public class AdminController {
                 sortDir);
         log.info("User={} | action=customers | entity=Customer | id=n/a", cu);
         PagedResponse<AdminCustomerRowResponse> data =
-                adminService.getCustomers(page, size, mobileNumber, customerId, consentStatus, sortBy, sortDir);
+                adminService.getCustomers(page, size, mobileNumber, customerId, consentStatus, consentStatuses,
+                        consentDbId, sortBy, sortDir);
         ResponseEntity<ApiResponse<PagedResponse<AdminCustomerRowResponse>>> result =
                 ResponseEntity.ok(ApiResponse.success("Customers retrieved", data));
         log.debug("Exiting customers | result={}", result.getStatusCode());
@@ -119,6 +122,10 @@ public class AdminController {
             @RequestParam(required = false) String mobileNumber,
             @RequestParam(required = false) String customerId,
             @RequestParam(required = false) String consentStatus,
+            @RequestParam(required = false) String consentStatuses,
+            @RequestParam(required = false) Long consentDbId,
+            @RequestParam(defaultValue = "updatedAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") String sortDir,
             HttpServletResponse response,
             HttpServletRequest httpRequest)
             throws IOException {
@@ -140,7 +147,8 @@ public class AdminController {
         response.setHeader(
                 "Content-Disposition",
                 "attachment; filename=\"" + filename + "\"; filename*=UTF-8''" + URLEncoder.encode(filename, StandardCharsets.UTF_8));
-        adminService.exportCustomersCsv(response.getOutputStream(), mobileNumber, customerId, consentStatus);
+        adminService.exportCustomersCsv(response.getOutputStream(), mobileNumber, customerId, consentStatus,
+                consentStatuses, consentDbId, sortBy, sortDir);
         log.debug("Exiting exportCustomers | completed successfully");
     }
 

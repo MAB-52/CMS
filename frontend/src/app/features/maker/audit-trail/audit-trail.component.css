@@ -34,7 +34,8 @@
 :host ::ng-deep .at-input input { min-height: 44px; border-radius: var(--is-r-field); font-size: var(--is-fs-body); }
 :host ::ng-deep .at-input input:focus { border-color: var(--is-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--is-primary) 14%, transparent); }
 
-:host ::ng-deep .at-table .p-datatable-tbody > tr > td { overflow: hidden; vertical-align: middle; }
+:host ::ng-deep .at-table .p-datatable-tbody > tr > td { overflow: visible; vertical-align: middle; }
+:host ::ng-deep .at-table .p-datatable-thead > tr > th { line-height: 16px; white-space: normal; }
 :host ::ng-deep .at-row--decision > td:first-child { box-shadow: inset 3px 0 0 var(--c); }
 :host ::ng-deep .at-row--open > td { background: var(--is-tint-purple) !important; border-bottom-color: transparent !important; }
 .at-ellipsis { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -43,16 +44,11 @@
 :host ::ng-deep .at-status { gap: 6px; padding: 4px 10px; font-size: var(--is-fs-2xs); font-weight: var(--is-fw-bold); white-space: nowrap; }
 :host ::ng-deep .at-status .p-tag-icon { font-size: 11px; }
 .at-none { color: var(--is-text-3); font-weight: var(--is-fw-bold); }
-.at-ago {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--is-fs-sm);
-  font-weight: var(--is-fw-semibold);
-  color: var(--is-text-2);
-  white-space: nowrap;
-}
-.at-ago .pi { font-size: 12px; color: var(--is-secondary); }
+.at-when { display: grid; justify-items: start; gap: 4px; }
+.at-when .mr-rel { white-space: nowrap; font-variant-numeric: tabular-nums; }
+:host ::ng-deep .at-table .at-ago.p-tag { gap: 5px; padding: 3px 10px; font-size: var(--is-fs-2xs); white-space: nowrap; }
+:host ::ng-deep .at-ago .p-tag-icon { font-size: 10px; color: var(--is-secondary); }
+.at-role { font-size: var(--is-fs-2xs); color: var(--is-text-3); }
 .at-date { font-weight: var(--is-fw-bold); white-space: nowrap; }
 .at-clock { font-size: var(--is-fs-sm); color: var(--is-text-2); font-variant-numeric: tabular-nums; }
 .at-clock .pi { color: var(--is-secondary); }
@@ -182,3 +178,18 @@
   .at-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .at-filters__grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+.at-linked {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: var(--is-r-pill);
+  background: var(--is-tint-orange);
+  color: var(--is-secondary-strong, var(--is-secondary));
+  font-size: var(--is-fs-2xs);
+  font-weight: var(--is-fw-bold);
+  white-space: nowrap;
+}
+.at-linked .pi { font-size: 10px; }
+.at-linked { justify-self: start; margin-top: 3px; }

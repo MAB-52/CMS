@@ -16,7 +16,7 @@
           pInputText
           type="text"
           name="q"
-          placeholder="Customer ID or mobile number, e.g. CUST-1001"
+          placeholder="Customer ID or mobile, e.g. CUST-1001 or 9876543201"
           aria-label="Customer ID or mobile number"
           [ngModel]="searchQuery()"
           (ngModelChange)="searchQuery.set($event)"
@@ -106,7 +106,17 @@
             <ng-template #body let-row let-i="rowIndex">
               <tr class="cc-row" [style.--i]="i">
                 <td class="cc-row__name">
-                  <span class="cc-row__ico" aria-hidden="true"><i class="pi pi-file"></i></span>{{ row.consentName || '—' }}
+                  <span class="cc-row__ico" aria-hidden="true"><i class="pi pi-file"></i></span>
+                  <span class="cc-row__stack">
+                    <span>{{ row.consentName || '—' }}</span>
+                    @if (row.onBehalfRecordId) {
+                    <span class="cc-behalf" [pTooltip]="captureSummary(row)" tooltipPosition="top">
+                      <i class="pi pi-user-edit" aria-hidden="true"></i>Captured on behalf
+                      @if (row.sourceChannel) { · {{ humanize(row.sourceChannel) }} }
+                      @if (row.evidenceReference) { · {{ row.evidenceReference }} }
+                    </span>
+                    }
+                  </span>
                 </td>
                 <td>
                   <p-tag [severity]="statusSeverity(row.status)" [icon]="statusIcon(row.status)"
@@ -202,8 +212,11 @@
           }
 
           <div class="cc-action__foot">
+            @if (sendBlockReason(); as why) {
+            <p class="cc-send-hint" role="note"><i class="pi pi-info-circle" aria-hidden="true"></i>{{ why }}</p>
+            }
             <p-button label="Send consent email" icon="pi pi-send" [rounded]="true" [loading]="sendBusy()"
-              styleClass="cc-btn cc-btn--primary" (onClick)="sendLink()" />
+              [disabled]="!!sendBlockReason()" styleClass="cc-btn cc-btn--primary" (onClick)="sendLink()" />
           </div>
         </section>
 
@@ -314,6 +327,12 @@
 
       </div>
     </div>
+  } @else if (notFoundQuery()) {
+    <section class="cc-start cc-animate" role="status">
+      <span class="cc-start__ico cc-start__ico--warn" aria-hidden="true"><i class="pi pi-search-minus"></i></span>
+      <h2 class="cc-start__title">No customer found for "{{ notFoundQuery() }}"</h2>
+      <p class="cc-start__text">Check the Customer ID, or try the 10-digit mobile number with or without +91.</p>
+    </section>
   } @else {
     <!-- ── EMPTY STATE (before any search) ───────────────────── -->
     <section class="cc-start cc-animate">

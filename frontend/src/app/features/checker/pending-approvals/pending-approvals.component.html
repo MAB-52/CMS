@@ -16,7 +16,7 @@
       <div class="hero__stats">
         <div class="stat-card">
           <span class="stat-card__value">
-            {{ filtered().length }}
+            {{ list().length }}
           </span>
 
           <span class="stat-card__label">
@@ -26,10 +26,10 @@
 
         <div class="stat-card">
           <span class="stat-card__value">
-            {{ typeFilter === 'ALL' ? 'All' : (typeFilter | consentTypeLabel) }}
+            {{ search.trim() ? filtered().length : 'All' }}
           </span>
           <span class="stat-card__label">
-            Active Filter
+            {{ search.trim() ? 'Shown for "' + search.trim() + '"' : 'Shown' }}
           </span>
         </div>
       </div>
@@ -48,16 +48,6 @@
 
   <!-- FILTER BAR -->
   <div class="toolbar">
-    <div class="tabs">
-      <button
-        type="button"
-        class="tab"
-        [class.on]="typeFilter === 'ALL'"
-        (click)="typeFilter = 'ALL'; applyFilters()"
-      >
-        All
-      </button>
-    </div>
 
     <div class="toolbar-right">
       <mat-form-field appearance="outline" class="search">
@@ -68,10 +58,16 @@
         <mat-icon matPrefix class="pfx">search</mat-icon>
         <input
           matInput
-          [(ngModel)]="search"
+          [ngModel]="search"
+          (ngModelChange)="onSearchChange($event)"
           (keyup.enter)="applyFilters()"
-          placeholder="Name or ID…"
+          placeholder="Name, ID, maker or category…"
         />
+        @if (search) {
+        <button mat-icon-button matSuffix type="button" aria-label="Clear search" (click)="clearSearch()">
+          <mat-icon>close</mat-icon>
+        </button>
+        }
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="sort">

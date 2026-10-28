@@ -18,15 +18,16 @@
   <div class="filter-bar">
     <mat-form-field appearance="outline" class="filter-field filter-field--search">
       <mat-label>Search rules</mat-label>
-      <input matInput [(ngModel)]="filterSearch" (keydown.enter)="applyFilters()" placeholder="Rule name…" />
-      <mat-icon matSuffix>search</mat-icon>
+      <input matInput [ngModel]="filterSearch" (ngModelChange)="onSearchInput($event)"
+        (keydown.enter)="applyFilters()" placeholder="Name, ID or consent…" />
+      <mat-icon matSuffix>{{ rulesLoading() ? 'hourglass_top' : 'search' }}</mat-icon>
     </mat-form-field>
 
     <div class="filter-divider"></div>
 
     <mat-form-field appearance="outline" class="filter-field">
       <mat-label>Schedule</mat-label>
-      <mat-select [(ngModel)]="filterSchedule">
+      <mat-select [(ngModel)]="filterSchedule" (selectionChange)="applyFilters()">
         <mat-option value="">All schedules</mat-option>
         @for (s of allScheduleTypes; track s) {
         <mat-option [value]="s">{{ s | titlecase }}</mat-option>
@@ -94,8 +95,14 @@
 
   @if (!loading() && !rules().length) {
   <div class="empty">
+    @if (appliedFilters()) {
+    <mat-icon class="empty-icon">search_off</mat-icon>
+    <p>No rules match your search. Try another name, ID or schedule.</p>
+    <button mat-stroked-button type="button" (click)="clearFilters()"><mat-icon>close</mat-icon>Clear filters</button>
+    } @else {
     <mat-icon class="empty-icon">rule</mat-icon>
     <p>No checker-approved rules are available yet. Approved rules will appear here automatically.</p>
+    }
   </div>
   }
 
@@ -106,7 +113,7 @@
     <!-- ── Summary bar ─────────────────────────────────────────────────── -->
     <div class="summary-bar">
       <span class="summary-count">{{ totalItems() }} rule{{ totalItems() !== 1 ? 's' : '' }}</span>
-      @if (filterSearch || filterSchedule) {
+      @if (appliedFilters()) {
       <span class="summary-tag">Filters active</span>
       }
     </div>

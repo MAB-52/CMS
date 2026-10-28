@@ -79,6 +79,7 @@ public class SecurityConfig {
             throws IOException {
         boolean sessionInvalidated = Boolean.TRUE.equals(request.getAttribute("sessionInvalidated"));
         boolean accountInactive = Boolean.TRUE.equals(request.getAttribute("accountInactive"));
+        boolean accountChanged = Boolean.TRUE.equals(request.getAttribute("accountChanged"));
 
         log.warn(
                 "Authentication entry point | method={} | uri={} | errorCode={} | message={}",
@@ -93,9 +94,13 @@ public class SecurityConfig {
                 ? ApiResponse.error(
                         "Your account has been deactivated. Please contact your administrator.",
                         "ACCOUNT_INACTIVE")
+                : accountChanged
+                ? ApiResponse.error(
+                        "Your sign-in details were changed. Please sign in again with your new email.",
+                        "ACCOUNT_CHANGED")
                 : sessionInvalidated
                 ? ApiResponse.error(
-                        "Your account was logged in from another device or location. Please log in again.",
+                        "Your session has ended because your account was signed in elsewhere or its access was updated. Please log in again.",
                         "SESSION_INVALIDATED_ELSEWHERE")
                 : ApiResponse.error(
                         "Authentication required. Please log in to access this resource.", "UNAUTHORIZED");

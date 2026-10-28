@@ -190,10 +190,17 @@ export class AdminRuleEngineService {
       .pipe(catchError(this.handle('Rule engine')));
   }
 
-  listApprovedRules(page = 0, size = 10): Observable<ApiResponse<PagedResponse<ConsentRule>>> {
-    const params = new HttpParams()
+  listApprovedRules(
+    page = 0,
+    size = 10,
+    search?: string,
+    scheduleType?: string,
+  ): Observable<ApiResponse<PagedResponse<ConsentRule>>> {
+    let params = new HttpParams()
       .set('page', String(page))
       .set('size', String(size));
+    if (search?.trim()) params = params.set('search', search.trim());
+    if (scheduleType) params = params.set('scheduleType', scheduleType);
     return this.http
       .get<ApiResponse<PagedResponse<ConsentRule>>>(`${this.base}/approved-rules`, { params })
       .pipe(catchError(this.handle('Rules')));

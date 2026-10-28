@@ -44,6 +44,7 @@ export class PendingApprovalsComponent implements OnInit {
   readonly loading = signal(true);
   readonly mergeTags = signal<MergeTag[]>([]);
   search = '';
+  private searchTimer?: ReturnType<typeof setTimeout>;
   typeFilter: ConsentType | 'ALL' = 'ALL';
   sort: 'date' | 'name' = 'date';
 
@@ -71,6 +72,18 @@ export class PendingApprovalsComponent implements OnInit {
     });
   }
 
+  onSearchChange(value: string): void {
+    this.search = value;
+    clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.applyFilters(), 250);
+  }
+
+  clearSearch(): void {
+    clearTimeout(this.searchTimer);
+    this.search = '';
+    this.applyFilters();
+  }
+
   applyFilters(): void {
     let rows = [...this.list()];
     if (this.typeFilter !== 'ALL') {
@@ -78,8 +91,9 @@ export class PendingApprovalsComponent implements OnInit {
     }
     const q = this.search.trim().toLowerCase();
     if (q) {
-      rows = rows.filter(
-        (c) => c.consentName.toLowerCase().includes(q) || c.consentId.toLowerCase().includes(q),
+      rows = rows.filter((c) =>
+        [c.consentName, c.consentId, c.createdBy?.fullName, c.category]
+          .some((v) => (v ?? '').toString().toLowerCase().includes(q)),
       );
     }
     if (this.sort === 'name') {

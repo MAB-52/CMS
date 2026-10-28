@@ -31,11 +31,13 @@ D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\model\dto\response\mis\MisD
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\model\dto\response\mis\MisKpiCardResponse.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\service\CustomerConsentRecordService.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\model\entity\ConsentInviteToken.java
+D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\model\dto\response\mis\MisCheckerPerformanceRowResponse.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\model\dto\response\mis\MisConsentInventoryRowResponse.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\service\ConsentIdGeneratorService.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\model\dto\response\RuleAudiencePreviewBreakdownResponse.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\controller\AuditController.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\model\dto\response\mis\MisMakerCheckerSnapshot.java
+D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\enums\CustomerCurrentStatus.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\model\dto\request\ConsentTranslationInputDto.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\model\dto\response\mis\MisChannelPerformanceRowResponse.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\enums\UserRole.java
@@ -66,6 +68,7 @@ D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\repository\ConsentVersionRe
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\service\ForgotEmailPasswordService.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\ConsentIqApplication.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\service\AuditService.java
+D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\model\dto\response\CustomerConsentSummary.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\model\entity\OnBehalfConsentRecord.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\service\ConsentRuleEntityMapper.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\controller\PublicChannelPreferenceController.java
@@ -204,6 +207,7 @@ D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\controller\ConsentTranslati
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\ollama\OllamaLifecycleManager.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\model\dto\response\mis\MisComplianceOverviewResponse.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\model\entity\ConsentVersion.java
+D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\service\CustomerCurrentStatusService.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\service\UserManagementService.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\model\dto\response\mis\MisConsentInventoryBundleResponse.java
 D:\CMS\CMS-UI-V1\backend\src\main\java\com\consentiq\repository\ConsentOneTimeCodeRepository.java

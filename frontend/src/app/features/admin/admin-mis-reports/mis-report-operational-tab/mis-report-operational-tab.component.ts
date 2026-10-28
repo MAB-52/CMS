@@ -13,6 +13,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { Subject, takeUntil } from 'rxjs';
 import {
   MisAgentPerformanceRow,
+  MisCheckerPerformanceRow,
   MisChannelPerformanceRow,
   MisConsentWorkflowStatus,
   MisTatConsentRow,
@@ -21,6 +22,7 @@ import {
 import { AdminService } from '../../../../core/services/admin.service';
 import { LoggerService } from '../../../../core/services/logger.service';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { blobErrorMessage, saveBlob } from '../../../../core/utils/download.util';
 import { channelVisual } from '../../../../core/utils/channel.util';
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
@@ -77,6 +79,10 @@ export class MisReportOperationalTabComponent implements OnInit, OnDestroy {
   readonly channelsLoading = signal(true);
   readonly agentsLoading = signal(true);
   readonly exportingTat = signal<'csv' | 'excel' | null>(null);
+  readonly exportingSection = signal<string | null>(null);
+  readonly checkers = signal<MisCheckerPerformanceRow[]>([]);
+  readonly checkersLoading = signal(true);
+  private appliedTat: { fromDate?: string; toDate?: string; status?: MisConsentWorkflowStatus; creatorId?: number } = {};
   readonly skeletonRows = Array.from({ length: 5 }, (_, i) => i);
 
   tatStatus: MisConsentWorkflowStatus | '' = '';
@@ -108,6 +114,45 @@ export class MisReportOperationalTabComponent implements OnInit, OnDestroy {
     this.reloadChannels();
     this.reloadAgents();
     this.reloadCreators();
+    this.reloadCheckers();
+  }
+
+  reloadCheckers(): void {
+    this.checkersLoading.set(true);
+    this.adminApi
+      .getMisCheckerPerformance({ fromDate: this.appliedTat.fromDate, toDate: this.appliedTat.toDate })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (res) => {
+          this.checkersLoading.set(false);
+          this.checkers.set(res.success && res.data ? res.data : []);
+        },
+        error: (e) => {
+          this.checkersLoading.set(false);
+          this.logger.error('MisOp', 'checkers', e);
+        },
+      });
+  }
+
+  exportSection(section: 'checker-performance' | 'agent-performance' | 'channel-performance', format: 'csv' | 'excel'): void {
+    this.exportingSection.set(`${section}:${format}`);
+    const range = section === 'checker-performance'
+      ? { fromDate: this.appliedTat.fromDate, toDate: this.appliedTat.toDate }
+      : {};
+    this.adminApi
+      .exportMisSection(section, format, range)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (b) => {
+          this.exportingSection.set(null);
+          saveBlob(b, section, format === 'csv' ? 'csv' : 'xlsx');
+          this.notify.success('Export', `${format === 'csv' ? 'CSV' : 'Excel'} downloaded.`);
+        },
+        error: async (err) => {
+          this.exportingSection.set(null);
+          this.notify.error('Export', await blobErrorMessage(err, 'Export failed.'));
+        },
+      });
   }
 
   ngOnDestroy(): void {
@@ -137,7 +182,7 @@ export class MisReportOperationalTabComponent implements OnInit, OnDestroy {
   reloadAgents(): void {
     this.agentsLoading.set(true);
     this.adminApi
-      .getMisAgentPerformance({ page: 0, size: 50 })
+      .getMisAgentPerformance({ page: 0, size: 500 })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
@@ -155,7 +200,7 @@ export class MisReportOperationalTabComponent implements OnInit, OnDestroy {
 
   reloadCreators(): void {
     this.adminApi
-      .getMisAgentPerformance({ page: 0, size: 200 })
+      .getMisAgentPerformance({ page: 0, size: 500 })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
@@ -167,7 +212,7 @@ export class MisReportOperationalTabComponent implements OnInit, OnDestroy {
       });
   }
 
-  private tatParams() {
+  private buildTatParams() {
     const start = this.tatFrom ? new Date(this.tatFrom) : null;
     start?.setHours(0, 0, 0, 0);
     const end = this.tatTo ? new Date(this.tatTo) : null;
@@ -180,8 +225,13 @@ export class MisReportOperationalTabComponent implements OnInit, OnDestroy {
     };
   }
 
+  private tatParams() {
+    return this.appliedTat;
+  }
+
   tatFilterCount(): number {
-    return [!!this.tatFrom, !!this.tatTo, !!this.tatStatus, this.tatCreatorId !== ''].filter(Boolean).length;
+    const a = this.appliedTat;
+    return [!!a.fromDate, !!a.toDate, !!a.status, a.creatorId != null].filter(Boolean).length;
   }
 
   loadTat(page: number): void {
@@ -223,7 +273,9 @@ export class MisReportOperationalTabComponent implements OnInit, OnDestroy {
 
   applyTat(): void {
     if (!this.isRangeValid()) return;
+    this.appliedTat = this.buildTatParams();
     this.loadTat(0);
+    this.reloadCheckers();
   }
 
   resetTat(): void {
@@ -280,7 +332,7 @@ export class MisReportOperationalTabComponent implements OnInit, OnDestroy {
 
   tatHint(hours: number | null | undefined): string {
     const t = this.tatTone(hours);
-    if (t === 'none') return 'Not reviewed yet — no turnaround time';
+    if (t === 'none') return 'No checker decision yet — no turnaround time';
     if (t === 'fast') return `Reviewed within ${TAT_FAST_H}h`;
     if (t === 'mid') return `Reviewed within ${TAT_SLOW_H}h`;
     return `Took longer than ${TAT_SLOW_H}h`;
@@ -300,13 +352,8 @@ export class MisReportOperationalTabComponent implements OnInit, OnDestroy {
 
   // ── Export ──────────────────────────────────────────────────────────────
 
-  private dl(blob: Blob, n: string): void {
-    const u = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = u;
-    a.download = n;
-    a.click();
-    URL.revokeObjectURL(u);
+  private dl(blob: Blob, base: string, ext: string): void {
+    saveBlob(blob, base, ext);
   }
 
   exportTatCsv(): void {
@@ -318,12 +365,12 @@ export class MisReportOperationalTabComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (b) => {
           this.exportingTat.set(null);
-          this.dl(b, 'tat-report.csv');
-          this.notify.success('Export', 'CSV started.');
+          this.dl(b, 'tat-report', 'csv');
+          this.notify.success('Export', `CSV with ${this.tatTotal()} template(s) downloaded.`);
         },
-        error: () => {
+        error: async (err) => {
           this.exportingTat.set(null);
-          this.notify.error('Export', 'Failed.');
+          this.notify.error('Export', await blobErrorMessage(err, 'Export failed.'));
         },
       });
   }
@@ -337,12 +384,12 @@ export class MisReportOperationalTabComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (b) => {
           this.exportingTat.set(null);
-          this.dl(b, 'tat-report.xlsx');
-          this.notify.success('Export', 'Excel started.');
+          this.dl(b, 'tat-report', 'xlsx');
+          this.notify.success('Export', `Excel with ${this.tatTotal()} template(s) downloaded.`);
         },
-        error: () => {
+        error: async (err) => {
           this.exportingTat.set(null);
-          this.notify.error('Export', 'Failed.');
+          this.notify.error('Export', await blobErrorMessage(err, 'Export failed.'));
         },
       });
   }

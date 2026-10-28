@@ -28,4 +28,7 @@ public class MisCustomerConsentRowResponse {
     private Instant   lastConsentResponseAt;
     private Instant   reEngagementEligibleAfter;
     private boolean   vipFlag;
+    private com.consentiq.enums.CustomerCurrentStatus currentStatus;
+    private java.util.List<com.consentiq.model.dto.response.CustomerConsentSummary> consents;
+    private LocalDate nextExpiry;
 }

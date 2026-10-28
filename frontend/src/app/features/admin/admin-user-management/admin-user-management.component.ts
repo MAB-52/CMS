@@ -9,6 +9,7 @@ import { DialogModule } from 'primeng/dialog';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
+import { MessageModule } from 'primeng/message';
 import { PasswordModule } from 'primeng/password';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { SelectModule } from 'primeng/select';
@@ -79,6 +80,7 @@ const DAY_MS = 86_400_000;
     IconFieldModule,
     InputIconModule,
     InputTextModule,
+    MessageModule,
     PasswordModule,
     ProgressBarModule,
     SelectModule,
@@ -129,6 +131,7 @@ export class AdminUserManagementComponent {
   readonly saveBusy = signal(false);
   readonly deletingId = signal<number | null>(null);
   readonly submitted = signal(false);
+  readonly serverErrors = signal<Partial<Record<'name' | 'email' | 'password' | 'role', string>>>({});
 
   formFullName = '';
   formEmail = '';
@@ -200,6 +203,7 @@ export class AdminUserManagementComponent {
     this.formRole = '';
     this.formActive = true;
     this.submitted.set(false);
+    this.serverErrors.set({});
     this.modalOpen.set(true);
   }
 
@@ -211,7 +215,52 @@ export class AdminUserManagementComponent {
     this.formRole = user.role;
     this.formActive = user.active;
     this.submitted.set(false);
+    this.serverErrors.set({});
     this.modalOpen.set(true);
+  }
+
+  editingSelf(): boolean {
+    const u = this.editingUser();
+    return !!u && this.isSelf(u);
+  }
+
+  selfEmailChanging(): boolean {
+    const u = this.editingUser();
+    return this.editingSelf() && !!u && this.formEmail.trim().toLowerCase() !== u.email.toLowerCase();
+  }
+
+  pickRole(role: UserRole): void {
+    if (this.editingSelf()) return;
+    this.formRole = role;
+    this.clearServerError('role');
+  }
+
+  clearServerError(field: 'name' | 'email' | 'password' | 'role'): void {
+    if (this.serverErrors()[field]) {
+      this.serverErrors.update((e) => ({ ...e, [field]: undefined }));
+    }
+  }
+
+  private applyServerError(err: { error?: { message?: string; data?: Record<string, string> } }): boolean {
+    const body = err?.error;
+    const map: Partial<Record<'name' | 'email' | 'password' | 'role', string>> = {};
+    const data = body?.data && typeof body.data === 'object' ? body.data : {};
+    const fieldMap: Record<string, 'name' | 'email' | 'password' | 'role'> = {
+      fullName: 'name',
+      email: 'email',
+      password: 'password',
+      role: 'role',
+    };
+    for (const [k, v] of Object.entries(data)) {
+      const f = fieldMap[k];
+      if (f && typeof v === 'string') map[f] = v;
+    }
+    const msg = body?.message ?? '';
+    if (/email/i.test(msg) && !map.email) map.email = msg;
+    else if (/password/i.test(msg) && !map.password) map.password = msg;
+    else if (/role/i.test(msg) && !map.role) map.role = msg;
+    this.serverErrors.set(map);
+    return Object.keys(map).length > 0;
   }
 
   closeModal(): void {
@@ -222,6 +271,8 @@ export class AdminUserManagementComponent {
   /** Inline validation messages, shown once the user has tried to submit. */
   fieldError(field: 'name' | 'email' | 'password' | 'role'): string | null {
     if (!this.submitted()) return null;
+    const server = this.serverErrors()[field];
+    if (server) return server;
     switch (field) {
       case 'name':
         if (!this.formFullName.trim()) return 'Full name is required.';
@@ -233,6 +284,7 @@ export class AdminUserManagementComponent {
       case 'password':
         if (this.isEditing() && !this.formPassword) return null;
         if (!this.formPassword) return 'Password is required for new users.';
+        if (!this.formPassword.trim()) return 'Password cannot be only spaces.';
         if (this.formPassword.length < 8) return 'Use at least 8 characters.';
         return this.formPassword.length <= 100 ? null : 'Use at most 100 characters.';
       case 'role':
@@ -245,6 +297,7 @@ export class AdminUserManagementComponent {
   }
 
   saveUser(): void {
+    this.serverErrors.set({});
     this.submitted.set(true);
     if (!this.formValid()) return;
 
@@ -255,21 +308,30 @@ export class AdminUserManagementComponent {
     this.saveBusy.set(true);
 
     if (this.isEditing()) {
-      const payload: UpdateUserPayload = { fullName, email, role, active: this.formActive };
+      const self = this.editingSelf();
+      const emailChanged = this.selfEmailChanging();
+      const signOutAfter = emailChanged || (self && !!password);
+      const payload: UpdateUserPayload = self ? { fullName, email } : { fullName, email, role, active: this.formActive };
       if (password) payload.password = password;
 
       this.adminApi.updateUser(this.editingUser()!.id, payload).subscribe({
         next: (res) => {
           this.saveBusy.set(false);
           if (!res.success) { this.notify.error('Update', res.message || 'Update failed.'); return; }
-          this.notify.success('Updated', `${fullName} was updated.`);
           this.closeModal();
+          if (signOutAfter) {
+            this.auth.logout({ reason: emailChanged ? 'email_changed' : 'password_changed' });
+            return;
+          }
+          this.notify.success('Updated', `${fullName} was updated.`);
           this.loadUsers();
         },
         error: (err) => {
           this.saveBusy.set(false);
           this.logger.error('UserManagement', 'update failed', err);
-          this.notify.error('Update', err?.error?.message || 'Could not update user.');
+          if (!this.applyServerError(err)) {
+            this.notify.error('Update', err?.error?.message || 'Could not update user.');
+          }
         },
       });
     } else {
@@ -286,7 +348,9 @@ export class AdminUserManagementComponent {
         error: (err) => {
           this.saveBusy.set(false);
           this.logger.error('UserManagement', 'create failed', err);
-          this.notify.error('Create', err?.error?.message || 'Could not create user.');
+          if (!this.applyServerError(err)) {
+            this.notify.error('Create', err?.error?.message || 'Could not create user.');
+          }
         },
       });
     }

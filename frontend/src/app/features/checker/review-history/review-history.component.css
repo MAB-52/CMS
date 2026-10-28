@@ -313,3 +313,17 @@
   .rh-list::before, .rh-node { display: none; }
   .rh-time { margin-left: 0; }
 }
+
+.rh-linked {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: var(--is-r-pill);
+  background: var(--is-tint-orange);
+  color: var(--is-secondary-strong, var(--is-secondary));
+  font-size: var(--is-fs-2xs);
+  font-weight: var(--is-fw-bold);
+  white-space: nowrap;
+}
+.rh-linked .pi { font-size: 10px; }

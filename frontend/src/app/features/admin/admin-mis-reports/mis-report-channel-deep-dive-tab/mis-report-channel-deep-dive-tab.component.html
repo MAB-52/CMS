@@ -115,15 +115,15 @@
   <div class="dd-kpi" style="--c: #0D6EFD; --i: 0">
     <span class="dd-kpi__ico" aria-hidden="true"><i class="pi pi-send"></i></span>
     <div class="dd-kpi__body">
-      <span class="dd-kpi__label">Total invites sent</span>
+      <span class="dd-kpi__label" pTooltip="Invite deliveries: a multi-channel invite counts once per channel" tooltipPosition="top">Channel deliveries</span>
       <span class="dd-kpi__value">{{ totalInvites() | number:'1.0-0' }}</span>
     </div>
   </div>
   <div class="dd-kpi" style="--c: #198754; --i: 1">
     <span class="dd-kpi__ico" aria-hidden="true"><i class="pi pi-percentage"></i></span>
     <div class="dd-kpi__body">
-      <span class="dd-kpi__label">Avg success rate</span>
-      <span class="dd-kpi__value">{{ avgSuccessRate() }}%</span>
+      <span class="dd-kpi__label" pTooltip="Accepted ÷ deliveries across all channels" tooltipPosition="top">Overall success rate</span>
+      <span class="dd-kpi__value">{{ avgSuccessRate() | number: '1.0-1' }}%</span>
     </div>
   </div>
   <div class="dd-kpi" style="--c: #C98A00; --i: 2">

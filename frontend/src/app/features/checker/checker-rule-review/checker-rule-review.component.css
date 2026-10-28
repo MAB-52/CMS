@@ -278,3 +278,36 @@
   .crr-hero { padding: var(--is-s-5); }
   .crr-hero__right { align-items: flex-start; flex-direction: row; }
 }
+
+.crr-banner--done { border-color: var(--is-success-bg); border-left-color: var(--is-success); background: var(--is-success-bg); }
+.crr-banner--rejected { border-color: var(--is-danger-bg); border-left-color: var(--is-danger); background: var(--is-danger-bg); }
+.crr-banner--revision { border-color: var(--is-tint-orange); border-left-color: var(--is-secondary); background: var(--is-tint-orange); }
+.crr-banner--draft { border-color: var(--is-border); border-left-color: var(--is-text-3); background: var(--is-surface-2); }
+
+.crr-state {
+  display: grid;
+  justify-items: center;
+  gap: var(--is-s-3);
+  padding: 56px var(--is-s-5);
+  border: 1px solid var(--is-border);
+  border-radius: var(--is-r-card);
+  background: var(--is-surface);
+  box-shadow: var(--is-shadow-soft);
+  text-align: center;
+}
+.crr-state__ico,
+.crr-state__spin {
+  display: grid !important;
+  place-items: center;
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 50%;
+  background: var(--is-tint-purple);
+  color: var(--is-primary);
+  font-size: 28px !important;
+}
+.crr-state__spin { animation: crr-spin 1s linear infinite; }
+.crr-state__title { font-size: var(--is-fs-title); font-weight: var(--is-fw-bold); color: var(--is-text); }
+.crr-state__desc { margin: 0; max-width: 46ch; color: var(--is-text-2); }
+.crr-state__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--is-s-3); }
+@keyframes crr-spin { to { transform: rotate(360deg); } }

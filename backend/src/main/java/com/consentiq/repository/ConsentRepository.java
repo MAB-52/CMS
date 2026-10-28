@@ -101,6 +101,8 @@ public interface ConsentRepository extends JpaRepository<Consent, Long>, JpaSpec
 
     long countByStatus(ConsentStatus status);
 
+    long countByStatusAndLinkedRuleIntent(ConsentStatus status, boolean linkedRuleIntent);
+
     List<Consent> findByReviewedAtIsNotNullAndSubmittedAtIsNotNull();
 
     List<Consent> findByCreatedBy_IdOrderByCreatedAtDesc(Long createdById);

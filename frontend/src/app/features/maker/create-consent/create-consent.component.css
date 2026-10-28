@@ -87,6 +87,12 @@
 .banner--orange { background: var(--is-tint-orange); border-color: color-mix(in srgb, var(--is-secondary) 28%, white); }
 .banner--orange::before { background: var(--is-secondary); }
 .banner--orange .banner-title .pi { color: var(--is-secondary); }
+.banner--red { background: var(--is-danger-bg); border-color: color-mix(in srgb, var(--is-danger) 28%, white); }
+.banner--red::before { background: var(--is-danger); }
+.banner--red .banner-title .pi { color: var(--is-danger); }
+.rev-q--red { border-left-color: var(--is-danger); }
+.banner-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--is-s-3); margin-top: 6px; }
+.banner-row .banner-text { margin: 0; }
 .dot {
   display: inline-flex;
   align-items: center;

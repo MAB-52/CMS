@@ -172,6 +172,7 @@ package com.consentiq.repository;
 import com.consentiq.model.entity.Customer;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -185,6 +186,18 @@ public interface CustomerRepository extends JpaRepository<Customer, Long>, JpaSp
     Optional<Customer> findByCustomerIdIgnoreCase(String customerId);
 
     Optional<Customer> findByMobileNumber(String mobileNumber);
+
+    Optional<Customer> findFirstByMobileNumberEndingWith(String suffix);
+
+    List<Customer> findByCustomerIdIn(Collection<String> customerIds);
+
+    @Modifying
+    @Query("UPDATE Customer c SET c.currentConsentStatus = :status WHERE c.id IN :ids")
+    int updateCurrentConsentStatus(@Param("status") com.consentiq.enums.CustomerCurrentStatus status,
+            @Param("ids") Collection<Long> ids);
+
+    @Query("SELECT c.currentConsentStatus, COUNT(c) FROM Customer c GROUP BY c.currentConsentStatus")
+    List<Object[]> countByCurrentConsentStatus();
 
     long count();
 

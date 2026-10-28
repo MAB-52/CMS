@@ -56,6 +56,7 @@ public class PublicConsentInviteService {
 	private final CustomerRepository customerRepository;
 	private final CustomerConsentRecordService customerConsentRecordService;
 	private final TemplateResolverService templateResolverService;
+	private final com.consentiq.repository.ConsentTranslationRepository consentTranslationRepository;
 	private final CustomerChannelPreferenceService customerChannelPreferenceService;
 
 	@PersistenceContext
@@ -137,7 +138,7 @@ public class PublicConsentInviteService {
 		entityManager.refresh(locked, LockModeType.PESSIMISTIC_WRITE);
 		invite = locked;
 		Instant now = Instant.now();
-		if (now.isAfter(invite.getExpiresAt())) {
+		if (invite.getExpiresAt() != null && now.isAfter(invite.getExpiresAt())) {
 			throw new IllegalArgumentException("This consent link has expired. Please contact us for a new request.");
 		}
 		if (invite.getResponseStatus() != InviteTokenResponseStatus.PENDING) {
@@ -183,6 +184,7 @@ public class PublicConsentInviteService {
 			invite.setResponseStatus(InviteTokenResponseStatus.WITHDRAWN);
 			customer.setLastConsentResponseAt(now);
 			customer.setConsentValidUntil(null);
+			customer.setReEngagementEligibleAfter(now.plus(reEngagementDays, ChronoUnit.DAYS));
 		} else {
 			throw new IllegalArgumentException("Decision must be ACCEPT, DECLINE, or WITHDRAW.");
 		}
@@ -265,7 +267,7 @@ public class PublicConsentInviteService {
 			state = "REJECTED";
 		} else if (consent.getStatus() != ConsentStatus.PUBLISHED) {
 			state = "UNAVAILABLE";
-		} else if (now.isAfter(invite.getExpiresAt()) || validityEnded(consent)) {
+		} else if ((invite.getExpiresAt() != null && now.isAfter(invite.getExpiresAt())) || validityEnded(consent)) {
 			state = "EXPIRED";
 		} else {
 			state = "READY";
@@ -293,7 +295,7 @@ public class PublicConsentInviteService {
 				.messagePreview(msg)
 				.resolvedMessageHtml(resolvedMessage)
 				.customerDisplayName(customer.getFullName())
-				.expiresAt(ISO_OFFSET.format(invite.getExpiresAt()))
+				.expiresAt(invite.getExpiresAt() != null ? ISO_OFFSET.format(invite.getExpiresAt()) : null)
 				.respondedAt(invite.getRespondedAt() != null ? ISO_OFFSET.format(invite.getRespondedAt()) : null)
 				.recordedDecision(invite.getResponseStatus() == InviteTokenResponseStatus.ACCEPTED ? "ACCEPTED"
 						: invite.getResponseStatus() == InviteTokenResponseStatus.REJECTED ? "DECLINED"
@@ -303,6 +305,39 @@ public class PublicConsentInviteService {
 				.availableChannels(DeliveryChannelCatalog.fromConsentEntity(consent))
 				.validityPeriodDays(consent.getValidityPeriodDays())
 				.consentDbId(invite.getConsentDbId())
+				.translations(buildTranslations(consent, customer, resolvedMessage))
 				.build();
+	}
+
+	private static final java.util.Map<String, String> LANGUAGE_LABELS = java.util.Map.of(
+			"en", "English", "hi", "Hindi", "mr", "Marathi", "ur", "Urdu");
+
+	private java.util.List<PublicConsentInviteDetailResponse.Translation> buildTranslations(
+			Consent consent, Customer customer, String resolvedEnglish) {
+		java.util.List<PublicConsentInviteDetailResponse.Translation> out = new java.util.ArrayList<>();
+		String englishHtml = resolvedEnglish;
+		java.util.List<com.consentiq.model.entity.ConsentTranslation> rows =
+				consentTranslationRepository.findByConsent_Id(consent.getId());
+		for (com.consentiq.model.entity.ConsentTranslation t : rows) {
+			if ("en".equalsIgnoreCase(t.getLanguageCode()) && org.springframework.util.StringUtils.hasText(t.getContent())
+					&& !HtmlTextUtil.isBlankHtml(t.getContent())) {
+				englishHtml = templateResolverService.resolve(t.getContent(), customer, consent);
+			}
+		}
+		out.add(PublicConsentInviteDetailResponse.Translation.builder()
+				.languageCode("en").label("English").rtl(false).html(englishHtml).build());
+		for (com.consentiq.model.entity.ConsentTranslation t : rows) {
+			String code = t.getLanguageCode() == null ? "" : t.getLanguageCode().trim().toLowerCase(java.util.Locale.ROOT);
+			if (code.isEmpty() || "en".equals(code) || HtmlTextUtil.isBlankHtml(t.getContent())) {
+				continue;
+			}
+			out.add(PublicConsentInviteDetailResponse.Translation.builder()
+					.languageCode(code)
+					.label(LANGUAGE_LABELS.getOrDefault(code, code.toUpperCase(java.util.Locale.ROOT)))
+					.rtl("ur".equals(code))
+					.html(templateResolverService.resolve(t.getContent(), customer, consent))
+					.build());
+		}
+		return out;
 	}
 }

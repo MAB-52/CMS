@@ -200,7 +200,7 @@
         <label class="um-label" for="um-name">Full name <span class="um-req">*</span></label>
         <p-iconfield class="um-input">
           <p-inputicon class="pi pi-user" />
-          <input pInputText id="um-name" name="fullName" [(ngModel)]="formFullName" placeholder="e.g. Priya Nair"
+          <input pInputText id="um-name" name="fullName" [(ngModel)]="formFullName" (ngModelChange)="clearServerError('name')" placeholder="e.g. Priya Nair"
             autocomplete="off" [class.ng-invalid]="!!fieldError('name')" [class.ng-dirty]="!!fieldError('name')" />
         </p-iconfield>
         @if (fieldError('name'); as e) { <small class="um-error"><i class="pi pi-exclamation-circle"></i>{{ e }}</small> }
@@ -209,13 +209,18 @@
         <label class="um-label" for="um-email">Email <span class="um-req">*</span></label>
         <p-iconfield class="um-input">
           <p-inputicon class="pi pi-envelope" />
-          <input pInputText id="um-email" name="email" type="email" [(ngModel)]="formEmail"
+          <input pInputText id="um-email" name="email" type="email" [(ngModel)]="formEmail" (ngModelChange)="clearServerError('email')"
             placeholder="name@company.com" autocomplete="off" [class.ng-invalid]="!!fieldError('email')"
             [class.ng-dirty]="!!fieldError('email')" />
         </p-iconfield>
         @if (fieldError('email'); as e) { <small class="um-error"><i class="pi pi-exclamation-circle"></i>{{ e }}</small> }
       </div>
     </div>
+    @if (selfEmailChanging()) {
+    <p-message severity="warn" icon="pi pi-sign-out" styleClass="um-note">
+      You're changing your own email. After saving you'll be signed out and must sign in with the new email.
+    </p-message>
+    }
 
     <div class="mr-field">
       <label class="um-label" for="um-pass">
@@ -223,7 +228,7 @@
         @if (isEditing()) { <span class="um-hint">(leave blank to keep the current password)</span> }
         @else { <span class="um-req">*</span> }
       </label>
-      <p-password inputId="um-pass" name="password" [(ngModel)]="formPassword" [toggleMask]="true"
+      <p-password inputId="um-pass" name="password" [(ngModel)]="formPassword" (ngModelChange)="clearServerError('password')" [toggleMask]="true"
         [feedback]="!isEditing() || !!formPassword" [placeholder]="isEditing() ? '••••••••' : 'At least 8 characters'"
         promptLabel="Choose a password" weakLabel="Weak" mediumLabel="Medium" strongLabel="Strong"
         autocomplete="new-password" appendTo="body" styleClass="um-password" inputStyleClass="um-password__input"
@@ -232,12 +237,16 @@
     </div>
 
     <div class="mr-field">
-      <span class="um-label" id="um-role-label">Role <span class="um-req">*</span></span>
-      <div class="um-roles" role="radiogroup" aria-labelledby="um-role-label">
+      <span class="um-label" id="um-role-label">Role <span class="um-req">*</span>
+        @if (editingSelf()) { <span class="um-hint"><i class="pi pi-lock"></i> You can't change your own role</span> }
+      </span>
+      <div class="um-roles" role="radiogroup" aria-labelledby="um-role-label" [class.um-roles--locked]="editingSelf()">
         @for (r of roleCards; track r.value; let i = $index) {
         <button type="button" class="um-role-card" role="radio" [attr.aria-checked]="formRole === r.value"
           [class.um-role-card--on]="formRole === r.value" [style.--c]="r.color" [style.--i]="i"
-          [pTooltip]="r.description" tooltipPosition="bottom" (click)="formRole = r.value">
+          [disabled]="editingSelf() && formRole !== r.value" [attr.aria-disabled]="editingSelf()"
+          [pTooltip]="editingSelf() ? 'Ask another admin to change your role' : r.description" tooltipPosition="bottom"
+          (click)="pickRole(r.value)">
           <span class="um-role-card__ico"><i [class]="r.icon"></i></span>
           <span class="um-role-card__name">{{ r.label }}</span>
           <span class="um-role-card__desc">{{ r.description }}</span>

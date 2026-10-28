@@ -36,4 +36,12 @@ export interface PublicConsentInviteDetail {
   consentDbId?: number;
   availableChannels: string[];
   validityPeriodDays?: number | null;
+  translations?: PublicConsentTranslation[];
+}
+
+export interface PublicConsentTranslation {
+  languageCode: string;
+  label: string;
+  rtl: boolean;
+  html: string;
 }

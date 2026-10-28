@@ -95,18 +95,22 @@ public class MisReportController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) String consentStatus,
+            @RequestParam(required = false) Long consentDbId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             HttpServletRequest http) {
         misEnter("customerConsentReport", http);
         requireRange(fromDate, toDate);
-        List<CustomerConsentRecordStatus> statuses = MisReportService.parseStatusList(status);
+        MisReportService.CustomerReportFilter filter = new MisReportService.CustomerReportFilter(
+                MisReportService.parseCurrentStatusList(status),
+                MisReportService.parseConsentLevelStatusList(consentStatus),
+                consentDbId, vip, fromDate, toDate, search);
         ResponseEntity<ApiResponse<PagedResponse<MisCustomerConsentRowResponse>>> r =
                 ResponseEntity.ok(
                         ApiResponse.success(
                                 "Customer consent report",
-                                misReportService.getCustomerConsentReport(
-                                        statuses, vip, fromDate, toDate, search, page, size)));
+                                misReportService.getCustomerConsentReport(filter, page, size)));
         misExit("customerConsentReport", r.getStatusCode());
         return r;
     }
@@ -118,12 +122,17 @@ public class MisReportController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) String consentStatus,
+            @RequestParam(required = false) Long consentDbId,
             HttpServletResponse response,
             HttpServletRequest http)
             throws IOException {
         misEnter("exportCustomerConsentCsv", http);
         requireRange(fromDate, toDate);
-        List<CustomerConsentRecordStatus> statuses = MisReportService.parseStatusList(status);
+        MisReportService.CustomerReportFilter filter = new MisReportService.CustomerReportFilter(
+                MisReportService.parseCurrentStatusList(status),
+                MisReportService.parseConsentLevelStatusList(consentStatus),
+                consentDbId, vip, fromDate, toDate, search);
         String filename = "customer-consent-report.csv";
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setContentType("text/csv");
@@ -131,8 +140,7 @@ public class MisReportController {
                 "Content-Disposition",
                 "attachment; filename=\"" + filename + "\"; filename*=UTF-8''"
                         + URLEncoder.encode(filename, StandardCharsets.UTF_8));
-        misReportService.exportCustomerConsentCsv(
-                response.getOutputStream(), statuses, vip, fromDate, toDate, search);
+        misReportService.exportCustomerConsentCsv(response.getOutputStream(), filter);
         misExit("exportCustomerConsentCsv", "completed");
     }
 
@@ -145,12 +153,17 @@ public class MisReportController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) String consentStatus,
+            @RequestParam(required = false) Long consentDbId,
             HttpServletRequest http)
             throws IOException {
         misEnter("exportCustomerConsentExcel", http);
         requireRange(fromDate, toDate);
-        List<CustomerConsentRecordStatus> statuses = MisReportService.parseStatusList(status);
-        byte[] body = misReportService.exportCustomerConsentExcel(statuses, vip, fromDate, toDate, search);
+        MisReportService.CustomerReportFilter filter = new MisReportService.CustomerReportFilter(
+                MisReportService.parseCurrentStatusList(status),
+                MisReportService.parseConsentLevelStatusList(consentStatus),
+                consentDbId, vip, fromDate, toDate, search);
+        byte[] body = misReportService.exportCustomerConsentExcel(filter);
         ResponseEntity<byte[]> r =
                 ResponseEntity.ok()
                         .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"customer-consent-report.xlsx\"")
@@ -509,16 +522,88 @@ public class MisReportController {
         return r;
     }
 
+    private static ResponseEntity<byte[]> csvFile(String name, byte[] body) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + name + ".csv\"")
+                .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+                .body(body);
+    }
+
+    private static ResponseEntity<byte[]> excelFile(String name, byte[] body) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + name + ".xlsx\"")
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(body);
+    }
+
+    @GetMapping("/checker-performance")
+    public ResponseEntity<ApiResponse<List<com.consentiq.model.dto.response.mis.MisCheckerPerformanceRowResponse>>> checkerPerformance(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant toDate,
+            HttpServletRequest http) {
+        misEnter("checkerPerformance", http);
+        ResponseEntity<ApiResponse<List<com.consentiq.model.dto.response.mis.MisCheckerPerformanceRowResponse>>> r =
+                ResponseEntity.ok(ApiResponse.success("Checker performance",
+                        misReportService.getCheckerPerformance(fromDate, toDate)));
+        misExit("checkerPerformance", r.getStatusCode());
+        return r;
+    }
+
+    @GetMapping("/checker-performance/export/csv")
+    public ResponseEntity<byte[]> exportCheckerPerformanceCsv(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant toDate,
+            HttpServletRequest http) throws IOException {
+        misEnter("exportCheckerPerformanceCsv", http);
+        return csvFile("checker-performance", misReportService.exportCheckerPerformanceCsv(fromDate, toDate));
+    }
+
+    @GetMapping("/checker-performance/export/excel")
+    public ResponseEntity<byte[]> exportCheckerPerformanceExcel(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant toDate,
+            HttpServletRequest http) throws IOException {
+        misEnter("exportCheckerPerformanceExcel", http);
+        return excelFile("checker-performance", misReportService.exportCheckerPerformanceExcel(fromDate, toDate));
+    }
+
+    @GetMapping("/agent-performance/export/csv")
+    public ResponseEntity<byte[]> exportMakerPerformanceCsv(HttpServletRequest http) throws IOException {
+        misEnter("exportMakerPerformanceCsv", http);
+        return csvFile("maker-performance", misReportService.exportMakerPerformanceCsv());
+    }
+
+    @GetMapping("/agent-performance/export/excel")
+    public ResponseEntity<byte[]> exportMakerPerformanceExcel(HttpServletRequest http) throws IOException {
+        misEnter("exportMakerPerformanceExcel", http);
+        return excelFile("maker-performance", misReportService.exportMakerPerformanceExcel());
+    }
+
+    @GetMapping("/channel-performance/export/csv")
+    public ResponseEntity<byte[]> exportChannelPerformanceCsv(HttpServletRequest http) throws IOException {
+        misEnter("exportChannelPerformanceCsv", http);
+        return csvFile("channel-performance", misReportService.exportChannelPerformanceCsv());
+    }
+
+    @GetMapping("/channel-performance/export/excel")
+    public ResponseEntity<byte[]> exportChannelPerformanceExcel(HttpServletRequest http) throws IOException {
+        misEnter("exportChannelPerformanceExcel", http);
+        return excelFile("channel-performance", misReportService.exportChannelPerformanceExcel());
+    }
+
     @GetMapping(value = "/consent-inventory/export/csv", produces = "text/csv")
     public ResponseEntity<byte[]> exportConsentInventoryCsv(
             @RequestParam(required = false) ConsentCategory category,
             @RequestParam(required = false) ConsentStatus status,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortDirection,
             HttpServletRequest http)
             throws IOException {
         misEnter("exportConsentInventoryCsv", http);
         java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
-        misReportService.exportConsentInventoryCsv(bos, category, status, search);
+        misReportService.exportConsentInventoryCsv(bos, category, status, search, sortBy, sortDirection);
         ResponseEntity<byte[]> r =
                 ResponseEntity.ok()
                         .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"consent-inventory.csv\"")
@@ -535,10 +620,12 @@ public class MisReportController {
             @RequestParam(required = false) ConsentCategory category,
             @RequestParam(required = false) ConsentStatus status,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortDirection,
             HttpServletRequest http)
             throws IOException {
         misEnter("exportConsentInventoryExcel", http);
-        byte[] body = misReportService.exportConsentInventoryExcel(category, status, search);
+        byte[] body = misReportService.exportConsentInventoryExcel(category, status, search, sortBy, sortDirection);
         ResponseEntity<byte[]> r =
                 ResponseEntity.ok()
                         .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"consent-inventory.xlsx\"")

@@ -1,38 +1,8 @@
 <div class="card">
-  <div class="head">
-    <h2 class="title"><span class="title-ico" aria-hidden="true"><mat-icon>history</mat-icon></span>Recent Activity</h2>
-    <a routerLink="/maker/audit" class="link">View All <mat-icon>arrow_forward</mat-icon></a>
+  <app-consent-history-timeline [consentDbId]="consentDbId" title="Consent history"
+    subtitle="Edits, submissions and checker decisions, newest first" />
+  <div class="foot">
+    <a routerLink="/maker/audit" class="foot-link" pTooltip="Open your full audit trail across all consents and rules"
+      tooltipPosition="top"><i class="pi pi-external-link"></i>View full audit trail</a>
   </div>
-
-  @if (!consentDbId) {
-    <p class="muted">Save a draft to see audit entries for this consent.</p>
-  } @else if (loading) {
-    <div class="skel-list">
-      @for (x of [1, 2, 3, 4, 5]; track x) {
-        <div class="is-skeleton skel-row"></div>
-      }
-    </div>
-  } @else if (error) {
-    <div class="err" role="alert">
-      <mat-icon aria-hidden="true">error_outline</mat-icon>
-      <span>Failed to load activity.</span>
-      <button type="button" mat-stroked-button (click)="load()">Retry</button>
-    </div>
-  } @else if (!entries.length) {
-    <p class="muted center">No activity yet.</p>
-  } @else {
-    <div class="timeline">
-      @for (e of entries; track e.id) {
-        @let t = timelineIcon(e.action);
-        <div class="tl-row">
-          <div class="tl-dot tl-dot--{{ t.tone }}" aria-hidden="true"><mat-icon>{{ t.icon }}</mat-icon></div>
-          <div class="tl-body">
-            <div class="tl-action">{{ e.action.replaceAll('_', ' ') }}</div>
-            <div class="tl-desc">{{ e.description }}</div>
-          </div>
-          <div class="tl-time" [title]="e.performedAt">{{ e.performedAt | timeAgo }}</div>
-        </div>
-      }
-    </div>
-  }
 </div>

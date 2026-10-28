@@ -152,12 +152,6 @@ export const routes: Routes = [
         (m) => m.PublicConsentRespondComponent,
       ),
   },
-  {
-    path: 'public/consent/translation',
-    loadComponent: () =>
-      import('./features/public/public-consent-translation/public-consent-translation.component').then(
-        (m) => m.PublicConsentTranslationComponent,
-      ),
-  },
+  { path: 'public/consent/translation', redirectTo: 'public/consent/respond' },
   { path: '**', redirectTo: 'login' },
 ];

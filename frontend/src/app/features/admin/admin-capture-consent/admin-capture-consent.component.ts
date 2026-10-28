@@ -69,6 +69,7 @@ export class AdminCaptureConsentComponent implements OnInit {
   readonly searchQuery   = signal('');
   readonly searchBusy    = signal(false);
   readonly customer      = signal<CaptureConsentSearchResult | null>(null);
+  readonly notFoundQuery = signal('');
   readonly consentHistory        = signal<CustomerConsentRecordRow[]>([]);
   readonly consentHistoryLoading = signal(false);
 
@@ -319,19 +320,56 @@ export class AdminCaptureConsentComponent implements OnInit {
     this.customer.set(null);
     this.consentHistory.set([]);
     this.lastInviteLink.set('');
+    this.notFoundQuery.set('');
     this.adminApi.captureSearch(q).subscribe({
       next: (res) => {
         this.searchBusy.set(false);
-        if (!res.success || !res.data) { this.notify.warning('Search', res.message || 'No customer found.'); return; }
+        if (!res.success || !res.data) { this.notFoundQuery.set(q); return; }
         this.customer.set(res.data);
         this.loadConsentHistory(res.data.customerId);
       },
       error: (err) => {
         this.searchBusy.set(false);
         this.logger.error('AdminCaptureConsent', 'search failed', err);
+        if (err?.status === 400 || err?.status === 404) {
+          this.notFoundQuery.set(q);
+          return;
+        }
         this.notify.error('Search', err?.error?.message || err?.message || 'Search failed.');
       },
     });
+  }
+
+  private refreshCustomer(customerId: string): void {
+    this.adminApi.captureSearch(customerId).subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.customer.set(res.data);
+        }
+      },
+      error: () => undefined,
+    });
+    this.loadConsentHistory(customerId);
+  }
+
+  sendBlockReason(): string {
+    const cust = this.customer();
+    if (!cust) return '';
+    if (!cust.email?.trim()) return "This customer has no registered email. Use 'Take consent on behalf' instead.";
+    if (this.leftTemplateId() != null && !this.deliveryChannels().some((c) => /email/i.test(c))) {
+      return 'This template has no Email channel, so a link cannot be emailed.';
+    }
+    return '';
+  }
+
+  captureSummary(row: CustomerConsentRecordRow): string {
+    const parts = [
+      row.captureMode ? `Mode: ${this.humanize(row.captureMode)}` : '',
+      row.sourceChannel ? `Source: ${this.humanize(row.sourceChannel)}` : '',
+      `Evidence: ${row.evidenceReference || '—'}`,
+      row.recordedByName ? `Recorded by ${row.recordedByName}` : '',
+    ];
+    return parts.filter(Boolean).join(' · ');
   }
 
   copyLink(): void {
@@ -370,6 +408,7 @@ export class AdminCaptureConsentComponent implements OnInit {
         if (!res.success || !res.data) { this.notify.error('Send', res.message || 'Send failed.'); return; }
         this.lastInviteLink.set(res.data.inviteLink || '');
         this.notify.success('Sent', res.data.message || res.message || 'Email dispatched.');
+        this.refreshCustomer(cust.customerId);
       },
       error: (err) => {
         this.sendBusy.set(false);
@@ -413,8 +452,11 @@ export class AdminCaptureConsentComponent implements OnInit {
       next: (res) => {
         this.recordBusy.set(false);
         if (!res.success) { this.notify.error('Record', res.message || 'Record failed.'); return; }
-        this.customer.set({ ...cust, consentStatus: status });
-        this.loadConsentHistory(cust.customerId);
+        this.refreshCustomer(cust.customerId);
+        this.rightMode.set('');
+        this.rightSource.set('');
+        this.rightConsentStatus.set('');
+        this.evidenceRef.set('');
         this.notify.success('Recorded', res.message || 'On-behalf consent recorded successfully.');
       },
       error: (err) => {

@@ -94,7 +94,7 @@ public class UserManagementController {
                 cu);
         log.debug("Entering createUser | params: email={}", request.getEmail());
         log.info("User={} | action=createUser | entity=User | id=n/a", cu);
-        UserRowResponse data = userManagementService.createUser(request);
+        UserRowResponse data = userManagementService.createUser(request, httpRequest);
         ResponseEntity<ApiResponse<UserRowResponse>> result =
                 ResponseEntity.status(HttpStatus.CREATED)
                         .body(ApiResponse.success("User created successfully", data));
@@ -115,7 +115,7 @@ public class UserManagementController {
                 cu);
         log.debug("Entering updateUser | params: id={}", id);
         log.info("User={} | action=updateUser | entity=User | id={}", cu, id);
-        UserRowResponse data = userManagementService.updateUser(id, request);
+        UserRowResponse data = userManagementService.updateUser(id, request, httpRequest);
         ResponseEntity<ApiResponse<UserRowResponse>> result =
                 ResponseEntity.ok(ApiResponse.success("User updated successfully", data));
         log.debug("Exiting updateUser | result={}", result.getStatusCode());
@@ -132,7 +132,7 @@ public class UserManagementController {
                 cu);
         log.debug("Entering deleteUser | params: id={}", id);
         log.info("User={} | action=deleteUser | entity=User | id={}", cu, id);
-        boolean archived = userManagementService.deleteUser(id);
+        boolean archived = userManagementService.deleteUser(id, httpRequest);
         ResponseEntity<ApiResponse<Void>> result = ResponseEntity.ok(ApiResponse.success(
                 archived
                         ? "User deleted. Their activity history is kept for audit purposes."

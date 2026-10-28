@@ -33,6 +33,15 @@ public class AdminMisDashboardResponse {
         private long pendingResponse;
         private long declined;
         private long pendingMcApprovals;
+        private long withdrawn;
+        private long expired;
+        private long unresponsive;
+        private long noConsent;
+        private long other;
+        private long pendingMcConsents;
+        private long pendingMcLinked;
+        private long pendingMcRules;
+        private long pendingMcBroadcasts;
     }
 
     @Data
