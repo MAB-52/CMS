@@ -218,6 +218,9 @@
           ch }}</mat-checkbox>
         }
       </div>
+      @if (hasNonEmailChannel()) {
+      <p class="channel-note" role="note"><i class="pi pi-info-circle" aria-hidden="true"></i>Only Email is delivered at the moment. SMS, WhatsApp and RCS will be recorded as failed in the run history.</p>
+      }
 
       <div class="actions">
         <button mat-stroked-button type="button" (click)="saveDraft()"

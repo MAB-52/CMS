@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { finalize } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -41,6 +42,7 @@ export class MyConsentsComponent implements OnInit {
 
   readonly rows = signal<Consent[]>([]);
   readonly loading = signal(true);
+  readonly submittingId = signal<number | null>(null);
   readonly filter = signal<ConsentStatus | 'ALL'>('ALL');
   search = '';
   sort: 'updated' | 'name' = 'updated';
@@ -73,7 +75,7 @@ export class MyConsentsComponent implements OnInit {
   reload(): void {
     this.loading.set(true);
     const st = this.filter();
-    this.api.getMyConsents(0, 50, st === 'ALL' ? undefined : st).subscribe({
+    this.api.getMyConsents(0, 500, st === 'ALL' ? undefined : st).subscribe({
       next: (res) => {
         this.loading.set(false);
         if (res.success && res.data?.content) {
@@ -145,13 +147,21 @@ export class MyConsentsComponent implements OnInit {
   }
 
   submit(c: Consent): void {
-    this.api.submitForApproval(c.id).subscribe({
-      next: (res) => {
-        if (res.success) {
-          this.notify.success('Submitted', res.message || 'Sent for approval.');
-          this.reload();
-        }
-      },
-    });
+    if (this.submittingId() !== null) {
+      return;
+    }
+    this.submittingId.set(c.id);
+    this.api
+      .submitForApproval(c.id)
+      .pipe(finalize(() => this.submittingId.set(null)))
+      .subscribe({
+        next: (res) => {
+          if (res.success) {
+            this.notify.success('Submitted', res.message || 'Sent for approval.');
+            this.reload();
+          }
+        },
+        error: () => undefined,
+      });
   }
 }

@@ -101,7 +101,19 @@ export class AuthService {
     if (role === 'CHECKER') {
       return '/checker/dashboard';
     }
-    return '/maker/dashboard';
+    if (role === 'MAKER') {
+      return '/maker/dashboard';
+    }
+    return '/login';
+  }
+
+  hasPortalRole(): boolean {
+    return ['ADMIN', 'CHECKER', 'MAKER'].includes(this.getRole());
+  }
+
+  clearSession(): void {
+    localStorage.removeItem(this.tokenKey);
+    localStorage.removeItem(this.userKey);
   }
  
   getToken(): string | null {

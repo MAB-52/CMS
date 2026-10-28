@@ -11,6 +11,8 @@ export interface AuditLogEntry {
   description: string;
   ipAddress: string;
   performedAt: string;
+  checkerStatus?: string | null;
+  checkerName?: string | null;
 }
 
 /** GET /audit/my-reviews — a checker's own decisions (one page) plus all-time summary counts. */

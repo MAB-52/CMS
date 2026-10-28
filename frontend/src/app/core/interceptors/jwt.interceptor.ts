@@ -24,7 +24,7 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((err) => {
       const isPublicApi = req.url.includes('/api/public/');
       if (err.status === 401 && !req.url.includes('/auth/login') && !isPublicApi) {
-        if (auth.isLoggingOut) {
+        if (auth.isLoggingOut || !token) {
           return throwError(() => err);
         }
  

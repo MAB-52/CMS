@@ -1,0 +1,121 @@
+.fld {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  margin-bottom: var(--is-s-4);
+}
+.fld.rule-type { flex: 0 1 280px; }
+.fld-label {
+  font-size: var(--is-fs-sm);
+  font-weight: var(--is-fw-bold);
+  color: var(--is-text);
+}
+.req { color: var(--is-danger); }
+.fld-help,
+.fld-error {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: var(--is-fs-xs);
+  line-height: 18px;
+}
+.fld-help { color: var(--is-text-2); }
+.fld-help__total {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 8px;
+  border-radius: var(--is-r-pill);
+  background: var(--is-tint-purple);
+  color: var(--is-primary);
+  font-weight: var(--is-fw-bold);
+}
+.fld-error { color: var(--is-danger-text); font-weight: var(--is-fw-semibold); }
+
+.fld ::ng-deep :is(.p-inputtext, .p-textarea, .p-select, .p-multiselect) {
+  min-height: 46px;
+  border-radius: var(--is-r-sm);
+  font-family: var(--is-font);
+}
+.fld ::ng-deep .p-select-label,
+.fld ::ng-deep .p-multiselect-label { display: flex; align-items: center; }
+.fld ::ng-deep :is(.p-select, .p-multiselect):not(.p-disabled).p-focus,
+.fld ::ng-deep :is(.p-inputtext, .p-textarea):enabled:focus {
+  border-color: var(--is-primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--is-primary) 12%, transparent);
+}
+.fld ::ng-deep .p-multiselect-chip {
+  border-radius: var(--is-r-pill);
+  background: var(--is-tint-purple);
+  color: var(--is-primary);
+  font-weight: var(--is-fw-bold);
+}
+
+.opt-inline { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+.opt-inline .pi { color: var(--is-primary); font-size: 14px; }
+.opt { display: flex; align-items: flex-start; gap: 12px; width: 100%; min-width: 0; padding: 2px 0; }
+.opt-ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--is-r-field);
+  background: var(--is-tint-purple);
+  color: var(--is-primary);
+}
+.opt-ico .pi { font-size: 15px; }
+.opt-copy { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.opt-label { font-weight: var(--is-fw-bold); color: var(--is-text); white-space: normal; }
+.opt-desc { font-size: var(--is-fs-xs); line-height: 17px; color: var(--is-text-2); white-space: normal; }
+.opt-code {
+  justify-self: start;
+  margin-top: 3px;
+  padding: 0 6px;
+  border-radius: var(--is-r-xs);
+  background: var(--is-neutral-bg);
+  color: var(--is-text-2);
+  font-family: var(--is-font-mono);
+  font-size: 10.5px;
+}
+.opt--seg { align-items: center; }
+.opt-count {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: var(--is-r-pill);
+  background: var(--is-tint-orange);
+  color: var(--is-secondary-strong);
+  font-size: var(--is-fs-xs);
+  font-weight: var(--is-fw-bold);
+}
+.opt-count .pi { font-size: 11px; }
+
+::ng-deep .rule-select-panel {
+  overflow: hidden;
+  border: 1px solid var(--is-border);
+  border-radius: var(--is-r-md);
+  box-shadow: var(--is-shadow-raised);
+  font-family: var(--is-font);
+}
+::ng-deep .rule-select-panel .p-select-list,
+::ng-deep .rule-select-panel .p-multiselect-list { gap: 2px; padding: 6px; }
+::ng-deep .rule-select-panel :is(.p-select-option, .p-multiselect-option) {
+  border-radius: var(--is-r-sm);
+  padding: 8px 10px;
+}
+::ng-deep .rule-select-panel :is(.p-select-option, .p-multiselect-option):not(.p-disabled):hover,
+::ng-deep .rule-select-panel :is(.p-select-option, .p-multiselect-option).p-focus {
+  background: var(--is-tint-purple);
+}
+::ng-deep .rule-select-panel .p-select-option.p-select-option-selected {
+  background: color-mix(in srgb, var(--is-primary) 10%, white);
+  box-shadow: inset 3px 0 0 var(--is-primary);
+}
+::ng-deep .rule-select-panel :is(.p-select-header, .p-multiselect-header) {
+  padding: 10px 10px 4px;
+}
+

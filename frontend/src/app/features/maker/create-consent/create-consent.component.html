@@ -109,80 +109,107 @@
 
   @if (showLinkedRulePanel()) {
     <div class="block linked-rule-panel">
-      <div class="section-title">Broadcast rule</div>
+      <div class="section-title"><mat-icon aria-hidden="true">tune</mat-icon>Broadcast rule</div>
       <p class="linked-rule-name-hint">
+        <i class="pi pi-link" aria-hidden="true"></i>
         Rule name will match consent name: <strong>{{ form.controls.consentName.value || '…' }}</strong>
       </p>
 
-      <mat-form-field appearance="outline" class="full">
-        <mat-label>Rule description (optional)</mat-label>
-        <textarea
-          matInput
-          rows="2"
-          name="lrDesc"
-          [(ngModel)]="linkedRuleForm.ruleDescription"
-          [disabled]="linkedFieldsDisabled()"></textarea>
-      </mat-form-field>
+      <div class="fld full">
+        <label class="fld-label" for="lr-desc">Remarks</label>
+        <textarea pTextarea id="lr-desc" rows="3" name="lrDesc" [(ngModel)]="linkedRuleForm.ruleDescription"
+          [disabled]="linkedFieldsDisabled()" [autoResize]="true"
+          placeholder="Why does this rule exist? Anything the checker should know?" fluid></textarea>
+      </div>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Rule type</mat-label>
-        <mat-select
-          name="lrRt"
-          [(ngModel)]="linkedRuleForm.ruleType"
-          [disabled]="linkedFieldsDisabled()"
-          (ngModelChange)="onLinkedRuleTypeChange($event)">
-          <mat-option value="PREDEFINED_SCENARIO">Predefined scenario</mat-option>
-          <mat-option value="CUSTOM">Custom</mat-option>
-        </mat-select>
-      </mat-form-field>
+      <div class="fld rule-type">
+        <label class="fld-label" for="lr-type">Rule type</label>
+        <p-select inputId="lr-type" name="lrRt" [(ngModel)]="linkedRuleForm.ruleType"
+          (ngModelChange)="onLinkedRuleTypeChange($event)" [disabled]="linkedFieldsDisabled()"
+          [options]="ruleTypeOptions" optionLabel="label" optionValue="value" appendTo="body"
+          panelStyleClass="rule-select-panel" fluid>
+          <ng-template #selectedItem let-o>
+            <span class="opt-inline"><i [class]="o.icon" aria-hidden="true"></i>{{ o.label }}</span>
+          </ng-template>
+          <ng-template #item let-o>
+            <span class="opt">
+              <span class="opt-ico" aria-hidden="true"><i [class]="o.icon"></i></span>
+              <span class="opt-copy">
+                <span class="opt-label">{{ o.label }}</span>
+                <span class="opt-desc">{{ o.hint }}</span>
+              </span>
+            </span>
+          </ng-template>
+        </p-select>
+      </div>
 
       @if (linkedRuleForm.ruleType === 'PREDEFINED_SCENARIO') {
-        <mat-form-field appearance="outline" class="grow">
-          <mat-label>Scenario</mat-label>
-          <mat-select
-            name="lrSc"
-            [(ngModel)]="linkedRuleForm.predefinedScenario"
-            (ngModelChange)="onLinkedScenarioChange()"
-            [disabled]="linkedFieldsDisabled()">
-            @for (sc of scenarios; track sc) {
-              <mat-option [value]="sc">{{ sc }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+      <div class="fld grow">
+        <label class="fld-label" for="lr-scenario">Scenario</label>
+        <p-select inputId="lr-scenario" name="lrSc" [(ngModel)]="linkedRuleForm.predefinedScenario"
+          (ngModelChange)="onLinkedScenarioChange()" [disabled]="linkedFieldsDisabled()"
+          [options]="scenarioOptions" optionLabel="label" optionValue="value" [filter]="true"
+          filterBy="label,value,desc" filterPlaceholder="Search scenarios" placeholder="Choose a scenario"
+          appendTo="body" panelStyleClass="rule-select-panel" scrollHeight="340px" fluid>
+          <ng-template #selectedItem let-o>
+            <span class="opt-inline"><i [class]="o.icon" aria-hidden="true"></i>{{ o.label }}</span>
+          </ng-template>
+          <ng-template #item let-o>
+            <span class="opt">
+              <span class="opt-ico" aria-hidden="true"><i [class]="o.icon"></i></span>
+              <span class="opt-copy">
+                <span class="opt-label">{{ o.label }}</span>
+                <span class="opt-desc">{{ o.desc }}</span>
+                <code class="opt-code">{{ o.value }}</code>
+              </span>
+            </span>
+          </ng-template>
+        </p-select>
+      </div>
       } @else {
-        <mat-form-field appearance="outline" class="grow">
-          <mat-label>Trigger / event</mat-label>
-          <input
-            matInput
-            name="lrTr"
-            [(ngModel)]="linkedRuleForm.triggerEvent"
-            [disabled]="linkedFieldsDisabled()" />
-        </mat-form-field>
+      <div class="fld grow">
+        <label class="fld-label" for="lr-trigger">Trigger / event</label>
+        <input pInputText id="lr-trigger" name="lrTr" [(ngModel)]="linkedRuleForm.triggerEvent"
+          [disabled]="linkedFieldsDisabled()" placeholder="e.g. ACCOUNT_UPGRADED" autocomplete="off" fluid />
+      </div>
       }
 
-      <div class="section-title">Audience segments</div>
-      <mat-form-field appearance="outline" class="full">
-        <mat-label>Audience segments</mat-label>
-        <mat-select
-          name="lrSeg"
-          [(ngModel)]="linkedRuleForm.selectedSegments"
-          (ngModelChange)="refreshDrillDownPreview()"
-          [disabled]="linkedFieldsDisabled()"
-          multiple
-          required>
-          @for (s of selectableSegments(); track s.code) {
-            <mat-option [value]="s.code">{{ s.label }} ({{ segmentDisplayCount(s.code) }})</mat-option>
-          }
-        </mat-select>
-        <mat-hint>
+      <div class="section-title"><mat-icon aria-hidden="true">groups</mat-icon>Audience</div>
+      <div class="fld full">
+        <label class="fld-label" for="lr-segments">Audience segments <span class="req" aria-hidden="true">*</span></label>
+        <p-multiselect inputId="lr-segments" name="lrSeg" [(ngModel)]="linkedRuleForm.selectedSegments"
+          (ngModelChange)="refreshDrillDownPreview()" [disabled]="linkedFieldsDisabled()" #lrSegField="ngModel"
+          [options]="segmentOptions()" optionLabel="label" optionValue="code" display="chip" [filter]="true"
+          filterPlaceholder="Search segments" [showToggleAll]="true" placeholder="Select one or more segments"
+          appendTo="body" panelStyleClass="rule-select-panel"
+          [invalid]="lrSegField.touched && linkedRuleForm.selectedSegments.length === 0" fluid>
+          <ng-template #item let-s>
+            <span class="opt opt--seg">
+              <span class="opt-copy">
+                <span class="opt-label">{{ s.label }}</span>
+                @if (s.description) {
+                <span class="opt-desc">{{ s.description }}</span>
+                }
+              </span>
+              <span class="opt-count" [attr.aria-label]="segmentDisplayCount(s.code) + ' customers'">
+                <i class="pi pi-users" aria-hidden="true"></i>{{ segmentDisplayCount(s.code).toLocaleString() }}
+              </span>
+            </span>
+          </ng-template>
+        </p-multiselect>
+        @if (lrSegField.touched && linkedRuleForm.selectedSegments.length === 0) {
+        <small class="fld-error"><i class="pi pi-exclamation-circle" aria-hidden="true"></i>At least one segment is required.</small>
+        } @else {
+        <small class="fld-help">
           @if (audienceTotalLabel(); as total) {
-            {{ total }}.
+          <span class="fld-help__total"><i class="pi pi-chart-bar" aria-hidden="true"></i>{{ total }}.</span>
           }
           The first selected segment becomes the primary segment.
-        </mat-hint>
-      </mat-form-field>
+        </small>
+        }
+      </div>
 
-      <div class="section-title">Schedule</div>
+      <div class="section-title"><mat-icon aria-hidden="true">schedule</mat-icon>Schedule</div>
       <mat-radio-group
         class="stack"
         name="lrSch"
@@ -271,7 +298,7 @@
           (scheduleValidChange)="recurringScheduleValid.set($event)" />
       }
 
-      <div class="section-title">Broadcast channels</div>
+      <div class="section-title"><mat-icon aria-hidden="true">campaign</mat-icon>Channels</div>
       <div class="channel-grid">
         @for (ch of CHANNELS; track ch) {
           <mat-checkbox
@@ -280,6 +307,9 @@
             [disabled]="linkedFieldsDisabled()">{{ ch }}</mat-checkbox>
         }
       </div>
+      @if (linkedHasNonEmailChannel()) {
+      <p class="channel-note" role="note"><i class="pi pi-info-circle" aria-hidden="true"></i>Only Email is delivered at the moment. SMS, WhatsApp and RCS will be recorded as failed in the run history.</p>
+      }
     </div>
   }
 
@@ -322,7 +352,7 @@
             (onClick)="saveDraft()" />
 
           <p-button
-            label="Submit for Approval"
+            [label]="loadedStatus() === 'REVISION_REQUESTED' ? 'Resubmit for Approval' : 'Submit for Approval'"
             icon="pi pi-send"
             [rounded]="true"
             [loading]="saving()"

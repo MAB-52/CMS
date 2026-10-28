@@ -375,12 +375,19 @@ export class ConsentMessageCardComponent implements OnInit, AfterViewInit, OnCha
   }
 
   openPreview(): void {
-    const html = (this.form.controls['consentMessage'].value as string) || '';
-    if (!html.replace(/<[^>]+>/g, '').trim()) {
+    const html =
+      this.languageContentMap[this.activeLanguage] ||
+      (this.activeLanguage === DEFAULT_LANGUAGE ? (this.form.controls['consentMessage'].value as string) : '') ||
+      '';
+    if (!html.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim()) {
       this.notify.warning('Preview', '⚠️ Please write a consent message first before previewing.');
       return;
     }
-    const data: ConsentPreviewDialogData = { html, mergeTags: this.allTags };
+    const data: ConsentPreviewDialogData = {
+      html,
+      mergeTags: this.allTags,
+      dir: this.isRtlActive() ? 'rtl' : 'ltr',
+    };
     this.dialog.open(ConsentPreviewDialogComponent, {
       width: '760px', maxHeight: '90vh', data,
     });
@@ -389,6 +396,9 @@ export class ConsentMessageCardComponent implements OnInit, AfterViewInit, OnCha
   openAddTagDialog(): void {
     this.addTagDialog.open().subscribe((newTag) => {
       if (!newTag) return;
+      if (!this.allTags.some((t) => t.tagKey === newTag.tagKey)) {
+        this.allTags = [...this.allTags, newTag];
+      }
       this.tagAdded.emit(newTag);
       this.insertTag(newTag);
     });

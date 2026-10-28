@@ -30,11 +30,14 @@ export class ConsentRulesService {
 
   private handle(name: string) {
     return (err: HttpErrorResponse) => {
-      const msg = (err.error as ApiResponse<unknown>)?.message || err.message || 'Request failed';
-      // if (err.status !== 401) {
-      //   this.notify.error(name, msg);
-      // }
-      const code = (err.error as ApiResponse<unknown>)?.errorCode;
+      const body = err.error as ApiResponse<unknown> | undefined;
+      const code = body?.errorCode;
+      let msg = body?.message || err.message || 'Request failed';
+      if (err.status === 0) {
+        msg = 'Cannot reach the server. Check your connection — your changes are still on this page.';
+      } else if (code === 'VALIDATION_ERROR' && body?.data && typeof body.data === 'object') {
+        msg = Object.values(body.data as Record<string, string>).join('; ') || msg;
+      }
       if (err.status !== 401 && (err.status !== 403 || code === 'UNAUTHORIZED_ACTION')) {
         this.notify.error(name, msg);
       }

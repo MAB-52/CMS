@@ -3,6 +3,8 @@ package com.consentiq.util;
 import com.consentiq.enums.WorkflowScheduleType;
 import com.consentiq.model.entity.ConsentRule;
 import lombok.experimental.UtilityClass;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.util.StringUtils;
 
@@ -13,6 +15,7 @@ import java.time.ZonedDateTime;
 @UtilityClass
 public class RuleNextRunUtil {
 
+    private static final Logger LOG = LoggerFactory.getLogger(RuleNextRunUtil.class);
     private static final ZoneId ASIA_KOLKATA = ZoneId.of("Asia/Kolkata");
 
     /**
@@ -46,10 +49,10 @@ public class RuleNextRunUtil {
                 ZonedDateTime nowKolkata = ZonedDateTime.now(ASIA_KOLKATA);
                 Instant next = nextInstantAfterFromZonedDateTime(cron, nowKolkata);
                 rule.setNextExecutionAt(next);
-                System.out.println("[RuleNextRunUtil] applyNextExecutionOnActivation | ruleId=" + rule.getId()
+                LOG.debug("[RuleNextRunUtil] applyNextExecutionOnActivation | ruleId=" + rule.getId()
                         + " | cron=" + cronStr + " | nextExecutionAt=" + next);
             } catch (Exception ex) {
-                System.out.println("[RuleNextRunUtil] applyNextExecutionOnActivation CRON_PARSE_FAILED | ruleId="
+                LOG.warn("[RuleNextRunUtil] applyNextExecutionOnActivation CRON_PARSE_FAILED | ruleId="
                         + rule.getId() + " | cron=" + cronStr + " | message=" + ex.getMessage());
                 rule.setNextExecutionAt(null);
             }
@@ -67,10 +70,10 @@ public class RuleNextRunUtil {
                 ZonedDateTime ref = completedAt.atZone(ASIA_KOLKATA);
                 Instant next = nextInstantAfterFromZonedDateTime(cron, ref);
                 rule.setNextExecutionAt(next);
-                System.out.println("[RuleNextRunUtil] applyNextExecutionAfterCompletedRun | ruleId=" + rule.getId()
+                LOG.debug("[RuleNextRunUtil] applyNextExecutionAfterCompletedRun | ruleId=" + rule.getId()
                         + " | cron=" + cronStr + " | completedAt=" + completedAt + " | nextExecutionAt=" + next);
             } catch (Exception ex) {
-                System.out.println("[RuleNextRunUtil] applyNextExecutionAfterCompletedRun CRON_PARSE_FAILED | ruleId="
+                LOG.warn("[RuleNextRunUtil] applyNextExecutionAfterCompletedRun CRON_PARSE_FAILED | ruleId="
                         + rule.getId() + " | cron=" + cronStr + " | message=" + ex.getMessage());
                 rule.setNextExecutionAt(null);
             }

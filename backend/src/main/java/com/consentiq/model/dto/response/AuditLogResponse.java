@@ -23,4 +23,6 @@ public class AuditLogResponse {
     private String description;
     private String ipAddress;
     private Instant performedAt;
+    private String checkerStatus;
+    private String checkerName;
 }

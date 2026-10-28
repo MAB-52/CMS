@@ -782,6 +782,10 @@ public class ConsentRuleService {
         if (scheduleType == WorkflowScheduleType.RECURRING && !StringUtils.hasText(recurringCron)) {
             throw new IllegalArgumentException("Recurring schedule requires a cron expression.");
         }
+        if (scheduleType == WorkflowScheduleType.RECURRING
+                && !org.springframework.scheduling.support.CronExpression.isValidExpression(recurringCron.trim())) {
+            throw new IllegalArgumentException("Recurring schedule is not a valid cron expression.");
+        }
     }
 
     /**
@@ -790,6 +794,12 @@ public class ConsentRuleService {
      */
     private void validateForSubmit(ConsentRuleUpsertRequest snapshot, ConsentRule rule) {
         validateDraft(snapshot);
+        Consent template = rule.getConsentTemplate();
+        if (template == null
+                || (template.getStatus() != ConsentStatus.PUBLISHED && template.getStatus() != ConsentStatus.APPROVED)) {
+            throw new IllegalArgumentException(
+                    "The selected consent is no longer approved or published. Choose an approved consent before submitting.");
+        }
         validateVipFastTrackIfApplicable(rule);
     }
 

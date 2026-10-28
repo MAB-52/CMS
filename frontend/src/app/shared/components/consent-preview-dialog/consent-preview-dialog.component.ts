@@ -9,6 +9,7 @@ import { sanitizeRichHtml } from '../../../core/utils/safe-html.util';
 export interface ConsentPreviewDialogData {
   html: string;
   mergeTags: MergeTag[];
+  dir?: 'ltr' | 'rtl';
 }
 
 @Component({

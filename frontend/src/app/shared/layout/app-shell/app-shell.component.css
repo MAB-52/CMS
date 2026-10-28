@@ -394,46 +394,98 @@
 :host ::ng-deep .nav-count .p-badge { min-width: 22px; height: 20px; font-size: 10px; font-weight: var(--is-fw-black); }
 :host ::ng-deep .nav-tag .p-tag { padding: 2px 8px; font-size: 9px; font-weight: var(--is-fw-black); letter-spacing: 0.06em; }
 
-/* Footer actions (collapse on desktop, sign out in the mobile drawer) */
-.sidebar-footer { padding-top: 8px; border-top: 1px solid var(--is-border); }
-.side-action {
+/* Footer: signed-in user, logout, and collapse on desktop */
+.sidebar-footer { padding-top: 10px; border-top: 1px solid var(--is-border); }
+.sf-card {
   position: relative;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: var(--is-r-md);
+  background: linear-gradient(135deg, var(--is-tint-purple), var(--is-tint-orange));
+  border: 1px solid var(--is-border-tint);
+  overflow: hidden;
+  animation: is-fade-in var(--is-dur-slow) ease both;
+}
+.sf-card::after {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+}
+.sf-user { position: relative; z-index: 1; display: flex; align-items: center; gap: 10px; min-width: 0; }
+:host ::ng-deep .sf-avatar.p-avatar {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  background: var(--is-grad-banner);
+  color: #fff;
+  font-size: 13px;
+  font-weight: var(--is-fw-black);
+  box-shadow: 0 6px 14px rgba(69, 50, 158, 0.28), inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+.sf-user__meta { display: grid; min-width: 0; line-height: 1.25; }
+.sf-user__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--is-fs-sm);
+  font-weight: var(--is-fw-bold);
+  color: var(--is-primary-strong);
+}
+.sf-user__role {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--is-fs-2xs);
+  color: var(--is-text-2);
+}
+.sf-user__role .pi { flex: none; font-size: 10px; color: var(--is-secondary); }
+
+.sf-actions {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 44px;
-  padding: 4px 10px 4px 6px;
-  border: 0;
-  border-radius: var(--is-r-sm);
-  background: transparent;
-  color: var(--is-text-2);
-  font: var(--is-fw-semibold) var(--is-fs-sm) var(--is-font);
-  text-align: left;
-  cursor: pointer;
-  overflow: hidden;
-  transition: background var(--is-dur) ease, color var(--is-dur) ease;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--is-border-tint);
 }
-.side-action:hover { background: var(--is-surface-2); color: var(--is-primary); }
-.side-action:focus-visible { outline: 2px solid var(--is-primary); outline-offset: 1px; }
-.side-action__ico {
+.sf-actions p-button:first-child { flex: 1; min-width: 0; }
+:host ::ng-deep .sf-logout.p-button {
+  width: 100%;
+  justify-content: flex-start;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--is-r-sm);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--is-danger-text);
+  font-size: var(--is-fs-sm);
+  font-weight: var(--is-fw-bold);
+}
+:host ::ng-deep .sf-logout.p-button:not(:disabled):hover { background: var(--is-danger); color: #fff; }
+:host ::ng-deep .sf-logout .p-button-icon { font-size: 14px; }
+:host ::ng-deep .sf-collapse.p-button {
   flex: none;
-  display: grid;
-  place-items: center;
   width: 36px;
   height: 36px;
-  border-radius: 11px;
-  background: var(--is-tint-orange);
+  padding: 0;
+  border-radius: var(--is-r-sm);
+  background: rgba(255, 255, 255, 0.7);
   color: var(--is-secondary);
-  transition: background var(--is-dur) ease, color var(--is-dur) ease;
 }
-.side-action__ico .pi { font-size: 14px; transition: transform var(--is-dur-slow) var(--is-ease); }
-.side-action:hover .side-action__ico { background: var(--is-secondary); color: #fff; }
-.side-action__label { white-space: nowrap; }
-.side-action--danger { color: var(--is-danger-text); }
-.side-action--danger .side-action__ico { background: var(--is-danger-bg); color: var(--is-danger); }
-.side-action--danger:hover { background: var(--is-danger-bg); color: var(--is-danger-text); }
-.side-action--danger:hover .side-action__ico { background: var(--is-danger); color: #fff; }
+:host ::ng-deep .sf-collapse.p-button:not(:disabled):hover { background: var(--is-secondary); color: #fff; }
+:host ::ng-deep .sf-collapse .p-button-icon { font-size: 14px; transition: transform var(--is-dur-slow) var(--is-ease); }
 
 /* Rail (collapsed) */
 .shell--rail .sidebar { padding: 12px 10px 10px; }
@@ -442,17 +494,23 @@
 .shell--rail .group-label span,
 .shell--rail .nav-label,
 .shell--rail .nav-tag,
-.shell--rail .side-action__label { display: none; }
+.shell--rail .sf-user__meta { display: none; }
+.shell--rail .sf-card { padding: 8px 4px; justify-items: center; }
+.shell--rail .sf-card::after { display: none; }
+.shell--rail .sf-user { justify-content: center; }
+.shell--rail .sf-actions { flex-direction: column; border-top-style: solid; }
+.shell--rail .sf-actions p-button:first-child { flex: none; }
+:host ::ng-deep .shell--rail .sf-logout.p-button { width: 36px; padding: 0; justify-content: center; }
+:host ::ng-deep .shell--rail .sf-logout .p-button-label { display: none; }
 .shell--rail .group-label { padding: 6px 4px; }
-.shell--rail .nav-link,
-.shell--rail .side-action { justify-content: center; padding: 5px 0; }
+.shell--rail .nav-link { justify-content: center; padding: 5px 0; }
 .shell--rail .nav-link:hover { transform: none; }
 .shell--rail .nav-count {
   position: absolute;
   top: 2px;
   right: 4px;
 }
-.shell--rail .side-action__ico .pi { transform: rotate(180deg); }
+:host ::ng-deep .shell--rail .sf-collapse .p-button-icon { transform: rotate(180deg); }
 
 /* Content panel: a scrolling region plus an optional fixed dock (action bars) underneath. */
 .content {

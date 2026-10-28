@@ -1,4 +1,5 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { ConsentService } from '../../../core/services/consent.service';
@@ -14,6 +15,7 @@ import { ShellNavGroup } from '../../../shared/layout/app-shell/app-shell.model'
 })
 export class MakerLayoutComponent implements OnInit {
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly consentApi = inject(ConsentService);
 
   readonly pageTitle = signal('Dashboard');
@@ -43,7 +45,10 @@ export class MakerLayoutComponent implements OnInit {
     this.refreshRevisionBadge();
 
     this.router.events
-      .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe(() => {
         this.syncRouteTitle();
         this.refreshRevisionBadge();

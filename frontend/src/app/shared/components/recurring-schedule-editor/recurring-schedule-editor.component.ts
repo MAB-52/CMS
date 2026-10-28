@@ -84,7 +84,15 @@ export class RecurringScheduleEditorComponent implements OnChanges {
   onExternalCronChange(): void {
     const t = this.externalCronRaw.trim();
     this.recurringCronChange.emit(t);
-    this.scheduleValidChange.emit(t.length > 0);
+    this.scheduleValidChange.emit(this.looksLikeCron(t));
+  }
+
+  private looksLikeCron(value: string): boolean {
+    if (/^@(yearly|annually|monthly|weekly|daily|midnight|hourly)$/i.test(value)) {
+      return true;
+    }
+    const fields = value.split(/\s+/);
+    return fields.length === 6 && fields.every((f) => /^[0-9A-Za-z*?,\-/#LW]+$/.test(f));
   }
 
   private ingestCron(raw: string): void {
@@ -105,7 +113,7 @@ export class RecurringScheduleEditorComponent implements OnChanges {
     if (!parsed.known) {
       this.externalMode = true;
       this.externalCronRaw = raw;
-      this.scheduleValidChange.emit(trimmed.length > 0);
+      this.scheduleValidChange.emit(this.looksLikeCron(trimmed));
       return;
     }
 

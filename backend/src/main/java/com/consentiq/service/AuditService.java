@@ -22,7 +22,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -252,7 +256,7 @@ public class AuditService {
 		}
 
 		MakerTrailResponse result = MakerTrailResponse.builder()
-				.page(toPaged(p))
+				.page(toPagedWithReview(p))
 				.summary(MakerTrailResponse.Summary.builder().total(mine + decisions).myActions(mine)
 						.checkerDecisions(decisions).approved(approved).rejected(rejected).revisionRequested(revision)
 						.build())
@@ -319,6 +323,71 @@ public class AuditService {
 		return PagedResponse.<AuditLogResponse>builder().content(content).totalElements(p.getTotalElements())
 				.totalPages(p.getTotalPages()).currentPage(p.getNumber()).pageSize(p.getSize()).hasNext(p.hasNext())
 				.hasPrevious(p.hasPrevious()).build();
+	}
+
+	@Transactional(readOnly = true)
+	public long[] checkerDecisionCounts(Long checkerId, Instant startOfToday) {
+		long approvedToday = 0;
+		for (Object[] row : auditLogRepository.countMyActionsSince(checkerId, CHECKER_DECISION_ACTIONS, startOfToday)) {
+			String action = (String) row[0];
+			if (action.endsWith("_APPROVED") || action.endsWith("_PUBLISHED")) {
+				approvedToday += ((Number) row[1]).longValue();
+			}
+		}
+		long rejected = 0, total = 0;
+		for (Object[] row : auditLogRepository.countMyActionsSince(checkerId, CHECKER_DECISION_ACTIONS, Instant.EPOCH)) {
+			long n = ((Number) row[1]).longValue();
+			total += n;
+			if (((String) row[0]).endsWith("_REJECTED")) {
+				rejected += n;
+			}
+		}
+		return new long[] { approvedToday, rejected, total };
+	}
+
+	private static final List<String> SUBMIT_ACTIONS = List.of("CONSENT_SUBMITTED", "RULE_SUBMITTED",
+			"BROADCAST_SUBMITTED");
+
+	private PagedResponse<AuditLogResponse> toPagedWithReview(Page<AuditLog> p) {
+		Map<String, Set<Long>> idsByType = new HashMap<>();
+		for (AuditLog a : p.getContent()) {
+			if (a.getEntityType() != null && a.getEntityId() != null) {
+				idsByType.computeIfAbsent(a.getEntityType(), k -> new HashSet<>()).add(a.getEntityId());
+			}
+		}
+		List<String> reviewActions = new ArrayList<>(CHECKER_DECISION_ACTIONS);
+		reviewActions.addAll(SUBMIT_ACTIONS);
+		Map<String, AuditLog> latestByEntity = new HashMap<>();
+		for (Map.Entry<String, Set<Long>> e : idsByType.entrySet()) {
+			for (AuditLog ev : auditLogRepository.findReviewEvents(e.getKey(), e.getValue(), reviewActions)) {
+				latestByEntity.putIfAbsent(ev.getEntityType() + ":" + ev.getEntityId(), ev);
+			}
+		}
+		PagedResponse<AuditLogResponse> paged = toPaged(p);
+		for (int i = 0; i < p.getContent().size(); i++) {
+			AuditLog row = p.getContent().get(i);
+			AuditLogResponse out = paged.getContent().get(i);
+			AuditLog source = CHECKER_DECISION_ACTIONS.contains(row.getAction())
+					? row
+					: latestByEntity.get(row.getEntityType() + ":" + row.getEntityId());
+			if (source == null) {
+				continue;
+			}
+			String status = reviewStatus(source.getAction());
+			out.setCheckerStatus(status);
+			if (!"PENDING".equals(status)) {
+				out.setCheckerName(source.getUser().getFullName());
+			}
+		}
+		return paged;
+	}
+
+	private static String reviewStatus(String action) {
+		if (action.endsWith("_REVISION_REQUESTED")) return "REVISION_REQUESTED";
+		if (action.endsWith("_APPROVED")) return "APPROVED";
+		if (action.endsWith("_PUBLISHED")) return "PUBLISHED";
+		if (action.endsWith("_REJECTED")) return "REJECTED";
+		return "PENDING";
 	}
 
 	private AuditLogResponse toResponse(AuditLog a) {

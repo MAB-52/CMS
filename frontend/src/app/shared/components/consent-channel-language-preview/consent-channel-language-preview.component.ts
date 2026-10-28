@@ -86,8 +86,31 @@ export class ConsentChannelLanguagePreviewComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['renders'] || changes['channelEmail'] || changes['channelSms'] || changes['channelPush'] || changes['channelWhatsapp'] || changes['channelRcs']) {
-      this.applyInitialSelection();
+      if (!this.selectionApplied || !this.keepCurrentSelection()) {
+        this.applyInitialSelection();
+      }
     }
+  }
+
+  private selectionApplied = false;
+  private selectedChannelId: ChannelId | null = null;
+  private selectedLanguageCode: string | null = null;
+
+  private keepCurrentSelection(): boolean {
+    const channels = this.activeChannels;
+    const chIdx = this.selectedChannelId ? channels.indexOf(this.selectedChannelId) : -1;
+    if (chIdx < 0) {
+      return false;
+    }
+    this.activeChannelTab = chIdx;
+    const langs = this.languagesForChannel(channels[chIdx]);
+    const langIdx = this.selectedLanguageCode ? langs.indexOf(this.selectedLanguageCode) : -1;
+    if (langIdx >= 0) {
+      this.activeLanguageTab = langIdx;
+    } else if (this.activeLanguageTab >= langs.length) {
+      this.activeLanguageTab = 0;
+    }
+    return true;
   }
 
   private applyInitialSelection(): void {
@@ -164,6 +187,9 @@ export class ConsentChannelLanguagePreviewComponent implements OnChanges {
   }
 
   private emitViewed(channel: string, languageCode: string): void {
+    this.selectionApplied = true;
+    this.selectedChannelId = channel as ChannelId;
+    this.selectedLanguageCode = languageCode;
     this.combinationViewed.emit({ channel, languageCode });
   }
 

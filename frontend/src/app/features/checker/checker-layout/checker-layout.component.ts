@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { forkJoin } from 'rxjs';
@@ -17,6 +18,7 @@ import { ShellNavGroup } from '../../../shared/layout/app-shell/app-shell.model'
 })
 export class CheckerLayoutComponent implements OnInit {
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly consentApi = inject(ConsentService);
   private readonly rulesApi = inject(ConsentRulesService);
   private readonly broadcastsApi = inject(BroadcastsService);
@@ -42,7 +44,10 @@ export class CheckerLayoutComponent implements OnInit {
     this.refreshPending();
 
     this.router.events
-      .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe(() => {
         this.syncRouteTitle();
         this.refreshPending();

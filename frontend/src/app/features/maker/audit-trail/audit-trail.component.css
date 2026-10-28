@@ -15,7 +15,7 @@
 .at-filters { gap: var(--is-s-4); }
 .at-filters__grid {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1.2fr) auto;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) auto;
   align-items: end;
   gap: var(--is-s-4);
 }
@@ -39,6 +39,20 @@
 :host ::ng-deep .at-row--open > td { background: var(--is-tint-purple) !important; border-bottom-color: transparent !important; }
 .at-ellipsis { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+:host ::ng-deep .at-tabs { flex-wrap: wrap; }
+:host ::ng-deep .at-status { gap: 6px; padding: 4px 10px; font-size: var(--is-fs-2xs); font-weight: var(--is-fw-bold); white-space: nowrap; }
+:host ::ng-deep .at-status .p-tag-icon { font-size: 11px; }
+.at-none { color: var(--is-text-3); font-weight: var(--is-fw-bold); }
+.at-ago {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--is-fs-sm);
+  font-weight: var(--is-fw-semibold);
+  color: var(--is-text-2);
+  white-space: nowrap;
+}
+.at-ago .pi { font-size: 12px; color: var(--is-secondary); }
 .at-date { font-weight: var(--is-fw-bold); white-space: nowrap; }
 .at-clock { font-size: var(--is-fs-sm); color: var(--is-text-2); font-variant-numeric: tabular-nums; }
 .at-clock .pi { color: var(--is-secondary); }
@@ -99,6 +113,7 @@
 }
 ::ng-deep .at-tip-wide.p-tooltip { max-width: 28rem; }
 
+:host ::ng-deep .at-table .p-datatable-tbody > tr > td.at-toggle-cell { padding-right: 20px; text-align: center; }
 :host ::ng-deep .at-toggle.p-button { width: 2rem; height: 2rem; }
 :host ::ng-deep .at-toggle .p-button-icon { transition: transform var(--is-dur) var(--is-ease); }
 :host ::ng-deep .at-toggle--open .at-toggle { background: var(--is-primary); color: var(--is-text-inverse); }
@@ -159,8 +174,8 @@
 
 @media (max-width: 1200px) {
   .at-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .at-filters__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .at-filters__search, .at-filters__actions { grid-column: 1 / -1; }
+  .at-filters__grid { grid-template-columns: minmax(0, 1fr) auto; }
+  .at-filters__search { grid-column: 1 / -1; }
   .at-filters__actions { justify-content: flex-end; }
 }
 @media (max-width: 640px) {

@@ -180,12 +180,14 @@ export class ConsentService {
       );
   }
 
-  submitLinked(consentId: number): Observable<ApiResponse<Consent>> {
+  submitLinked(consentId: number): Observable<ApiResponse<LinkedConsentAndRuleResponseDto>> {
     return this.http
-      .post<ApiResponse<Consent>>(`${environment.apiUrl}/consents/${consentId}/submit-linked`, {})
+      .post<ApiResponse<LinkedConsentAndRuleResponseDto>>(`${environment.apiUrl}/consents/${consentId}/submit-linked`, {})
       .pipe(
-        map((res) => (res.data ? { ...res, data: this.normalizeConsent(res.data) } : res)),
-        tap((res) => this.logger.debug('ConsentService', `submitLinked id=${res.data?.consentId}`)),
+        map((res) =>
+          res.data?.consent ? { ...res, data: { ...res.data, consent: this.normalizeConsent(res.data.consent) } } : res,
+        ),
+        tap((res) => this.logger.debug('ConsentService', `submitLinked id=${res.data?.consent?.consentId}`)),
         catchError(this.handleError('submitLinked')),
       );
   }

@@ -114,4 +114,16 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long>, JpaSp
     List<Object[]> countDecisionsOnMakerEntities(
             @Param("userId") Long userId,
             @Param("decisionActions") Collection<String> decisionActions);
+
+    @Query("""
+            SELECT a FROM AuditLog a JOIN FETCH a.user
+            WHERE a.entityType = :entityType
+              AND a.entityId IN :entityIds
+              AND a.action IN :actions
+            ORDER BY a.performedAt DESC, a.id DESC
+            """)
+    List<AuditLog> findReviewEvents(
+            @Param("entityType") String entityType,
+            @Param("entityIds") Collection<Long> entityIds,
+            @Param("actions") Collection<String> actions);
 }

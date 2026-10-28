@@ -182,10 +182,43 @@
 .linked-rule-panel mat-form-field { margin-bottom: var(--is-s-4); }
 .linked-rule-name-hint {
   flex-basis: 100%;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
   margin: 0 0 var(--is-s-4);
+  padding: 8px 12px;
+  border: 1px dashed var(--is-border-tint);
+  border-radius: var(--is-r-sm);
+  background: var(--is-tint-purple);
   color: var(--is-text-2);
+  font-size: var(--is-fs-sm);
 }
+.linked-rule-name-hint .pi { color: var(--is-primary); font-size: 13px; }
 .linked-rule-name-hint strong { color: var(--is-primary); }
+.linked-rule-panel .section-title .mat-icon {
+  display: grid !important;
+  place-items: center;
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: var(--is-r-field);
+  background: var(--is-tint-purple);
+  font-size: 18px !important;
+}
+.linked-rule-panel .channel-note {
+  flex-basis: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--is-surface-2);
+  color: var(--is-text-2);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.linked-rule-panel .channel-note .pi { margin-top: 2px; color: var(--is-blue); }
 .linked-rule-panel .section-title {
   flex-basis: 100%;
   display: flex;

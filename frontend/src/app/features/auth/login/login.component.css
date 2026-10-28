@@ -20,7 +20,7 @@
   justify-content: space-between;
   gap: 24px;
   height: 100vh;
-  padding: clamp(24px, 4vh, 48px) clamp(32px, 5vw, 72px);
+  padding: clamp(16px, 2.5vh, 28px) clamp(32px, 5vw, 72px) clamp(24px, 4vh, 48px);
   overflow: hidden;
   isolation: isolate;
   color: #FFFFFF;
@@ -56,8 +56,6 @@
   align-items: center;
   gap: clamp(18px, 3vh, 28px);
   margin-bottom: clamp(18px, 3.4vh, 34px);
-  position: relative;                 /* ADD */
-  top: clamp(-56px, -6vh, -24px);     /* ADD: moves the logos up, nothing else shifts */
 }
 .brand__logo {
   width: auto;
@@ -298,18 +296,45 @@
 }
 
 @media (max-width: 1100px) {
-  .brand { padding: 48px 44px 40px; }
+  .brand { padding: 28px 44px 40px; }
   .brand__title { font-size: 32px; line-height: 40px; }
 }
 @media (max-width: 900px) {
-  :host, .login, .brand, .panel { height: auto; overflow: visible; }
-  :host { min-height: 100vh; }
-  .login { grid-template-columns: 1fr; }
-  .brand { gap: 20px; padding: 32px 24px; }
-  .brand__logo { height: 56px; }
-  .brand__suite { width: 280px; }
+  :host, .login { height: 100vh; height: 100dvh; overflow: hidden; }
+  .login { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .brand {
+    height: auto;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 0;
+    padding: clamp(16px, 3vh, 28px) 24px clamp(14px, 2.5vh, 24px);
+    text-align: center;
+  }
+  .brand__head { gap: clamp(8px, 1.5vh, 14px); margin-bottom: 0; }
+  .brand__logo { height: clamp(40px, 6vh, 56px); max-width: 100%; }
+  .brand__suite { width: min(280px, 100%); }
+  .brand__body { margin-block: 0; padding-top: clamp(10px, 2vh, 18px); justify-items: center; }
   .brand__text, .features, .brand__legal { display: none; }
-  .brand__title { font-size: 26px; line-height: 34px; }
-  .panel { padding: 32px 16px 48px; }
-  .card { padding: 32px 24px 28px; }
+  .brand__title { font-size: 26px; line-height: 34px; animation-name: login-fade-down; }
+  .brand__orb { width: 320px; height: 320px; right: -120px; bottom: -160px; }
+  .panel { height: auto; min-height: 0; padding: clamp(12px, 2.5vh, 32px) 16px; }
+  .card { max-height: 100%; padding: clamp(18px, 3vh, 32px) 24px clamp(16px, 2.5vh, 28px); overflow: hidden; }
+  .card__logo { display: none; }
+  .card__rule { margin: clamp(8px, 1.4vh, 14px) 0 clamp(12px, 2vh, 22px); }
+  .form { gap: clamp(10px, 1.8vh, 18px); }
+}
+@media (max-width: 480px) {
+  .brand { padding-inline: 16px; }
+  .brand__suite { width: min(220px, 100%); }
+  .brand__title { font-size: 22px; line-height: 30px; }
+  .card { padding-inline: 18px; }
+  .card__title { font-size: 26px; line-height: 32px; }
+  .card__sub { font-size: 14px; }
+  .card__help { margin-top: 14px; font-size: 13px; }
+}
+@media (max-width: 900px) and (max-height: 700px) {
+  .brand__divider, .brand__suite { display: none; }
+  .card__help { display: none; }
+  :host ::ng-deep .field__control .p-inputtext,
+  :host ::ng-deep .form__submit.p-button { height: 42px; }
 }

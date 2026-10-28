@@ -92,7 +92,7 @@ export class ConsentDetailsCardComponent implements OnInit {
 
   startDate: Date | null = null;
   endDate: Date | null = null;
-  endMin: Date = this.todayDate;
+  endMin: Date = this.addDays(this.todayDate, 1);
 
   ngOnInit(): void {
     this.syncFromForm();
@@ -108,8 +108,14 @@ export class ConsentDetailsCardComponent implements OnInit {
     const end = this.parseDateStr(this.form.controls['validityEndDate'].value);
     if (!this.sameDay(start, this.startDate)) this.startDate = start;
     if (!this.sameDay(end, this.endDate)) this.endDate = end;
-    const min = start ?? this.todayDate;
+    const min = this.addDays(start ?? this.todayDate, 1);
     if (!this.sameDay(min, this.endMin)) this.endMin = min;
+  }
+
+  private addDays(d: Date, n: number): Date {
+    const out = new Date(d);
+    out.setDate(out.getDate() + n);
+    return out;
   }
 
   private sameDay(a: Date | null, b: Date | null): boolean {
@@ -136,7 +142,7 @@ export class ConsentDetailsCardComponent implements OnInit {
 
   onStartDateChange(value: Date | null): void {
     this.setDate('validityStartDate', value);
-    if (value && this.endDate && this.endDate < value) {
+    if (value && this.endDate && this.endDate <= value) {
       this.setDate('validityEndDate', null);
     }
   }

@@ -1,4 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AppShellComponent } from '../../../shared/layout/app-shell/app-shell.component';
@@ -33,9 +34,14 @@ export class AdminLayoutComponent implements OnInit {
   ];
 
   constructor() {
-    this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)).subscribe(() => {
-      this.syncRouteTitle();
-    });
+    this.router.events
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => {
+        this.syncRouteTitle();
+      });
   }
 
   ngOnInit(): void {

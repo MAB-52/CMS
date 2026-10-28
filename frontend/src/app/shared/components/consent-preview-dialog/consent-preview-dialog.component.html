@@ -17,7 +17,7 @@
     </div>
 
     <div class="dlg-preview-wrap">
-      <div class="dlg-preview" [innerHTML]="sanitized"></div>
+      <div class="dlg-preview" [attr.dir]="data.dir || 'ltr'" [innerHTML]="sanitized"></div>
     </div>
   </mat-dialog-content>
 

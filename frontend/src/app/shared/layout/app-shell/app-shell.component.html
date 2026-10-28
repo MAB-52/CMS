@@ -159,28 +159,50 @@
       </nav>
 
       <div class="sidebar-footer">
-        @if (isMobile()) {
-          <button type="button" class="side-action side-action--danger" (click)="logout.confirmAndLogout()">
-            <span class="side-action__ico" aria-hidden="true"><i class="pi pi-sign-out"></i></span>
-            <span class="side-action__label">Sign out</span>
-          </button>
-        } @else {
-          <button
-            type="button"
-            class="side-action collapse-btn"
-            (click)="toggleCollapse()"
-            [attr.aria-label]="isRail() ? 'Expand the menu' : 'Collapse the menu'"
-            [attr.aria-expanded]="!isRail()"
-            aria-controls="app-sidebar"
-            pRipple
-            [pTooltip]="isRail() ? 'Expand the menu' : ''"
+        <div class="sf-card">
+          <div
+            class="sf-user"
+            [pTooltip]="userName() + ' · ' + roleLabel"
             tooltipPosition="right"
             [tooltipDisabled]="!isRail()"
+            appendTo="body"
           >
-            <span class="side-action__ico" aria-hidden="true"><i class="pi pi-angle-double-left"></i></span>
-            <span class="side-action__label">Collapse menu</span>
-          </button>
-        }
+            <p-avatar [label]="initials()" shape="circle" styleClass="sf-avatar" aria-hidden="true" />
+            <span class="sf-user__meta">
+              <span class="sf-user__name">{{ userName() }}</span>
+              <span class="sf-user__role"><i class="pi pi-id-card" aria-hidden="true"></i>{{ roleLabel }}</span>
+            </span>
+          </div>
+
+          <div class="sf-actions">
+            <p-button
+              label="Logout"
+              icon="pi pi-sign-out"
+              severity="danger"
+              [text]="true"
+              styleClass="sf-logout"
+              [ariaLabel]="'Logout'"
+              [pTooltip]="isRail() ? 'Logout' : 'End your session'"
+              tooltipPosition="right"
+              appendTo="body"
+              (onClick)="logout.confirmAndLogout()"
+            />
+            @if (!isMobile()) {
+              <p-button
+                icon="pi pi-angle-double-left"
+                [text]="true"
+                styleClass="sf-collapse"
+                [ariaLabel]="isRail() ? 'Expand the menu' : 'Collapse the menu'"
+                [attr.aria-expanded]="!isRail()"
+                aria-controls="app-sidebar"
+                [pTooltip]="isRail() ? 'Expand the menu' : 'Collapse the menu'"
+                tooltipPosition="right"
+                appendTo="body"
+                (onClick)="toggleCollapse()"
+              />
+            }
+          </div>
+        </div>
       </div>
     </aside>
 

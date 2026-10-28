@@ -9,10 +9,10 @@ import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
 import { ProgressBarModule } from 'primeng/progressbar';
-import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TableLazyLoadEvent, TableModule } from 'primeng/table';
+import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import {
   AuditLogEntry,
@@ -65,7 +65,25 @@ const ENTITIES: Record<string, EntityMeta> = {
   BROADCAST_REQUEST: { label: 'Broadcast', icon: 'pi pi-megaphone', color: 'var(--is-pink)' },
 };
 
-const AVATAR_COLORS = ['#45329E', '#0D6EFD', '#D63384', '#20C997', '#EA6B28', '#6F42C1', '#0DCAF0'];
+type TrailTab = 'ALL' | 'DECISIONS' | 'CONSENT' | 'BROADCAST' | 'RULE';
+
+interface StatusMeta {
+  label: string;
+  icon: string;
+  severity: 'success' | 'info' | 'warn' | 'danger' | 'secondary';
+}
+
+const STATUS_META: Record<string, StatusMeta> = {
+  APPROVED: { label: 'Approved', icon: 'pi pi-check-circle', severity: 'success' },
+  PUBLISHED: { label: 'Published', icon: 'pi pi-globe', severity: 'success' },
+  REJECTED: { label: 'Rejected', icon: 'pi pi-times-circle', severity: 'danger' },
+  REVISION_REQUESTED: { label: 'Revision requested', icon: 'pi pi-replay', severity: 'warn' },
+  PENDING: { label: 'Pending review', icon: 'pi pi-hourglass', severity: 'info' },
+};
+
+const NOT_SUBMITTED: StatusMeta = { label: 'Not submitted', icon: 'pi pi-minus-circle', severity: 'secondary' };
+
+const AVATAR_COLORS =['#45329E', '#0D6EFD', '#D63384', '#20C997', '#EA6B28', '#6F42C1', '#0DCAF0'];
 const DAY_MS = 86_400_000;
 
 @Component({
@@ -83,10 +101,10 @@ const DAY_MS = 86_400_000;
     InputIconModule,
     InputTextModule,
     ProgressBarModule,
-    SelectModule,
     SelectButtonModule,
     SkeletonModule,
     TableModule,
+    TagModule,
     TooltipModule,
   ],
   templateUrl: './audit-trail.component.html',
@@ -110,26 +128,28 @@ export class AuditTrailComponent {
 
   expandedRows: Record<number, boolean> = {};
 
-  scope: MakerTrailScope = 'ALL';
-  type: ReviewTypeFilter = 'ALL';
+  tab: TrailTab = 'ALL';
   search = '';
   range: Date[] | null = null;
 
-  readonly scopeOptions = computed(() => {
+  readonly tabOptions = computed(() => {
     const s = this.summary();
     return [
-      { value: 'ALL', label: 'All activity', icon: 'pi pi-list', count: s?.total },
-      { value: 'MINE', label: 'My actions', icon: 'pi pi-user', count: s?.myActions },
+      { value: 'ALL', label: 'All', icon: 'pi pi-list', count: s?.total },
       { value: 'DECISIONS', label: 'Checker decisions', icon: 'pi pi-verified', count: s?.checkerDecisions },
+      { value: 'CONSENT', label: 'Consents', icon: ENTITIES['CONSENT'].icon, count: undefined },
+      { value: 'BROADCAST', label: 'Broadcasts', icon: ENTITIES['BROADCAST_REQUEST'].icon, count: undefined },
+      { value: 'RULE', label: 'Rules', icon: ENTITIES['CONSENT_RULE'].icon, count: undefined },
     ];
   });
 
-  readonly typeOptions: { value: ReviewTypeFilter; label: string; icon: string; color: string }[] = [
-    { value: 'ALL', label: 'All items', icon: 'pi pi-th-large', color: 'var(--is-text-2)' },
-    { value: 'CONSENT', label: 'Consents', ...this.pick(ENTITIES['CONSENT']) },
-    { value: 'RULE', label: 'Rules', ...this.pick(ENTITIES['CONSENT_RULE']) },
-    { value: 'BROADCAST', label: 'Broadcasts', ...this.pick(ENTITIES['BROADCAST_REQUEST']) },
-  ];
+  private get scope(): MakerTrailScope {
+    return this.tab === 'DECISIONS' ? 'DECISIONS' : 'ALL';
+  }
+
+  private get type(): ReviewTypeFilter {
+    return this.tab === 'CONSENT' || this.tab === 'RULE' || this.tab === 'BROADCAST' ? this.tab : 'ALL';
+  }
 
   load(): void {
     this.loading.set(true);
@@ -176,9 +196,9 @@ export class AuditTrailComponent {
     this.load();
   }
 
-  setScope(value: MakerTrailScope | null): void {
-    if (!value || value === this.scope) return;
-    this.scope = value;
+  setTab(value: TrailTab | null): void {
+    if (!value || value === this.tab) return;
+    this.tab = value;
     this.apply();
   }
 
@@ -187,15 +207,18 @@ export class AuditTrailComponent {
   }
 
   reset(): void {
-    this.scope = 'ALL';
-    this.type = 'ALL';
+    this.tab = 'ALL';
     this.search = '';
     this.range = null;
     this.apply();
   }
 
   activeFilterCount(): number {
-    return [this.scope !== 'ALL', this.type !== 'ALL', !!this.search.trim(), !!this.range?.[0]].filter(Boolean).length;
+    return [this.tab !== 'ALL', !!this.search.trim(), !!this.range?.[0]].filter(Boolean).length;
+  }
+
+  statusOf(code: string | null | undefined): StatusMeta {
+    return STATUS_META[(code ?? '').toUpperCase()] ?? NOT_SUBMITTED;
   }
 
   isDecision(e: AuditLogEntry): boolean {
@@ -246,10 +269,6 @@ export class AuditTrailComponent {
     const days = Math.round(hours / 24);
     if (Math.abs(days) < 30) return this.relTime.format(days, 'day');
     return this.relTime.format(Math.round(days / 30), 'month');
-  }
-
-  private pick(m: EntityMeta): { icon: string; color: string } {
-    return { icon: m.icon, color: m.color };
   }
 
   private startOfDay(d: Date): Date {

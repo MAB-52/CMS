@@ -1834,15 +1834,13 @@ public class ConsentService {
         long pending =
                 consentRepository.countPendingApprovalExcludingCreator(ConsentStatus.PENDING_APPROVAL, checkerId);
         log.info("DB query completed | method=countPendingApprovalExcludingCreator | size={}", pending);
-        log.info("Executing DB query | method=countApprovedByCheckerSince | param=checkerId={}", checkerId);
-        long approvedToday = consentRepository.countApprovedByCheckerSince(checkerId, startOfDay);
-        log.info("DB query completed | method=countApprovedByCheckerSince | size={}", approvedToday);
-        log.info("Executing DB query | method=countByReviewedBy_IdAndStatus | param=checkerId={}, status=REJECTED", checkerId);
-        long rejectedTotal = consentRepository.countByReviewedBy_IdAndStatus(checkerId, ConsentStatus.REJECTED);
-        log.info("DB query completed | method=countByReviewedBy_IdAndStatus | size={}", rejectedTotal);
-        log.info("Executing DB query | method=countByReviewedBy_Id | param=checkerId={}", checkerId);
-        long totalReviewed = consentRepository.countByReviewedBy_Id(checkerId);
-        log.info("DB query completed | method=countByReviewedBy_Id | size={}", totalReviewed);
+        log.info("Executing DB query | method=checkerDecisionCounts | param=checkerId={}", checkerId);
+        long[] decisions = auditService.checkerDecisionCounts(checkerId, startOfDay);
+        long approvedToday = decisions[0];
+        long rejectedTotal = decisions[1];
+        long totalReviewed = decisions[2];
+        log.info("DB query completed | method=checkerDecisionCounts | approvedToday={} rejected={} total={}",
+                approvedToday, rejectedTotal, totalReviewed);
         CheckerStatsResponse out = CheckerStatsResponse.builder()
                 .pendingReview(pending)
                 .approvedToday(approvedToday)

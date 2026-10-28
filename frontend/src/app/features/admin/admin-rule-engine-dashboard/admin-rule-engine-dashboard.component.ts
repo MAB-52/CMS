@@ -188,6 +188,24 @@ export class AdminRuleEngineDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
+  private notifyRunOutcome(
+    name: string,
+    status: string | undefined,
+    eligible: number | undefined,
+    notes: string | null | undefined,
+  ): void {
+    const detail = [eligible != null ? `${eligible} eligible customer(s)` : '', notes || ''].filter(Boolean).join(' · ');
+    if (status === 'SUCCESS') {
+      this.notify.success('Run completed', `"${name}" ran successfully${detail ? ' — ' + detail : ''}.`);
+    } else if (status === 'PARTIAL') {
+      this.notify.warning('Run partially completed', `"${name}" finished with some failures${detail ? ' — ' + detail : ''}.`);
+    } else if (status === 'FAILED') {
+      this.notify.error('Run failed', `"${name}" could not be delivered${detail ? ' — ' + detail : ''}.`);
+    } else {
+      this.notify.success('Run started', `"${name}" has been triggered. See the execution history for the result.`);
+    }
+  }
+
   canManualRun(rule: ConsentRule): boolean {
     return rule.status === 'LIVE' && !!rule.executionActive;
   }
@@ -198,17 +216,24 @@ export class AdminRuleEngineDashboardComponent implements OnInit, OnDestroy {
       return;
     }
     const tplId = rule.consentTemplateId;
+    const nonEmail = (rule.broadcastChannels || []).filter((c) => c !== 'EMAIL');
     const run = (n: number, infoPanel?: string) => {
+      const channelNote = nonEmail.length
+        ? ` Only Email is delivered at the moment; ${nonEmail.join(', ')} will be recorded as failed.`
+        : '';
       this.confirmDialog.open({
           title: 'Run rule now?',
-          body: `About ${n} customer(s) match the audience for "${rule.ruleName}". Communications will be sent for configured channels (email uses secure consent links to the customer's registered address).`,
+          body: `About ${n} customer(s) match the audience for "${rule.ruleName}". Communications will be sent for configured channels (email uses secure consent links to the customer's registered address).${channelNote}`,
           infoPanel,
           confirmLabel: 'Run now',
           confirmColor: 'success',
         } as ConfirmDialogData).subscribe((ok) => {
         if (!ok) return;
         this.api.manualRun(rule.id).subscribe({
-          next: () => this.loadAll(),
+          next: (res) => {
+            this.loadAll();
+            this.notifyRunOutcome(rule.ruleName, res.data?.status, res.data?.eligibleCount, res.data?.summaryNotes);
+          },
         });
       });
     };

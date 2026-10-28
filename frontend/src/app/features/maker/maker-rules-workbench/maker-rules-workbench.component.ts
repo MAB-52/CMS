@@ -81,6 +81,12 @@ export class MakerRulesWorkbenchComponent implements OnInit {
     this.load();
   }
 
+  clearFilters(): void {
+    this.statusFilter = '';
+    this.searchQuery = '';
+    this.onStatusChange();
+  }
+
   nextPage(): void {
     if (this.hasNext()) {
       this.page.update((p) => p + 1);

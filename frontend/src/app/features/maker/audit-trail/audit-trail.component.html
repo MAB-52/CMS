@@ -63,8 +63,8 @@
   }
 
   <form class="mr-card at-filters" style="--d: 120ms" (ngSubmit)="apply()">
-    <p-selectbutton [options]="scopeOptions()" [ngModel]="scope" (ngModelChange)="setScope($event)" name="scope"
-      optionLabel="label" optionValue="value" [allowEmpty]="false" styleClass="mr-seg" aria-label="Show">
+    <p-selectbutton [options]="tabOptions()" [ngModel]="tab" (ngModelChange)="setTab($event)" name="tab"
+      optionLabel="label" optionValue="value" [allowEmpty]="false" styleClass="mr-seg at-tabs" aria-label="Show">
       <ng-template #item let-o>
         <span class="mr-seg__opt"><i [class]="o.icon"></i>{{ o.label }}
           @if (o.count != null) { <span class="at-seg-count">{{ o.count }}</span> }
@@ -80,18 +80,6 @@
           <input pInputText id="at-search" name="search" type="text" [(ngModel)]="search"
             placeholder="Item name or description…" autocomplete="off" />
         </p-iconfield>
-      </div>
-      <div class="mr-field">
-        <label class="mr-field__label" for="at-type">Item type</label>
-        <p-select inputId="at-type" name="type" [(ngModel)]="type" [options]="typeOptions" optionLabel="label"
-          optionValue="value" appendTo="body" styleClass="mr-input" (onChange)="apply()">
-          <ng-template #selectedItem let-o>
-            <span class="mr-opt"><i [class]="o.icon" [style.color]="o.color"></i>{{ o.label }}</span>
-          </ng-template>
-          <ng-template #item let-o>
-            <span class="mr-opt"><i [class]="o.icon" [style.color]="o.color"></i>{{ o.label }}</span>
-          </ng-template>
-        </p-select>
       </div>
       <div class="mr-field">
         <label class="mr-field__label" for="at-range">Date range</label>
@@ -120,25 +108,27 @@
       [rows]="size()" [first]="page() * size()" [totalRecords]="totalElements()" [rowsPerPageOptions]="[15, 30, 50]"
       paginatorDropdownAppendTo="body" [showCurrentPageReport]="true"
       currentPageReportTemplate="Showing {first}–{last} of {totalRecords}" [expandedRowKeys]="expandedRows"
-      [rowHover]="true" styleClass="mr-table at-table" [tableStyle]="{ 'min-width': '64rem', 'table-layout': 'fixed' }">
+      [rowHover]="true" styleClass="mr-table at-table" [tableStyle]="{ 'min-width': '68rem', 'table-layout': 'fixed' }">
       <ng-template #colgroup>
         <colgroup>
-          <col style="width: 15%" />
-          <col style="width: 19%" />
-          <col style="width: 22%" />
           <col style="width: 17%" />
-          <col style="width: 22%" />
-          <col style="width: 5%" />
+          <col style="width: 20%" />
+          <col style="width: 19%" />
+          <col style="width: 14%" />
+          <col style="width: 14%" />
+          <col style="width: 10%" />
+          <col style="width: 6%" />
         </colgroup>
       </ng-template>
 
       <ng-template #header>
         <tr>
-          <th pTooltip="Date and time the action was recorded" tooltipPosition="top">When</th>
           <th pTooltip="What happened" tooltipPosition="top">Action</th>
-          <th pTooltip="The consent, rule or broadcast affected" tooltipPosition="top">Item</th>
-          <th pTooltip="Who performed the action" tooltipPosition="top">Performed by</th>
-          <th pTooltip="Details recorded with the action" tooltipPosition="top">Details</th>
+          <th pTooltip="Details recorded with the action" tooltipPosition="top">Description</th>
+          <th pTooltip="The consent, rule or broadcast affected" tooltipPosition="top">Entity</th>
+          <th pTooltip="Latest checker decision on this item" tooltipPosition="top">Checker Status</th>
+          <th pTooltip="Checker who made the decision" tooltipPosition="top">Checker</th>
+          <th pTooltip="When the action was recorded" tooltipPosition="top">Time Ago</th>
           <th pTooltip="Expand for full audit details" tooltipPosition="top"></th>
         </tr>
       </ng-template>
@@ -147,18 +137,15 @@
         @let a = actionOf(e.action);
         @let en = entityOf(e.entityType);
         @let decision = isDecision(e);
+        @let st = statusOf(e.checkerStatus);
         <tr class="mr-row" [class.at-row--decision]="decision" [class.at-row--open]="expanded" [style.--i]="i % size()"
           [style.--c]="a.color">
-          <td [pTooltip]="(e.performedAt | date: 'EEEE, dd MMMM yyyy, hh:mm:ss a (zzzz)') ?? ''" tooltipPosition="top">
-            <div class="mr-stack">
-              <span class="at-date">{{ e.performedAt | date: 'dd MMM yyyy' }}</span>
-              <span class="mr-line at-clock"><i class="pi pi-clock"></i>{{ e.performedAt | date: 'hh:mm:ss a' }}</span>
-              <span class="mr-rel">{{ relative(e.performedAt) }}</span>
-            </div>
-          </td>
           <td [pTooltip]="'Action code: ' + e.action" tooltipPosition="top">
             <span class="at-action"><i [class]="a.icon"></i><span class="at-ellipsis">{{ a.label }}</span></span>
             @if (decision) { <span class="at-flag"><i class="pi pi-verified"></i>Checker decision</span> }
+          </td>
+          <td [pTooltip]="e.description || 'No details recorded'" tooltipPosition="top" tooltipStyleClass="at-tip-wide">
+            <span class="at-desc">{{ e.description || '—' }}</span>
           </td>
           <td [pTooltip]="en.label + ': ' + (e.entityName || '—') + (e.entityId != null ? ' (#' + e.entityId + ')' : '')"
             tooltipPosition="top">
@@ -170,21 +157,24 @@
               </div>
             </div>
           </td>
-          <td [pTooltip]="isMine(e) ? 'You performed this action' : (decision ? 'Checker: ' : '') + (e.userName || 'Unknown user')"
-            tooltipPosition="top">
-            <div class="mr-person">
-              <p-avatar [label]="initials(e.userName)" shape="circle" styleClass="mr-avatar at-avatar"
-                [style]="{ background: avatarColor(e.userName) }" />
-              <div class="mr-stack">
-                <span class="mr-strong at-ellipsis">{{ isMine(e) ? 'You' : (e.userName || '—') }}</span>
-                <span class="mr-sub">{{ isMine(e) ? 'Maker' : decision ? 'Checker' : 'Team member' }}</span>
-              </div>
-            </div>
-          </td>
-          <td [pTooltip]="e.description || 'No details recorded'" tooltipPosition="top" tooltipStyleClass="at-tip-wide">
-            <span class="at-desc">{{ e.description || '—' }}</span>
-          </td>
           <td>
+            <p-tag [value]="st.label" [icon]="st.icon" [severity]="st.severity" [rounded]="true" styleClass="at-status" />
+          </td>
+          <td [pTooltip]="e.checkerName ? 'Checker: ' + e.checkerName : 'No checker decision yet'" tooltipPosition="top">
+            @if (e.checkerName) {
+            <div class="mr-person">
+              <p-avatar [label]="initials(e.checkerName)" shape="circle" styleClass="mr-avatar at-avatar"
+                [style]="{ background: avatarColor(e.checkerName) }" />
+              <span class="mr-strong at-ellipsis">{{ e.checkerName }}</span>
+            </div>
+            } @else {
+            <span class="at-none">—</span>
+            }
+          </td>
+          <td [pTooltip]="(e.performedAt | date: 'EEEE, dd MMMM yyyy, hh:mm:ss a') ?? ''" tooltipPosition="top">
+            <span class="at-ago"><i class="pi pi-clock"></i>{{ relative(e.performedAt) }}</span>
+          </td>
+          <td class="at-toggle-cell">
             <p-button type="button" [pRowToggler]="e" icon="pi pi-chevron-down" [text]="true" [rounded]="true"
               severity="secondary" styleClass="at-toggle" [class.at-toggle--open]="expanded"
               [ariaLabel]="(expanded ? 'Hide' : 'Show') + ' audit details'"
@@ -197,7 +187,7 @@
         @let a = actionOf(e.action);
         @let en = entityOf(e.entityType);
         <tr class="at-expand-row">
-          <td colspan="6">
+          <td colspan="7">
             <div class="at-detail" [style.--c]="a.color">
               <dl class="at-detail__grid">
                 <div pTooltip="Exact time the action was recorded" tooltipPosition="top">
@@ -215,6 +205,10 @@
                 <div pTooltip="Who performed the action" tooltipPosition="top">
                   <dt><i class="pi pi-user"></i>Performed by</dt>
                   <dd>{{ e.userName || '—' }}@if (isMine(e)) { <small>You</small> }</dd>
+                </div>
+                <div pTooltip="Latest checker decision on this item" tooltipPosition="top">
+                  <dt><i class="pi pi-verified"></i>Checker status</dt>
+                  <dd>{{ statusOf(e.checkerStatus).label }}@if (e.checkerName) { <small>by {{ e.checkerName }}</small> }</dd>
                 </div>
                 <div pTooltip="Audit log entry ID" tooltipPosition="top">
                   <dt><i class="pi pi-hashtag"></i>Audit ID</dt>
@@ -238,17 +232,18 @@
         @if (loading()) {
         @for (s of skeletonRows; track s) {
         <tr>
-          <td><div class="mr-skel-stack"><p-skeleton width="6rem" /><p-skeleton width="5rem" height=".7rem" /></div></td>
           <td><p-skeleton width="9rem" height="1.6rem" borderRadius="999px" /></td>
-          <td><div class="mr-person"><p-skeleton size="2.25rem" borderRadius="10px" /><div class="mr-skel-stack"><p-skeleton width="8rem" /><p-skeleton width="5rem" height=".7rem" /></div></div></td>
-          <td><div class="mr-person"><p-skeleton shape="circle" size="2rem" /><p-skeleton width="6rem" /></div></td>
-          <td><p-skeleton width="90%" /></td>
+          <td><div class="mr-skel-stack"><p-skeleton width="90%" /><p-skeleton width="60%" height=".7rem" /></div></td>
+          <td><div class="mr-person"><p-skeleton size="2.25rem" borderRadius="10px" /><div class="mr-skel-stack"><p-skeleton width="7rem" /><p-skeleton width="5rem" height=".7rem" /></div></div></td>
+          <td><p-skeleton width="7rem" height="1.6rem" borderRadius="999px" /></td>
+          <td><div class="mr-person"><p-skeleton shape="circle" size="2rem" /><p-skeleton width="5rem" /></div></td>
+          <td><p-skeleton width="4.5rem" /></td>
           <td></td>
         </tr>
         }
         } @else {
         <tr>
-          <td colspan="6">
+          <td colspan="7">
             <div class="mr-empty">
               <span class="mr-empty__ico"><i class="pi pi-history"></i></span>
               @if (activeFilterCount()) {

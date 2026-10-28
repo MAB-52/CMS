@@ -87,7 +87,7 @@
         @case ('DRAFT') {
         <a mat-stroked-button [routerLink]="['/maker/consents', c.id, 'edit']"><mat-icon>edit</mat-icon>Edit</a>
         <button mat-stroked-button type="button" color="warn" (click)="delete(c)"><mat-icon>delete_outline</mat-icon>Delete</button>
-        <button mat-flat-button color="primary" (click)="submit(c)"><mat-icon>send</mat-icon>Submit</button>
+        <button mat-flat-button color="primary" [disabled]="submittingId() !== null" (click)="submit(c)"><mat-icon>send</mat-icon>{{ submittingId() === c.id ? 'Submitting…' : 'Submit' }}</button>
         }
         @case ('PENDING_APPROVAL') {
         <a mat-stroked-button [routerLink]="['/maker/consents', c.id, 'edit']" [queryParams]="{ view: 1 }"><mat-icon>visibility</mat-icon>View</a>

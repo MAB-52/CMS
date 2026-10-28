@@ -85,7 +85,7 @@
           <tr>
             <th>Consent name</th>
             <th>Status</th>
-            <th>Submitted</th>
+            <th>Last updated</th>
             <th class="th-actions">Actions</th>
           </tr>
         </thead>
@@ -111,7 +111,7 @@
               <tr>
                 <td class="name">{{ c.consentName }}</td>
                 <td><app-status-badge [status]="c.status" /></td>
-                <td class="muted">{{ (c.submittedAt || c.updatedAt) ? ((c.submittedAt || c.updatedAt) | timeAgo) : '—' }}</td>
+                <td class="muted">{{ c.updatedAt ? (c.updatedAt | timeAgo) : '—' }}</td>
                 <td class="td-actions">
                   <a class="link" [routerLink]="['/maker/consents', c.id, 'edit']">
                     Open <mat-icon>chevron_right</mat-icon>

@@ -386,7 +386,7 @@ public class ConsentRuleExecutionService {
 		}
 		// TEMP(debug): trace scheduler eligibility — remove after stabilizing recurring
 		// runs
-		System.out.println("[DEBUG rule scheduler] eligibleForAutomaticNow | ruleId=" + r.getId() + " | scheduleType="
+		log.debug("[rule scheduler] eligibleForAutomaticNow | ruleId=" + r.getId() + " | scheduleType="
 				+ r.getScheduleType() + " | executionActive=" + r.isExecutionActive() + " | executionRunning="
 				+ r.isExecutionRunning() + " | lastExecutedAt=" + r.getLastExecutedAt() + " | nextExecutionAt="
 				+ r.getNextExecutionAt() + " | now=" + now + " | returning=" + eligible);
@@ -404,7 +404,7 @@ public class ConsentRuleExecutionService {
 		log.info("DB query completed | method=save | result=completed");
 		// TEMP(debug): trace rule execution lifecycle — remove after stabilizing
 		// recurring runs
-		System.out.println("[DEBUG rule execution] runExecutionLocked start | ruleId=" + rule.getId()
+		log.debug("[rule execution] runExecutionLocked start | ruleId=" + rule.getId()
 				+ " | triggerType=" + triggerType);
 
 		Instant started = Instant.now();
@@ -468,7 +468,7 @@ public class ConsentRuleExecutionService {
 
 		// TEMP(debug): trace rule execution lifecycle — remove after stabilizing
 		// recurring runs
-		System.out.println("[DEBUG rule execution] runExecutionLocked end | ruleId=" + rule.getId() + " | outcome="
+		log.debug("[rule execution] runExecutionLocked end | ruleId=" + rule.getId() + " | outcome="
 				+ outcome + " | nextExecutionAt=" + rule.getNextExecutionAt());
 
 		return toExecutionResponse(saved);

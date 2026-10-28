@@ -22,20 +22,33 @@
         <mat-icon aria-hidden="true">verified_user</mat-icon>
         Workflow Operations
       </div>
+      <p-button label="Refresh" icon="pi pi-refresh" [rounded]="true" [outlined]="true" styleClass="crd-refresh"
+        [loading]="pendingLoading() || feedLoading()" (onClick)="refresh()" pTooltip="Reload the dashboard"
+        tooltipPosition="left" />
+
     </div>
   </section>
 
-  <!-- Stats -->
+  @if (statsError()) {
+  <div class="crd-alert" role="alert">
+    <mat-icon aria-hidden="true">error_outline</mat-icon>
+    <span>Review statistics could not be loaded.</span>
+    <button mat-button type="button" (click)="loadStats()">Retry</button>
+  </div>
+  }
+
   <section class="crd-stats is-stagger">
-    <div class="crd-stat crd-stat--amber">
+    <div class="crd-stat crd-stat--amber"
+      pTooltip="Consents, linked consent + rule pairs, broadcast rules and broadcasts waiting for review"
+      tooltipPosition="top">
       <span class="crd-stat__icon" aria-hidden="true"><mat-icon>hourglass_top</mat-icon></span>
       <div class="crd-stat__body">
         <span class="crd-stat__label">Pending Review</span>
-        <div class="crd-stat__value">{{ stats()?.pendingReview ?? '—' }}</div>
+        <div class="crd-stat__value">{{ pendingCount() ?? '—' }}</div>
       </div>
     </div>
 
-    <div class="crd-stat crd-stat--green">
+    <div class="crd-stat crd-stat--green" pTooltip="Items you approved or published today" tooltipPosition="top">
       <span class="crd-stat__icon" aria-hidden="true"><mat-icon>task_alt</mat-icon></span>
       <div class="crd-stat__body">
         <span class="crd-stat__label">Approved Today</span>
@@ -43,7 +56,7 @@
       </div>
     </div>
 
-    <div class="crd-stat crd-stat--red">
+    <div class="crd-stat crd-stat--red" pTooltip="All items you have rejected (all time)" tooltipPosition="top">
       <span class="crd-stat__icon" aria-hidden="true"><mat-icon>cancel</mat-icon></span>
       <div class="crd-stat__body">
         <span class="crd-stat__label">Rejected</span>
@@ -51,7 +64,8 @@
       </div>
     </div>
 
-    <div class="crd-stat crd-stat--indigo">
+    <div class="crd-stat crd-stat--indigo"
+      pTooltip="Every decision you have made: approvals, rejections and revision requests" tooltipPosition="top">
       <span class="crd-stat__icon" aria-hidden="true"><mat-icon>insights</mat-icon></span>
       <div class="crd-stat__body">
         <span class="crd-stat__label">Total Reviewed</span>
@@ -70,7 +84,7 @@
             Queue
           </div>
           <h2 class="crd-card__title">
-            Pending Consents
+            Waiting Longest
           </h2>
         </div>
 
@@ -79,24 +93,41 @@
           <mat-icon iconPositionEnd>arrow_forward</mat-icon>
         </a>
       </div>
-      @if (!pending().length) {
+      @if (pendingLoading()) {
+      <ul class="crd-list" aria-busy="true">
+        @for (s of skeletons; track s) {
+        <li class="crd-list__item"><div class="is-skeleton crd-skel"></div></li>
+        }
+      </ul>
+      } @else if (pendingError()) {
+      <div class="crd-empty is-empty">
+        <div class="is-empty__icon"><mat-icon>cloud_off</mat-icon></div>
+        <div class="is-empty__title">Couldn't load the queue</div>
+        <div class="is-empty__text">Check your connection and try again.</div>
+        <button mat-stroked-button type="button" (click)="loadPending()"><mat-icon>refresh</mat-icon>Retry</button>
+      </div>
+      } @else if (!topPending().length) {
       <div class="crd-empty is-empty">
         <div class="is-empty__icon"><mat-icon>inbox</mat-icon></div>
         <div class="is-empty__title">All caught up</div>
-        <div class="is-empty__text">No pending consent requests.</div>
+        <div class="is-empty__text">Nothing is waiting for your review.</div>
       </div>
       } @else {
       <ul class="crd-list">
-        @for (c of pending(); track c.id) {
+        @for (p of topPending(); track p.key) {
+        @let k = kindMeta(p.kind);
         <li class="crd-list__item">
-          <a class="crd-list__link" [routerLink]="['/checker/consents', c.id, 'review']">
-            <span class="crd-list__ico" aria-hidden="true"><mat-icon>description</mat-icon></span>
+          <a class="crd-list__link" [routerLink]="p.link">
+            <span class="crd-list__ico" aria-hidden="true"><mat-icon>{{ k.icon }}</mat-icon></span>
             <span class="crd-list__text">
-              <span class="crd-list__name">{{ c.consentName }}</span>
+              <span class="crd-list__name">{{ p.title }}</span>
               <span class="crd-list__meta">
-                <span class="crd-list__id">{{ c.consentId }}</span>
+                <span class="crd-kind" [class]="'crd-kind crd-kind--' + p.kind.toLowerCase()">{{ k.label }}</span>
+                <span class="crd-list__id">{{ p.ref }}</span>
+                @if (p.submittedAt) {
                 <span class="crd-list__dot"></span>
-                <span>{{ c.updatedAt | timeAgo }}</span>
+                <span>Waiting {{ p.submittedAt | timeAgo }}</span>
+                }
               </span>
             </span>
             <span class="crd-list__go" aria-hidden="true">Review <mat-icon>chevron_right</mat-icon></span>
@@ -119,17 +150,35 @@
             Recent Review Activity
           </h2>
         </div>
+        @if (feedTotal()) {
+        <span class="crd-feed-count" pTooltip="All decisions you have made" tooltipPosition="left">
+          <i class="pi pi-history" aria-hidden="true"></i>{{ feedTotal() }} decision{{ feedTotal() === 1 ? '' : 's' }}
+        </span>
+        }
       </div>
 
-      @if (!feed().length) {
+      @if (feedLoading()) {
+      <ul class="crd-list" aria-busy="true">
+        @for (s of skeletons; track s) {
+        <li class="crd-list__item"><div class="is-skeleton crd-skel"></div></li>
+        }
+      </ul>
+      } @else if (feedError()) {
+      <div class="crd-empty is-empty">
+        <div class="is-empty__icon"><mat-icon>cloud_off</mat-icon></div>
+        <div class="is-empty__title">Couldn't load activity</div>
+        <button mat-stroked-button type="button" (click)="loadFeed()"><mat-icon>refresh</mat-icon>Retry</button>
+      </div>
+      } @else if (!feed().length) {
       <div class="crd-empty is-empty">
         <div class="is-empty__icon"><mat-icon>history</mat-icon></div>
-        <div class="is-empty__text">No recent review activity.</div>
+        <div class="is-empty__text">No review decisions yet.</div>
       </div>
       } @else {
       <div class="crd-timeline">
         @for (e of feed(); track e.id; let last = $last) {
-        <div class="crd-timeline__item">
+        @let a = actionMeta(e.action);
+        <div class="crd-timeline__item" [class]="'crd-timeline__item crd-tone--' + a.tone">
           <div class="crd-timeline__spine">
             <div class="crd-timeline__dot"></div>
             @if (!last) {
@@ -137,13 +186,23 @@
             }
           </div>
           <div class="crd-timeline__card">
-            <div class="crd-timeline__action">{{ e.action }}</div>
+            <div class="crd-timeline__action"><mat-icon aria-hidden="true">{{ a.icon }}</mat-icon>{{ a.label }} · {{ entityLabel(e.entityType) }}</div>
+            <div class="crd-timeline__name">{{ e.entityName || '—' }}</div>
+            @if (e.description) {
             <div class="crd-timeline__desc">{{ e.description }}</div>
+            }
             <div class="crd-timeline__meta"><mat-icon aria-hidden="true">schedule</mat-icon>{{ e.performedAt | timeAgo }}</div>
           </div>
         </div>
         }
       </div>
+      }
+
+      @if (feedTotal() > 5) {
+      <p-paginator [first]="feedPage() * feedSize()" [rows]="feedSize()" [totalRecords]="feedTotal()"
+        [rowsPerPageOptions]="[5, 10, 20]" [pageLinkSize]="3" [showFirstLastIcon]="false"
+        [showCurrentPageReport]="true" currentPageReportTemplate="{first}–{last} of {totalRecords}"
+        dropdownAppendTo="body" styleClass="crd-paginator" (onPageChange)="onFeedPage($event)" />
       }
     </section>
   </div>

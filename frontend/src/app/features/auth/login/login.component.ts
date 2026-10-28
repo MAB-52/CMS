@@ -61,6 +61,10 @@ export class LoginComponent {
   });
 
   constructor() {
+    if (this.auth.isLoggedIn() && this.auth.hasPortalRole()) {
+      void this.router.navigateByUrl(this.auth.getRedirectPath(), { replaceUrl: true });
+      return;
+    }
     const saved = this.readRemembered();
     if (saved) {
       this.form.controls.email.setValue(saved);
@@ -94,6 +98,12 @@ export class LoginComponent {
         if (!res.success || !res.data?.token) {
           this.loading.set(false);
           this.errorBanner.set(res.message || 'Sign-in failed.');
+          return;
+        }
+        if (!this.auth.hasPortalRole()) {
+          this.auth.clearSession();
+          this.loading.set(false);
+          this.errorBanner.set('Your account has no portal assigned. Contact your administrator.');
           return;
         }
         this.storeRemembered(trimmed);

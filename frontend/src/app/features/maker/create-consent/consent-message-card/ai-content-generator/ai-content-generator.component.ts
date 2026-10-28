@@ -64,7 +64,7 @@ export class AiContentGeneratorComponent implements OnInit, OnChanges, OnDestroy
 
   @Input() set initialSelectedLanguages(langs: ConsentLanguageCode[] | undefined) {
     if (langs && langs.length) {
-      this.selectedLanguages = langs;
+      this.selectedLanguages = [DEFAULT_LANGUAGE, ...langs.filter((l) => l !== DEFAULT_LANGUAGE)];
     }
   }
 
@@ -186,6 +186,26 @@ export class AiContentGeneratorComponent implements OnInit, OnChanges, OnDestroy
     return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
   }
 
+  private cleanModelText(raw: string): string {
+    return (raw || '')
+      .replace(/<think>[\s\S]*?<\/think>/gi, '')
+      .replace(/^[\s\S]*?<\/think>/i, '')
+      .replace(/^\s*```[a-z]*\s*\n?/i, '')
+      .replace(/\n?\s*```\s*$/i, '')
+      .trim();
+  }
+
+  private toEditorHtml(text: string): string {
+    const escape = (s: string) =>
+      s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    return text
+      .split(/\n\s*\n/)
+      .map((block) => block.trim())
+      .filter(Boolean)
+      .map((block) => `<p>${escape(block).replace(/\n/g, '<br>')}</p>`)
+      .join('');
+  }
+
   // ── Generation ─────────────────────────────────────────────────
   async generate(): Promise<void> {
   if (!this.selectedModel.trim()) {
@@ -243,19 +263,23 @@ export class AiContentGeneratorComponent implements OnInit, OnChanges, OnDestroy
       }
 
       const result = await firstValueFrom(this.aiService.generate(this.selectedModel, finalPrompt));
+      const text = this.cleanModelText(result.text);
+      if (!text) {
+        throw new Error(`The model returned no content for ${targetLabel}. Try again or pick another model.`);
+      }
 
       this.resultsByLanguage[lang] = {
-        text: result.text,
+        text,
         model: result.model,
         durationSec: (result.durationMs / 1000).toFixed(1) + 's',
         tokens: result.tokens,
       };
 
       if (lang === DEFAULT_LANGUAGE) {
-        sourceText = result.text; // fresh English feeds every translation below
+        sourceText = text;
       }
 
-      this.insertContent.emit({ text: result.text, mode: 'replace', languageCode: lang });
+      this.insertContent.emit({ text: this.toEditorHtml(text), mode: 'replace', languageCode: lang });
       this.logger.debug('AiContentGenerator', `Generated ${result.tokens} tokens for "${lang}" in ${result.durationMs}ms`);
     }
 
@@ -296,7 +320,7 @@ clearAll(): void {
   insertIntoEditor(mode: InsertMode): void {
     if (!this.generatedText) return;
 
-    this.insertContent.emit({ text: this.generatedText, mode, languageCode: this.activeLanguage });
+    this.insertContent.emit({ text: this.toEditorHtml(this.generatedText), mode, languageCode: this.activeLanguage });
 
     this.notify.success(
       'AI Generator',

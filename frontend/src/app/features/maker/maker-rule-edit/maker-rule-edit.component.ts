@@ -15,6 +15,7 @@ import { SelectModule } from 'primeng/select';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
+import { RULE_TYPE_OPTIONS, SCENARIO_OPTIONS } from '../../../core/constants/rule-options';
 import { ConsentRulesService, ConsentRuleUpsertPayload } from '../../../core/services/consent-rules.service';
 import { SegmentsService } from '../../../core/services/segments.service';
 import { AudienceDrillDownService } from '../../../core/services/audience-drill-down.service';
@@ -60,7 +61,7 @@ const CHANNELS = ['EMAIL', 'SMS', 'WHATSAPP', 'RCS'] as const;
     RecurringScheduleEditorComponent,
   ],
   templateUrl: './maker-rule-edit.component.html',
-  styleUrl: './maker-rule-edit.component.css',
+  styleUrls: ['../../../shared/styles/rule-fields.css', './maker-rule-edit.component.css'],
 })
 export class MakerRuleEditComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
@@ -165,22 +166,9 @@ export class MakerRuleEditComponent implements OnInit, OnDestroy {
     'VIP_PRIORITY_FAST_TRACK',
   ];
 
-  readonly ruleTypeOptions = [
-    { value: 'PREDEFINED_SCENARIO', label: 'Predefined scenario', icon: 'pi pi-bolt', hint: 'Built-in lifecycle trigger' },
-    { value: 'CUSTOM', label: 'Custom', icon: 'pi pi-sliders-h', hint: 'Your own trigger event' },
-  ];
+  readonly ruleTypeOptions = RULE_TYPE_OPTIONS;
 
-  /** Display metadata for each predefined scenario, in the same order as `scenarios`. */
-  readonly scenarioOptions: { value: PredefinedRuleScenario; label: string; icon: string; desc: string }[] = [
-    { value: 'NEW_CUSTOMER_DETECTED', label: 'New customer detected', icon: 'pi pi-user-plus', desc: 'A newly onboarded customer needs consent' },
-    { value: 'CONSENT_NEARING_EXPIRY', label: 'Consent nearing expiry', icon: 'pi pi-hourglass', desc: 'Consent is close to the end of its validity' },
-    { value: 'EXPIRED_CONSENT', label: 'Expired consent', icon: 'pi pi-calendar-times', desc: 'Consent validity has already ended' },
-    { value: 'FIRST_SEND_NO_RESPONSE', label: 'No response to first send', icon: 'pi pi-send', desc: 'Customer has not answered the first request' },
-    { value: 'REMINDER_1_NO_RESPONSE', label: 'No response after reminder 1', icon: 'pi pi-bell', desc: 'Still no answer after the first reminder' },
-    { value: 'REMINDER_2_NO_RESPONSE', label: 'No response after reminder 2', icon: 'pi pi-bell', desc: 'Still no answer after the second reminder' },
-    { value: 'DECLINED_RE_ENGAGEMENT_AFTER_COOLDOWN', label: 'Re-engage after decline', icon: 'pi pi-replay', desc: 'Customer declined earlier and the cooldown has passed' },
-    { value: 'VIP_PRIORITY_FAST_TRACK', label: 'VIP priority fast track', icon: 'pi pi-star', desc: 'Priority handling for VIP customers' },
-  ];
+  readonly scenarioOptions = SCENARIO_OPTIONS;
 
   form: ConsentRuleUpsertPayload = {
     ruleName: '',
@@ -191,7 +179,7 @@ export class MakerRuleEditComponent implements OnInit, OnDestroy {
     primarySegment: 'CONSENT_EXPIRING',
     additionalSegmentCodes: [],
     scheduleType: 'IMMEDIATE',
-    selectedSegments: ['CONSENT_EXPIRING'],
+    selectedSegments: [],
     scheduledAt: '',
     recurringCron: '',
     broadcastChannels: ['EMAIL'],
@@ -207,6 +195,8 @@ export class MakerRuleEditComponent implements OnInit, OnDestroy {
     this.segmentsApi.list().subscribe((s) => {
       if (s.success && s.data) {
         this.segments.set(s.data);
+        const selectable = new Set(s.data.filter((x) => x.selectable).map((x) => x.code));
+        this.form.selectedSegments = (this.form.selectedSegments ?? []).filter((c) => selectable.has(c));
         this.refreshDrillDownPreview();
       }
     });
@@ -402,11 +392,16 @@ export class MakerRuleEditComponent implements OnInit, OnDestroy {
     return (this.form.broadcastChannels || []).includes(ch);
   }
 
+  hasNonEmailChannel(): boolean {
+    return (this.form.broadcastChannels || []).some((c) => c !== 'EMAIL');
+  }
+
   // ── Save / submit ──────────────────────────────────────────────────────────
 
   /** Everything still missing before the rule can be saved or submitted, in form order. */
   ruleBlockers(): string[] {
     const out: string[] = [];
+    if (!this.form.ruleName?.trim()) out.push('Rule name is required');
     if (this.form.consentTemplateId == null) out.push('Select an approved consent template');
     if ((this.form.selectedSegments?.length ?? 0) === 0) out.push('Select at least one audience segment');
     if ((this.form.broadcastChannels?.length ?? 0) === 0) out.push('Select at least one broadcast channel');
@@ -422,20 +417,6 @@ export class MakerRuleEditComponent implements OnInit, OnDestroy {
 
   scheduleInPast(): boolean {
     return !!this.form.scheduledAt && new Date(this.form.scheduledAt).getTime() <= Date.now();
-  }
-
-  /** Save/submit failed: show why (field errors, server message, or offline). */
-  private showError(
-    err: { status?: number; error?: { message?: string; errorCode?: string; data?: unknown } },
-    title: string,
-  ): void {
-    let msg = err?.error?.message || 'Please try again.';
-    if (err?.status === 0) {
-      msg = 'Cannot reach the server. Check your connection — your changes are still on this page.';
-    } else if (err?.error?.errorCode === 'VALIDATION_ERROR' && err.error.data && typeof err.error.data === 'object') {
-      msg = Object.values(err.error.data as Record<string, string>).join('; ') || msg;
-    }
-    this.notify.error(title, msg);
   }
 
   saveDraft(): void {
@@ -458,10 +439,7 @@ export class MakerRuleEditComponent implements OnInit, OnDestroy {
             void this.router.navigate(['/maker/rules', res.data.id], { replaceUrl: true });
           }
         },
-        error: (err) => {
-          this.busy.set(false);
-          this.showError(err, 'Draft not saved');
-        },
+        error: () => this.busy.set(false),
       });
     } else {
       const id = this.ruleId()!;
@@ -474,10 +452,7 @@ export class MakerRuleEditComponent implements OnInit, OnDestroy {
             this.loadAudit(id);
           }
         },
-        error: (err) => {
-          this.busy.set(false);
-          this.showError(err, 'Draft not saved');
-        },
+        error: () => this.busy.set(false),
       });
     }
   }
@@ -488,19 +463,20 @@ export class MakerRuleEditComponent implements OnInit, OnDestroy {
       this.notify.warning('Cannot submit yet', blockers.join('; '));
       return;
     }
+    if (this.busy()) {
+      return;
+    }
     const run = (id: number) => {
       this.rulesApi.submit(id).subscribe({
         next: (res) => {
-          this.busy.set(false);
           if (res.success) {
             this.notify.success('Submitted', res.message || '');
             void this.router.navigateByUrl('/maker/rules');
+          } else {
+            this.busy.set(false);
           }
         },
-        error: (err) => {
-          this.busy.set(false);
-          this.showError(err, 'Not submitted');
-        },
+        error: () => this.busy.set(false),
       });
     };
     this.busy.set(true);
@@ -508,20 +484,32 @@ export class MakerRuleEditComponent implements OnInit, OnDestroy {
       this.rulesApi.create(this.payload()).subscribe({
         next: (res) => {
           if (res.success && res.data) {
-            this.ruleId.set(res.data.id);
+            const id = res.data.id;
+            this.ruleId.set(id);
             this.isNew.set(false);
-            run(res.data.id);
+            this.rule.set(res.data);
+            this.loadAudit(id);
+            void this.router.navigate(['/maker/rules', id], { replaceUrl: true });
+            run(id);
           } else {
             this.busy.set(false);
           }
         },
-        error: (err) => {
-          this.busy.set(false);
-          this.showError(err, 'Not submitted');
-        },
+        error: () => this.busy.set(false),
       });
     } else {
-      run(this.ruleId()!);
+      const id = this.ruleId()!;
+      this.rulesApi.saveDraft(id, this.payload()).subscribe({
+        next: (res) => {
+          if (res.success && res.data) {
+            this.rule.set(res.data);
+            run(id);
+          } else {
+            this.busy.set(false);
+          }
+        },
+        error: () => this.busy.set(false),
+      });
     }
   }
 

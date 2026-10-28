@@ -9,6 +9,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { BadgeModule } from 'primeng/badge';
 import { PopoverModule } from 'primeng/popover';
 import { AvatarModule } from 'primeng/avatar';
+import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { ScrollPanel, ScrollPanelModule } from 'primeng/scrollpanel';
 import { filter } from 'rxjs';
@@ -35,6 +36,7 @@ import { ShellDockService } from './shell-dock.service';
     BadgeModule,
     PopoverModule,
     AvatarModule,
+    ButtonModule,
     TagModule,
     ScrollPanelModule,
   ],

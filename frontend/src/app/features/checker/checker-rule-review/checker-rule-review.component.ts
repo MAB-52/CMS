@@ -119,7 +119,9 @@ export class CheckerRuleReviewComponent implements OnInit {
       this.busy.set(true);
       this.api.review(r.id, { action: 'APPROVE', approveReason }).subscribe({
         next: (res) => {
-          this.busy.set(false);
+          if (!res.success) {
+            this.busy.set(false);
+          }
           if (res.success) {
             this.notify.success('Approved', res.message || '');
             setTimeout(() => void this.router.navigateByUrl('/checker/rules/pending'), 1200);
@@ -152,7 +154,9 @@ export class CheckerRuleReviewComponent implements OnInit {
       this.busy.set(true);
       this.api.review(r.id, { action: 'REQUEST_REVISION', revisionMessage: result.message }).subscribe({
         next: (res) => {
-          this.busy.set(false);
+          if (!res.success) {
+            this.busy.set(false);
+          }
           if (res.success) {
             this.notify.warning('Revision requested', res.message || '');
             setTimeout(() => void this.router.navigateByUrl('/checker/rules/pending'), 1200);
@@ -185,7 +189,9 @@ export class CheckerRuleReviewComponent implements OnInit {
       this.busy.set(true);
       this.api.review(r.id, { action: 'REJECT', reason: result.message }).subscribe({
         next: (res) => {
-          this.busy.set(false);
+          if (!res.success) {
+            this.busy.set(false);
+          }
           if (res.success) {
             this.notify.error('Rejected', res.message || '');
             setTimeout(() => void this.router.navigateByUrl('/checker/rules/pending'), 1200);

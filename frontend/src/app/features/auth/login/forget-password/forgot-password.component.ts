@@ -387,22 +387,24 @@ verifyOtp(): void {
   }
 
   private startResendCooldown(): void {
+    const deadline = Date.now() + 60_000;
     this.resendCooldown.set(true);
     this.resendTimer.set(60);
-    
+
     if (this.resendSubscription) {
       this.resendSubscription.unsubscribe();
     }
-    
+
     this.resendSubscription = interval(1000).subscribe(() => {
-      if (this.resendTimer() <= 1) {
+      const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      if (remaining === 0) {
         this.resendCooldown.set(false);
         this.resendTimer.set(0);
         if (this.resendSubscription) {
           this.resendSubscription.unsubscribe();
         }
       } else {
-        this.resendTimer.update(t => t - 1);
+        this.resendTimer.set(remaining);
       }
     });
   }

@@ -30,7 +30,7 @@
       }
     </div>
     <span class="is-sr-only">Loading rules…</span>
-  } @else if (!rows().length) {
+  } @else if (!rows().length && !statusFilter) {
     <div class="state-card empty">
       <div class="state-ico" aria-hidden="true"><mat-icon>rule</mat-icon></div>
       <div class="state-title">No rules yet</div>
@@ -126,8 +126,14 @@
       }
     </div>
 
-    <!-- No matches message -->
-    @if (rows().length && !displayedRows().length) {
+    @if (!rows().length) {
+      <div class="state-card empty">
+        <div class="state-ico" aria-hidden="true"><mat-icon>filter_alt_off</mat-icon></div>
+        <div class="state-title">No rules match this filter</div>
+        <p>Try another status, or clear the filter to see all your rules.</p>
+        <button mat-stroked-button type="button" (click)="clearFilters()"><mat-icon>filter_alt_off</mat-icon>Clear filter</button>
+      </div>
+    } @else if (!displayedRows().length) {
       <div class="no-matches">
         No rules on this page match your name filter.
       </div>
